@@ -163,7 +163,9 @@ function pwWert(d, i) {
     const q = pwFragenIn(d, 3).length, fr = q ? " · " + (q === 1 ? t("pjw_frage1") : t("pjw_fragen", { n: q })) : "";
     if (ms.length > 1) return t("pjw_w_ums_n", { n: ms.length, f: ms.reduce((s, m) => s + m.fertig, 0), g: ms.reduce((s, m) => s + m.pakete.length, 0) }) + fr;   /* A2061 */
     return t("pjw_w_ums", { m: pwM(ms[0]), f: ms[0].fertig, n: ms[0].pakete.length }) + fr; }
-  const w = a.filter(x => x.bereit && !x.frei); if (w.length) return `${w.map(x => pwM(x)).join(", ")} · ${t("pjw_bereit")}`;
+  const offen = a.filter(x => x.bereit && !x.frei), w = offen.filter(x => x.bei_dir);            /* A2082: „bereit zur Abnahme“ nur, was der Mensch abnehmen kann */
+  if (w.length) return `${w.map(x => pwM(x)).join(", ")} · ${t("pjw_bereit")}`;
+  if (offen.length) return offen.map(x => `${pwM(x)} · ${t("pjw_l_" + x.lage)}`).join(", ");
   const z = a.filter(x => x.frei).at(-1); return z ? `${pwM(z)} · ${t("pjw_abgenommen")}` : "–";
 }
 const pwStatus = (text, art) => el("span", { class: "pjw-status" + (art ? " " + art : "") }, text);
@@ -347,7 +349,8 @@ function pwUmsetzung(d) {
     const offen = m.pakete.filter(p => p.status !== "fertig"), fertig = m.pakete.filter(p => p.status === "fertig");
     const jetzt = offen.filter(p => p.status === "laeuft").length;
     const block = el("div", { class: "pjw-ums", "data-bogen": m.bogen },
-      el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(m)} ${m.titel}`), pwStatus(t("pjw_f_von_n", { f: m.fertig, n: m.pakete.length }))),
+      el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(m)} ${m.titel}`, (d.laufende || []).some(x => x.bogen === m.bogen) ? el("span", { class: "pjw-laufend" }, " · " + t("pjw_laufend")) : null),
+        pwStatus(t("pjw_f_von_n", { f: m.fertig, n: m.pakete.length }))),
       el("div", { class: "pjw-balken" }, el("span", { style: `width:${m.pakete.length ? Math.round(m.fertig / m.pakete.length * 100) : 0}%` })),
       offen.length ? el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, jetzt), " ", t("pjw_laeuft_jetzt")),
         el("span", {}, el("b", {}, offen.length - jetzt), " ", t("pjw_noch_offen"))) : null,
@@ -360,37 +363,38 @@ function pwUmsetzung(d) {
   return teile;
 }
 function pwAbschlussKarte(x, einzig, haupt) {
+  /* A2082 (B2938): x.lage kommt vom Server (abschlusslage.lage). Dran ist der Mensch nur, wenn x.bei_dir – sonst steht neutral da,
+     was fehlt und dass der Lead es klärt; die Knöpfe bleiben, als normale Knöpfe. */
   /* A2064: Abnehmen nur mit Prüfliste – Gesamttest ✓ (oder keiner eingestellt), jedes Thema erfüllt, Prüfer ohne Fehler,
      Abschlussbericht da. Sonst steht da, was noch fehlt; Nacharbeit geht immer. */
   const p = x.pruefung, test = (p && p.test) || {};
   const zeile = (ok, text) => el("div", {}, el("span", { class: ok === null ? "leise" : ok ? "pjw-ok" : "pjw-nein" }, ok === null ? "–" : ok ? "✓" : "○"), el("span", {}, text));
-  const testOk = !!p && (!test.befehl || test.rc === 0);
-  const themenOk = !!p && (p.ziel ? p.ziel.erfuellt && p.themen.every(th => th.erfuellt)       // A2072: Meilenstein ohne Themen – das Ziel
-                                  : p.themen.length > 0 && p.themen.every(th => th.erfuellt));
-  const listeOk = testOk && themenOk && !p.fehler;
-  const karte = el("div", { class: "pjw-karte pjw-ab-karte", "data-bogen": x.bogen },
-    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), pwStatus(t("pjw_wartet_dich"), "dran")));
-  if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), zeile(false, t("pjw_dein_ja"))));
+  const testOk = !!p && (!test.befehl || test.rc === 0), abnehmbar = x.lage === "abnehmbar";
+  const karte = el("div", { class: "pjw-karte pjw-ab-karte", "data-bogen": x.bogen, "data-lage": x.lage },
+    el("div", { class: "pjw-kopf" }, el("h3", {}, `${pwM(x)} ${x.titel}`), x.bei_dir ? pwStatus(t("pjw_wartet_dich"), "dran") : pwStatus(t("pjw_l_" + x.lage))));
+  const ja = x.bei_dir ? zeile(false, t("pjw_dein_ja")) : null;
+  if (!p) karte.append(el("div", { class: "pjw-pruefung" }, zeile(false, x.pruefung_laeuft ? t("pjw_a_laeuft") : t("pjw_a_ohne")), ja));
   else {
     karte.append(el("div", { class: "pjw-pruefung" },
       zeile(test.befehl ? testOk : null, !test.befehl ? t("pjw_test_kein") : test.rc === 0 ? t("pjw_test_gruen", { n: x.pakete }) : t("pjw_test_rot", { l: test.lauf })),
       ...p.themen.map(th => zeile(th.erfuellt, th.erfuellt ? t("pjw_thema_ok", { x: th.thema }) + (th.beleg ? " – " + th.beleg : "") : t("pjw_thema_fehlt", { x: th.thema, y: th.fehlt || "–" }))),
       p.ziel ? zeile(p.ziel.erfuellt, p.ziel.erfuellt ? t("pjw_thema_ok", { x: t("pjw_ziel_fertig") }) + (p.ziel.beleg ? " – " + p.ziel.beleg : "")
                                                       : t("pjw_thema_fehlt", { x: t("pjw_ziel_fertig"), y: p.ziel.fehlt || "–" })) : null,
-      p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.gruende.map(g => t("pjw_ax_" + g.art, g.x)).join(" · ") })) : null,
-      zeile(false, t("pjw_dein_ja"))));
+      p.fehler ? zeile(false, t("pjw_a_pruefer_fehler_z", { x: p.gruende.map(g => t("pjw_ax_" + g.art, g.x)).join(" · ") })) : null, ja));
     if (p.vorfuehrung.length) karte.append(el("div", { class: "pjw-wie" }, el("span", { class: "pjw-lbl" }, t("pjw_vorfuehrung")), el("ol", {}, p.vorfuehrung.map(s => el("li", {}, s)))));
   }
   if (x.bericht) karte.append(el("div", { class: "pjw-werte" }, el("a", { href: "#", onclick: e => { e.preventDefault(); dokumentDialog(x.bericht); } }, t("pjw_bericht"))));
   if (API) return karte;
   /* Die Handlung dieser Karte: abnehmen (Prüfliste vollständig) – oder die Prüfung nachholen (A2064, TL #32217: Meilensteine,
      die vor A2029 bereit wurden, bekommen sie nie von selbst). Hauptknopf nur auf der ersten Karte (eine Hauptaktion je Ansicht). */
-  const handlung = listeOk && x.bericht
+  const handlung = abnehmbar
     ? pwKnopf(t("pjw_abnehmen_m", { m: pwM(x) }), () => pwTun("/api/meilenstein/freigeben", { bogen: x.bogen, art: "abschluss" }, t("pjw_ok_abgenommen")), haupt)
     : (!p || p.fehler) && !x.pruefung_laeuft ? pwKnopf(t(p ? "pjw_a_erneut" : "pjw_a_starten"),       // A2072: nach einem Fehler erneut
-        () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt) : null;
-  if (!(listeOk && x.bericht)) karte.append(el("div", { class: "leise" }, !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
-    : p.fehler ? t("pjw_a_pruefer_fehler") : !listeOk ? t("pjw_a_nicht_erfuellt") : t("pjw_bericht_kommt")));
+        () => pwTun("/api/projektweg/pruefung-starten", { bogen: x.bogen }, t("pjw_ok_pruefung")), haupt && x.bei_dir) : null;
+  if (!abnehmbar) karte.append(el("div", { class: "leise pjw-a-lage" }, !x.bei_dir ? t("pjw_ll_" + x.lage)
+    : !p ? (x.pruefung_laeuft ? t("pjw_a_laeuft_lang") : t("pjw_a_ohne_lang"))
+    : p.fehler ? t("pjw_a_pruefer_fehler") : x.lage === "nicht_erfuellt" ? t("pjw_a_nicht_erfuellt") : t("pjw_bericht_kommt")));
+  einzig = einzig && x.bei_dir;                                       /* oben steht nur, was der Mensch tun soll */
   if (handlung && einzig) pwHaupt = handlung;
   const id = "pjw-hw-" + x.bogen;
   karte.append(pwHinweisFeld(t("pjw_nacharbeit_ph"), id),
@@ -401,14 +405,16 @@ function pwAbschlussKarte(x, einzig, haupt) {
 function pwAbschluss(d) {
   /* A2064 (Marcel 24.11.): alle Meilensteine, die auf die Abnahme warten, als Liste – nicht nur einer. */
   const a = d.abschluss;
-  const warten = a.filter(x => x.bereit && !x.frei).sort((x, y) => y.bogen - x.bogen);
+  const warten = a.filter(x => x.bereit && !x.frei).sort((x, y) => (y.bei_dir - x.bei_dir) || (y.bogen - x.bogen));   /* A2082: zuerst, was der Mensch tun kann */
+  const laufend = (d.laufende || []).filter(x => x.ruht).map(x => el("div", { class: "leise pjw-a-laufend", "data-bogen": x.bogen }, t("pjw_a_laufend_z", { m: pwM(x), x: x.titel })));
   if (!warten.length) {
     const z = a.filter(x => x.frei).at(-1);
-    if (z) return [el("div", { class: "leise pjw-a-zuletzt" }, t("pjw_a_keiner_z", { m: pwM(z), x: z.titel }))];   /* Inhalt, nicht „leer“: sonst zeigte der offene Schritt nur „So läuft …“ */
-    return [el("div", { class: "leer" }, a.length ? t("pjw_a_keiner") : t("pjw_a_leer"))];
+    if (z) return [el("div", { class: "leise pjw-a-zuletzt" }, t("pjw_a_keiner_z", { m: pwM(z), x: z.titel })), ...laufend];   /* Inhalt, nicht „leer“: sonst zeigte der offene Schritt nur „So läuft …“ */
+    return laufend.length ? laufend : [el("div", { class: "leer" }, a.length ? t("pjw_a_keiner") : t("pjw_a_leer"))];
   }
-  return [warten.length > 1 ? el("div", { class: "leise" }, t("pjw_a_warten_n", { n: warten.length })) : null,
-    ...warten.map((x, i) => pwAbschlussKarte(x, warten.length === 1, i === 0))].filter(Boolean);
+  const dran = warten.filter(x => x.bei_dir).length;
+  return [dran > 1 ? el("div", { class: "leise" }, t("pjw_a_warten_n", { n: dran })) : !dran ? el("div", { class: "leise" }, t("pjw_a_keiner")) : null,
+    ...warten.map((x, i) => pwAbschlussKarte(x, warten.length === 1, i === 0)), ...laufend].filter(Boolean);
 }
 function pwAuftragMehr(p) {
   /* A2075: der Anfang steht da, „mehr“ holt den ganzen Auftrag (wie der Aufgaben-Dialog, auch online für offene Pakete). */

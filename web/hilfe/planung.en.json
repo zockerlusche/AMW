@@ -91,7 +91,11 @@
   ],
   [
    "What happens when a milestone is done?",
-   "Before it shows as “ready for acceptance”, the project's full test and a checker run: it compares every topic of the milestone with what was built and prepares the demo – both then appear in the closing report. If something is missing or the test is red, AMW creates rework in the same milestone and starts it right away; you get a note. At acceptance you can request rework instead of saying yes (`amw bogen nacharbeit N --hinweis \"what is missing\"`): the planner plans new packages for it, and they start without another yes."
+   "Before it shows as “ready for acceptance”, the project's full test and a checker run: it compares every topic of the milestone with what was built and prepares the demo – both then appear in the closing report. If something is missing or the test is red, AMW creates rework in the same milestone and starts it right away; you get a note. At acceptance you can request rework instead of saying yes (`amw bogen nacharbeit N --hinweis \"what is missing\"`): the planner plans new packages for it, and they start without another yes. “Waiting for you” appears only when you can accept: if the check is missing or failed, the lead takes care of it (`amw bogen pruefung-starten N`) and you just see where it stands. In a project without a lead it is up to you."
+  ],
+  [
+   "What is an ongoing milestone?",
+   "One without a natural end, for example maintenance. The lead or the human switches it with `amw bogen laufend N an`; it then comes up for acceptance only once it is submitted with `amw bogen vorlegen N` (no open packages, with the same check as usual). If a package is added afterwards, the submission no longer counts. It does not hold up the planning of the next milestone. `amw bogen laufend N aus` turns it back into a normal milestone."
   ],
   [
    "What does the “Project path” page show?",

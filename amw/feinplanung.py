@@ -108,8 +108,9 @@ def letztes_laeuft(con, bid):
 def anlass(con, pid):
     """Warum jetzt fein planen? „erster“ (kein Meilenstein läuft), „bereit“ (der laufende ist bereit zur Abnahme), „letztes“
     (sein letztes Paket läuft) – oder None, solange ein laufender noch Pakete vor sich hat."""
-    from . import planautomatik
-    aktiv = con.execute("SELECT * FROM bogen WHERE projekt_id = ? AND status = 'aktiv' ORDER BY nr, id", (pid,)).fetchall()
+    from . import abschlusslage, planautomatik
+    aktiv = [b for b in con.execute("SELECT * FROM bogen WHERE projekt_id = ? AND status = 'aktiv' ORDER BY nr, id", (pid,)).fetchall()
+             if not abschlusslage.laufend(con, b["id"])]     # A2082: ein laufender hat kein Ende – er hält den nächsten nicht auf
     if not aktiv:
         return "erster"
     for b in aktiv:

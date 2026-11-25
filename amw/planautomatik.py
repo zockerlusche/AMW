@@ -306,7 +306,8 @@ def mit_urteil(b):
 
 def bereit_zur_abnahme(con, b):
     """A2002: Meilenstein mit Urteil, geplant oder aktiv, mit Paketen und ohne offenes – wartet auf das Ja zum Abschluss."""
-    if b["status"] not in ("geplant", "aktiv") or not mit_urteil(b):
+    from . import abschlusslage
+    if b["status"] not in ("geplant", "aktiv") or not mit_urteil(b) or abschlusslage.ruht(con, b):   # A2082: laufend, nicht vorgelegt
         return False
     n = con.execute("SELECT count(*), sum(status NOT IN ('fertig', 'verworfen')) FROM aufgabe WHERE bogen_id = ?", (b["id"],)).fetchone()
     return bool(n[0]) and not n[1]
@@ -337,13 +338,23 @@ def _bereit_melden(con, pid, b, letzte):
     return (b["id"], "bereit")
 
 
+def bereit_melden(con, pid, b):
+    """A2082: „bereit zur Abnahme“ für den aktuellen Stand melden (einmal) und, wer dran ist, benachrichtigen."""
+    from . import abschlusslage
+    letzte = con.execute("SELECT max(coalesce(fertig_utc, geaendert_utc, angelegt_utc)) FROM aufgabe WHERE bogen_id = ?",
+                         (b["id"],)).fetchone()[0] or ""
+    r = _bereit_melden(con, pid, b, letzte)
+    abschlusslage.melden(con, pid, b)
+    return r
+
+
 def meilenstein_projekt(con, pid):
     """Geplante oder aktive Meilensteine mit mindestens einer Aufgabe und keiner offenen: Vorschlag an den Lead (einmal je Stand)
     oder – Projekt-Einstellung meilenstein_fertig = automatisch – selbst abschließen; hält die Versions-Pflicht das auf, wird es
     ein Vorschlag mit Grund. A2002: endet er mit einem Urteil, bleibt er offen und ist „bereit zur Abnahme“ (Abschlussbericht,
     Meldung an Lead und Co) – fertig wird er erst mit dem Ja zum Abschluss (planansicht.freigeben). Rückgabe [(Bogen-Nr,
     „fertig“ | „vorschlag“ | „bereit“)]."""
-    from . import planung
+    from . import abschlusslage, planung
     if not an(con, pid):
         return []
     auto = kern.projekt_wahl(con, pid, "meilenstein_fertig") == "automatisch"
@@ -353,13 +364,15 @@ def meilenstein_projekt(con, pid):
             "SELECT b.* FROM bogen b WHERE b.projekt_id = ? AND b.status IN ('geplant', 'aktiv') AND EXISTS"
             " (SELECT 1 FROM aufgabe a WHERE a.bogen_id = b.id) AND NOT EXISTS (SELECT 1 FROM aufgabe a WHERE a.bogen_id = b.id"
             " AND a.status NOT IN ('fertig', 'verworfen'))", (pid,)).fetchall():
+        if abschlusslage.ruht(con, b):                   # A2082: laufend – bleibt offen, bis Lead oder Mensch ihn vorlegt
+            continue
         letzte = con.execute("SELECT max(coalesce(fertig_utc, geaendert_utc, angelegt_utc)) FROM aufgabe WHERE bogen_id = ?",
                              (b["id"],)).fetchone()[0] or ""
         if mit_urteil(b):                                # A2002: nie selbst schließen, nie „abschließen?“ – das Urteil fehlt noch
             from . import abschluss                      # A2029: erst Gesamttest und Prüfer gegen das Konzept, dann „bereit“
             if not _schon_bereit(con, b, letzte) and abschluss.vor_bereit(con, pid, b, _stand(con, b, letzte)) != "melden":
                 continue
-            r = _bereit_melden(con, pid, b, letzte)
+            r = bereit_melden(con, pid, b)
             if r:
                 aus.append(r)
             continue

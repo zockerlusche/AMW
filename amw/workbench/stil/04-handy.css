@@ -122,6 +122,7 @@
 .pjw-kopf h3 { font-size: 17px; }
 .pjw-zurueck { display: none; }
 .pjw-status { font-size: 13px; padding: 1px 10px; border-radius: 11px; border: 1px solid var(--linie2); color: var(--leise); white-space: nowrap; }
+.pjw-laufend { color: var(--sehrleise); font-weight: 400; font-size: 13px; white-space: nowrap; }
 .pjw-status.dran { border-color: var(--bernstein); color: var(--bernstein); font-weight: 600; }
 .pjw-status.frei { border-color: transparent; color: var(--sehrleise); }
 .pjw-status.laeuft { border-color: var(--tinte); color: var(--tinte); }

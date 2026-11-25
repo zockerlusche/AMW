@@ -304,53 +304,52 @@ def umsetzung(fein_):
     return {"meilensteine": laufend}
 
 
-def _pruef_stand(con, b):
-    """Der Stand, zu dem die AMW die Abschlussprüfung führt – derselbe wie in planautomatik.meilenstein_projekt."""
-    from . import planautomatik
-    letzte = con.execute("SELECT max(coalesce(fertig_utc, geaendert_utc, angelegt_utc)) FROM aufgabe WHERE bogen_id = ?",
-                         (b["id"],)).fetchone()[0] or ""
-    return planautomatik._stand(con, b, letzte)
-
-
 def pruefung_starten(con, pid, von, bid):
     """A2064 (TL #32217): Meilensteine, die vor A2029 „bereit zur Abnahme“ wurden, bekommen ihre Prüfung nie von selbst – der
     Mensch (oder der Lead) holt sie nach: Gesamttest und Prüfer gegen das Konzept (abschluss.vor_bereit, Tagesgrenze der Planer
     gilt). Rückgabe {"ergebnis": "pruefung" | "melden" | "nacharbeit"}."""
-    from . import abschluss as ab, planautomatik
+    from . import abschluss as ab, abschlusslage, planautomatik
     if not (von == kern.ENTWICKLER or kern.ist_lead(con, pid, von)):
         raise kern.AmwFehler("Die Abschlussprüfung holen der Mensch oder der Lead nach")
     b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (bid, pid)).fetchone()
     if not b:
         raise kern.AmwFehler(f"Meilenstein {bid} gibt es nicht")
+    if abschlusslage.ruht(con, b):
+        raise kern.AmwFehler(f"M{b['nr']} ist laufend – die Prüfung startet, wenn er vorgelegt wird: amw bogen vorlegen {bid}")
     if not planautomatik.bereit_zur_abnahme(con, b):
         raise kern.AmwFehler(f"M{b['nr']} ist nicht bereit zur Abnahme – die Prüfung startet die AMW selbst, wenn alle Pakete fertig sind")
-    e = ab.ergebnis(con, pid, bid)
+    e = abschlusslage.ergebnis(con, pid, b)
     if e and not (e.get("fehler") and not e.get("angelegt")):    # A2072: ein Ergebnis mit Fehler zählt nicht – erneut starten geht
         raise kern.AmwFehler(f"M{b['nr']} hat schon ein Prüf-Ergebnis – bei Bedarf Nacharbeit anfordern")
-    stand = _pruef_stand(con, b)
+    stand = abschlusslage.stand(con, b)
     if ab._laeuft(con, pid, bid, stand):
         raise kern.AmwFehler(f"M{b['nr']}: die Prüfung läuft schon")
     return {"ergebnis": ab.vor_bereit(con, pid, b, stand, erneut=True)}
 
 
 def abschluss(con, pid, freigaben):
-    from . import abschluss as ab, planautomatik
+    from . import abschluss as ab, abschlusslage
     aus = []
     for a in freigaben["abnahme"]:
         b = con.execute("SELECT * FROM bogen WHERE id = ?", (a["bogen"],)).fetchone()
-        e = ab.ergebnis(con, pid, a["bogen"]) or {}
-        bereit = bool(planautomatik.bereit_zur_abnahme(con, b))
-        laeuft = bool(bereit and (not e or e.get("fehler")) and ab._laeuft(con, pid, a["bogen"], _pruef_stand(con, b)))
-        if laeuft:
-            e = {}                                        # A2072: neu gestartet nach einem Fehler – die Karte zeigt „läuft“
+        lage = abschlusslage.lage(con, pid, b)            # A2082: wie es steht und wer dran ist – die Seite rechnet nichts davon selbst
+        e = {} if lage == "laeuft" else (abschlusslage.ergebnis(con, pid, b) if lage else ab.ergebnis(con, pid, a["bogen"])) or {}
         aus.append({"bogen": a["bogen"], "nr": a["nr"], "titel": a["titel"], "status": b["status"], "frei": a["frei"],
-                    "bereit": bereit, "bericht": a["bericht"],
-                    "pruefung_laeuft": laeuft,
+                    "bereit": lage is not None, "bericht": a["bericht"], "lage": lage, "bei_dir": abschlusslage.bei_mensch(con, pid, lage),
+                    "pruefung_laeuft": lage == "laeuft",
                     "pakete": con.execute("SELECT count(*) FROM aufgabe WHERE bogen_id = ? AND status != 'verworfen'", (a["bogen"],)).fetchone()[0],
                     "pruefung": {"test": e.get("test"), "themen": e.get("themen") or [], "vorfuehrung": e.get("vorfuehrung") or [],
                                  "ok": e.get("ok"), "fehler": bool(e.get("fehler")), "gruende": ab.deuten(e.get("fehler")),
                                  "ziel": e.get("ziel")} if e else None})
     return aus
+
+
+def laufende(con, pid):
+    """A2082: Meilensteine, die als laufend geschaltet sind – [{"bogen", "nr", "titel", "ruht"}]; ruht: noch nicht vorgelegt."""
+    from . import abschlusslage
+    return [{"bogen": b["id"], "nr": b["nr"], "titel": b["titel"], "ruht": abschlusslage.ruht(con, b)}
+            for b in con.execute("SELECT * FROM bogen WHERE projekt_id = ? AND status IN ('geplant', 'aktiv') ORDER BY nr, id", (pid,)).fetchall()
+            if abschlusslage.laufend(con, b["id"])]
 
 
 def fragen(con, pid):
@@ -428,7 +427,8 @@ def _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich):
         z = "offen" if geplant else "erledigt"
         um.update(zustand=z, zeichen=projektweg.ZEICHEN[z], wer=[], bei_dir=False)
     if any(x["bereit"] and not x["frei"] for x in ab):
-        wer = projektweg._freigebende(con, pid, "abschluss")
+        wer = (projektweg._freigebende(con, pid, "abschluss") if any(x["bei_dir"] and not x["frei"] for x in ab)
+               else projektweg._lead(con, pid))              # A2082 (B2938): fehlt die Prüfung oder ging sie nicht, ist der Lead dran
         je["abschluss"].update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer, bei_dir=ich in wer)
         if dran is None or (dran == "umsetzung" and alles_fertig):
             dran = "abschluss"
@@ -502,6 +502,6 @@ def daten(con, pid):
     dran = _abnahme_dran(con, pid, schritte, dran, f, u, ab, ich)
     _trotz_offenem_konzept(schritte, g, u, fr)
     return {"schritte": schritte, "dran": dran, "zeile": s["zeile"], "konzept": k, "grob": g,
-            "fein": f, "umsetzung": u, "abschluss": ab, "fragen": fragen(con, pid),
+            "fein": f, "umsetzung": u, "abschluss": ab, "laufende": laufende(con, pid), "fragen": fragen(con, pid),
             "laeufe": laeufe(con, pid),
             "verlauf": verlauf_gesamt(con, pid, {t["id"]: t["name"] for t in g_themen})}

@@ -36,6 +36,7 @@ EINGEORDNET_FREI = {
     "amw/pause.py": "Pause für alles: wer sie schaltet (Lead oder Mensch, wie amw halt) – setzt nur Halt und Wächter-Pause, keine Abschottung (A2042)",
     "amw/planansicht.py": "Freigabe-Regeln für Meilensteine und Pläne (Fach-Aktion wie planung.py, K1-Regel B2913) – keine Abschottung/Rechte",
     "amw/tore.py": "Tore abgeleitet, Abschlussbericht, Bestätigung „nichts zu bauen“ durch den Co (Fach-Regel TH154 wie planansicht.py) – keine Abschottung/Rechte",
+    "amw/abschlusslage.py": "laufend schalten und vorlegen durch Lead oder Mensch (Fach-Regel wie planansicht.py, A2082) – keine Abschottung/Rechte",
     "amw/konzept_uebernahme.py": "Lead/Co legen Themen-Entwürfe aus einem Konzept an (Fach-Regel wie themen.py, A1994) – keine Abschottung/Rechte",
     "amw/verlauf.py": "Absender Entwickler (Anzeige)",
     "amw/verlauf_quellen.py": "Absender Entwickler im Verlauf (Anzeige, liest nur) – wie verlauf.py (A2077)",

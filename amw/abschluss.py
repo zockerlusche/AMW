@@ -414,11 +414,12 @@ def eintragen(con, pid, bid, stand, test, ergebnis_, usd=None, fehler=None, roh=
         elif grenze:
             kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: nach {MAX_RUNDEN} Nacharbeits-Runden noch offen"[:140],
                          f"Die Abschlussprüfung von Meilenstein {b['nr']} „{b['titel']}“ findet noch Lücken, aber die AMW legt nach"
-                         f" {MAX_RUNDEN} automatischen Runden keine weitere Nacharbeit an. Der Meilenstein geht „bereit zur Abnahme“; die"
-                         " offenen Punkte stehen im Abschlussbericht. Abnehmen oder Nacharbeit von Hand: amw bogen nacharbeit N --hinweis …")
+                         f" {MAX_RUNDEN} automatischen Runden keine weitere Nacharbeit an. Die offenen Punkte stehen im Abschlussbericht."
+                         f" Nacharbeit von Hand: amw bogen nacharbeit {bid} --hinweis …")
         elif fehler:
             kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: Abschlussprüfung ging nicht"[:140],
-                         f"{fehler}\nDer Meilenstein geht trotzdem „bereit zur Abnahme“ – die Prüfung gegen das Konzept fehlt im Bericht.")
+                         f"{fehler}\nDie Prüfung gegen das Konzept fehlt im Bericht; der Meilenstein wartet noch nicht auf die Abnahme."
+                         f" Ursache klären, dann erneut starten: amw bogen pruefung-starten {bid}")   # A2082
     return {**werte, "id": eid}
 
 

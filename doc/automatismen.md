@@ -957,7 +957,18 @@ die der Lead nur noch bestätigt oder ändert.
 - **Danach:** Erfüllt und grün → „bereit zur Abnahme“; der Abschlussbericht enthält Gesamttest, Prüfung je Thema und Vorführung.
   Sonst legt die AMW die Nacharbeit im selben Meilenstein an und startet sie ohne neues Start-Ja (bei rotem Test ohne
   Vorschlag: ein Paket „Gesamttest rot beheben“); Meldung an den Lead, Info an den Menschen. Danach prüft sie erneut. Ging der
-  Prüfer nicht, wird der Meilenstein „bereit“ wie bisher, und der Lead erfährt, dass die Prüfung fehlt.
+  Prüfer nicht, klärt es der Lead (siehe „Wer ist dran“).
+- **Wer ist dran (A2082, `abschlusslage.lage`):** Der Mensch sieht „wartet auf dich“ und bekommt „bereit zur Abnahme“ erst, wenn
+  er abnehmen kann: Gesamttest, Prüfung und Bericht sind zum aktuellen Stand da und erfüllt. Ein Ergebnis von vor neuen Paketen zählt
+  nicht. Fehlt die Prüfung, ging sie nicht oder ist sie nicht erfüllt, ist der Lead dran: Meldung mit Befehl, einmal je Stand
+  (`abschluss_beim_lead`); er startet sie mit `amw bogen pruefung-starten N` (Läuft-schon-Sperre und Tagesgrenze gelten). Wird
+  sie danach grün, geht „bereit zur Abnahme“ einmal raus (`abschluss_abnehmbar`). Die Knöpfe bleiben für den Menschen nutzbar.
+  Ohne Lead im Projekt oder mit ausgeschaltetem Planer wie vorher.
+- **Laufende Meilensteine (A2082, Wartung ohne Ende):** `amw bogen laufend N an|aus` (Lead oder Mensch, Ereignis `bogen_laufend`).
+  Solange er nicht vorgelegt ist, wird er nicht geprüft, nicht „bereit“ gemeldet und nicht abgeschlossen, und er hält die
+  Feinplanung des nächsten nicht auf; auf der Seite steht leise „laufend“. `amw bogen vorlegen N` (ohne offene Pakete, Ereignis
+  `bogen_vorgelegt` mit Stand) stößt dieselbe Abschlussprüfung an; ein neues Paket macht die Vorlage ungültig. `aus` bei gültiger
+  Vorlage: normaler Weg ohne zweiten Prüflauf. Aus dem Abnahme-Text wird nichts abgelesen.
 - **Antwort lesen (A2072):** Die Antwort des Prüfers wird als JSON gelesen, auch mit Text drumherum oder im Codeblock. Passt sie
   nicht zum Schema, bekommt der Prüfer die Funde einmal zurück und antwortet neu (Kosten zusammen, die Tagesgrenze gilt auch
   dafür); erst eine zweite unpassende Antwort heißt „Abschlussprüfung ging nicht“ – dann mit dem Anfang der Rohantwort im
@@ -967,8 +978,8 @@ die der Lead nur noch bestätigt oder ändert.
 - **Meilenstein ohne Themen (A2072, z. B. Wartung):** Der Prüfer urteilt im Feld `ziel`, ob die Pakete Ziel und „fertig, wenn“
   erfüllen; die Karte und der Bericht zeigen die Zeile „Ziel und „fertig, wenn““.
 - **Grenzen (TL #31785):** Die Kosten des Prüfers zählen zur gemeinsamen Tagesgrenze der Planer (`planer_tagesgrenze_usd`);
-  ist sie erreicht, startet keine Prüfung, und der Meilenstein wird „bereit“ mit Meldung an den Lead. Höchstens 2 automatische
-  Nacharbeits-Runden je Meilenstein – danach legt die AMW keine weiteren Pakete an, der Meilenstein wird „bereit“, die offenen
+  ist sie erreicht, startet keine Prüfung, und der Lead bekommt eine Meldung. Höchstens 2 automatische
+  Nacharbeits-Runden je Meilenstein – danach legt die AMW keine weiteren Pakete an, die offenen
   Punkte stehen im Abschlussbericht, und der Lead bekommt eine Meldung.
 - **Nacharbeit anfordern:** `amw bogen nacharbeit N --hinweis …` (Lead oder Mensch; Workbench-Weg `/api/meilenstein/nacharbeit`):
   der Feinplaner plant mit dem Hinweis neue Pakete im laufenden Meilenstein, die AMW legt sie an und startet sie gleich.

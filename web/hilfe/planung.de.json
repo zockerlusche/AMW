@@ -91,7 +91,11 @@
   ],
   [
    "Was passiert, wenn ein Meilenstein fertig ist?",
-   "Bevor er „bereit zur Abnahme“ steht, laufen der Gesamttest des Projekts und ein Prüfer: Er gleicht jedes Thema des Meilensteins gegen das Gebaute ab und bereitet die Vorführung vor – beides steht danach im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich, du bekommst eine Info. Bei der Abnahme kannst du statt „Ja“ auch Nacharbeit anfordern (`amw bogen nacharbeit N --hinweis „was fehlt“`): der Planer plant neue Pakete dazu, sie starten ohne weiteres Ja."
+   "Bevor er „bereit zur Abnahme“ steht, laufen der Gesamttest des Projekts und ein Prüfer: Er gleicht jedes Thema des Meilensteins gegen das Gebaute ab und bereitet die Vorführung vor – beides steht danach im Abschlussbericht. Fehlt etwas oder ist der Test rot, legt die AMW Nacharbeit im selben Meilenstein an und startet sie gleich, du bekommst eine Info. Bei der Abnahme kannst du statt „Ja“ auch Nacharbeit anfordern (`amw bogen nacharbeit N --hinweis „was fehlt“`): der Planer plant neue Pakete dazu, sie starten ohne weiteres Ja. „Wartet auf dich“ steht erst da, wenn du abnehmen kannst: fehlt die Prüfung oder ging sie nicht, klärt das der Lead (`amw bogen pruefung-starten N`), und du siehst nur, wie es steht. Ohne Lead im Projekt bist du dran."
+  ],
+  [
+   "Was ist ein laufender Meilenstein?",
+   "Einer ohne natürliches Ende, zum Beispiel Wartung. Lead oder Mensch schaltet ihn mit `amw bogen laufend N an`; er kommt dann erst zur Abnahme, wenn er mit `amw bogen vorlegen N` vorgelegt wird (ohne offene Pakete, mit derselben Prüfung wie sonst). Kommt danach ein Paket dazu, gilt die Vorlage nicht mehr. Er hält die Planung des nächsten Meilensteins nicht auf. Mit `amw bogen laufend N aus` wird er wieder ein normaler Meilenstein."
   ],
   [
    "Was zeigt die Seite „Projektweg“?",

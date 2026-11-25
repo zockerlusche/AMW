@@ -235,7 +235,7 @@ def _wer(a, paket):
 
 def daten(con, pid):
     """Für die Workbench (Planung › Meilensteine/Pakete)."""
-    from . import arbeitspaket, empfehlung, planautomatik, planung, themen
+    from . import abschlusslage, arbeitspaket, empfehlung, planautomatik, planung, themen
     z = _zustaende(con, pid)
     js = _jas(con, pid)
     co_lead = {art: themen.freigabe_regel(con, pid, art) == "co+lead" for art in ARTEN}     # A2032: je Art
@@ -271,8 +271,10 @@ def daten(con, pid):
                 if f is not None:
                     offen = [aid for x in betroffen(con, pid, tid) if x["bogen"]["id"] == b["id"] for aid in x["offen"] if aid not in halt]
                     geaendert.append({"id": tid, "name": th[tid], "fassung": f, "offen": offen})   # offen: anhaltbar (dieses Thema)
+        lage = abschlusslage.lage(con, pid, b)            # A2082
         ms.append({"id": b["id"], "nr": b["nr"], "titel": b["titel"], "status": b["status"], "endet_mit": b["abnahme"],
                    "bereit": planautomatik.bereit_zur_abnahme(con, b),                                   # A2002
+                   "lage": lage, "bei_dir": abschlusslage.bei_mensch(con, pid, lage), "laufend": abschlusslage.laufend(con, b["id"]),
                    "themen": [{"id": k, "name": v} for k, v in sorted(th.items())], "pakete": pakete,
                    "summe": round(sum(p["usd"] for p in pakete if p["usd"]), 2) if any(p["usd"] for p in pakete) else None,
                    "geaendert": geaendert,

@@ -100,7 +100,7 @@ function pmAbschluss(x, tun) {                                 /* K7 (A1944): Ab
 function pmStatus(m, art) {                                       /* ein Status je Eintrag */
   if (m.status === "fertig") return art === "grob" && m.abschluss && m.abschluss.bericht && !m.abschluss.frei
     ? ["dich", t("pm_ab_wartet")] : ["frei", t("pm_fertig")];
-  if (m.bereit) return ["dich", t("pm_bereit")];                  /* A2002: alle Pakete fertig, das Ja zum Abschluss fehlt */
+  if (m.bereit) return m.bei_dir ? ["dich", t("pm_bereit")] : ["arbeit", t("pjw_l_" + m.lage)];   /* A2002: alle Pakete fertig, das Ja zum Abschluss fehlt; A2082: nur, wenn es geht */
   if (m.status === "aktiv") return ["frei", t("pm_laeuft")];
   if (art === "plan" && !m.pakete.length) return ["arbeit", t("pm_spaeter")];
   const z = m[art];

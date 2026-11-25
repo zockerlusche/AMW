@@ -83,8 +83,10 @@ def demo(con, pid, bis="grob2"):
         with mock.patch.object(abschluss, "vor_bereit", return_value="melden"):
             planautomatik.meilenstein_projekt(con, pid)
         return t
+    from amw import abschlusslage                                            # A2082: das Ergebnis gilt nur für den geprüften Stand
+    stand = abschlusslage.stand(con, con.execute("SELECT * FROM bogen WHERE id = ?", (m1,)).fetchone())
     with db.schreiben(con):                                                  # Ergebnis des Prüfers, wie abschluss.eintragen es schreibt
-        abschluss._ereignis(con, pid, abschluss.ERGEBNIS, bogen=m1, stand="x", test={"befehl": "godot --headless -s tests/alle.gd", "lauf": 7, "rc": 0},
+        abschluss._ereignis(con, pid, abschluss.ERGEBNIS, bogen=m1, stand=stand, test={"befehl": "godot --headless -s tests/alle.gd", "lauf": 7, "rc": 0},
                             themen=[{"thema": f"TH{t[0]}", "erfuellt": True, "beleg": "Aquarium-Szene mit Kamera"},
                                     {"thema": f"TH{t[2]}", "erfuellt": True, "beleg": "Speichern und Laden"}],
                             vorfuehrung=["Aquarium starten", "Welt speichern", "neu laden – alles ist noch da"], ok=True, angelegt={})
@@ -1024,7 +1026,7 @@ class SeiteOhnePruefung(Rundgang):
     def test_pruefung_starten_klicken(self):
         self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")
         self.tab.js("zustand.pwSicht = 4; zeige('projektweg', true)")
-        knopf = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => b.textContent === t('pjw_a_starten'))"
+        knopf = "[...document.querySelectorAll('.pjw-ab-karte button')].find(b => b.textContent === t('pjw_a_starten'))"
         self.warten(knopf)
         self.assertIn(self.tab.js("t('pjw_a_ohne')"), self.tab.js("document.querySelector('.pjw-ab-karte').innerText"))
         self.tab.js(knopf + ".click()")
@@ -1038,7 +1040,7 @@ class SeitePruefungErneut(Rundgang):
     FEHLER = "kein JSON: Expecting property name enclosed in double quotes: line 1 column 2 (char 1)"
 
     def daten(self):
-        from amw import abschluss, schalter
+        from amw import abschluss, abschlusslage, schalter
         kern.agent_neu(self.con, self.pid, "CC1")
         self.gestartet = []
         for ziel, f in ((grobplan, lambda *a, **k: 4711), (planer, lambda *a, **k: 4711),
@@ -1051,14 +1053,14 @@ class SeitePruefungErneut(Rundgang):
         with db.schreiben(self.con):
             schalter._setzen(self.con, self.pid, "an")
             b = self.con.execute("SELECT * FROM bogen WHERE id = ?", (self.m1,)).fetchone()
-            abschluss._ereignis(self.con, self.pid, abschluss.ERGEBNIS, bogen=self.m1, stand=projektweg_seite._pruef_stand(self.con, b),
+            abschluss._ereignis(self.con, self.pid, abschluss.ERGEBNIS, bogen=self.m1, stand=abschlusslage.stand(self.con, b),
                                 test={"befehl": None, "lauf": None, "rc": None}, themen=[], vorfuehrung=[], ok=False, angelegt={},
                                 fehler=self.FEHLER, roh="{nicht: json}")
         p = mock.patch.dict(os.environ, {"AMW_PLANER_AUS": ""})
         p.start()
         self.addCleanup(p.stop)
 
-    KNOPF = "[...document.querySelectorAll('.pjw-ansicht > .pjw-kopf button')].find(b => b.textContent === t('pjw_a_erneut'))"
+    KNOPF = "[...document.querySelectorAll('.pjw-ab-karte button')].find(b => b.textContent === t('pjw_a_erneut'))"     # A2082: mit Lead kein Hauptknopf oben
 
     def test_grund_und_klick(self):
         self.oeffnen("projektweg", "document.querySelector('.pjw-schritt')")

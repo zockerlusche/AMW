@@ -1239,6 +1239,21 @@ def cmd_bogen(a, con):
         if not a.id:
             raise kern.AmwFehler("amw bogen nacharbeit <Nummer des Meilensteins> --hinweis „was fehlt“")
         print(abschluss.nacharbeit(con, pid, _von(a), a.id, a.hinweis)["text"])
+    elif a.aktion in ("laufend", "vorlegen", "pruefung-starten"):   # A2082
+        from . import abschlusslage, projektweg_seite
+        _nicht_als_mensch_aus_sitzung(a, f"bogen {a.aktion}")
+        if not a.id or (a.aktion == "laufend" and a.wert not in ("an", "aus")):
+            raise kern.AmwFehler(f"amw bogen {a.aktion} <Nummer des Meilensteins>" + (" an|aus" if a.aktion == "laufend" else ""))
+        if a.aktion == "laufend":
+            print(abschlusslage.schalten(con, pid, _von(a), a.id, a.wert == "an"))
+        elif a.aktion == "vorlegen":
+            print(abschlusslage.vorlegen(con, pid, _von(a), a.id))
+        else:
+            erg = projektweg_seite.pruefung_starten(con, pid, _von(a), a.id)["ergebnis"]
+            b = con.execute("SELECT * FROM bogen WHERE id = ?", (a.id,)).fetchone()
+            print(f"M{b['nr']} „{b['titel']}“: " + ("Gesamttest und Prüfung gegen das Konzept laufen" if erg == "pruefung" else
+                  f"nicht gestartet – {abschlusslage.TEXT[abschlusslage.lage(con, pid, b) or 'fehlt']}"
+                  + ("" if abschlusslage.pruefer_geht(con, pid) else " (der Planer ist aus)")))
     elif a.aktion == "feinplanen":                    # A2031: Feinplan (neu) planen lassen – „Überarbeiten lassen“
         from . import feinplanung
         _nicht_als_mensch_aus_sitzung(a, "bogen feinplanen")
@@ -1315,12 +1330,14 @@ def cmd_bogen(a, con):
                 continue
             print(f"{x['platz']:>3}. {zeitplan.zeile(x)} · {x['agent'] or ('Headless' if x['art'] == 'headless' else '–')} · {x['titel'][:60]}")
     elif a.aktion == "zeigen":
+        from . import abschlusslage
         b = next((x for x in planung.boegen(con, pid) if x["id"] == a.id), None)
         if not b:
             raise kern.AmwFehler(f"Meilenstein {a.id} gibt es nicht")
         print(f"Meilenstein {b['id']} [{b['status']}] {b['titel']} · Ziel: {b['ziel'] or '–'} · Abnahme: {b['abnahme'] or '–'}"
               f" · Zieldatum {b['zieldatum'] or '–'} (Baseline {b['baseline_datum'] or '–'})"
-              + (f" · federführend {b['federfuehrend']}" if b.get("federfuehrend") else ""))
+              + (f" · federführend {b['federfuehrend']}" if b.get("federfuehrend") else "")
+              + (" · laufend" if abschlusslage.laufend(con, b["id"]) else ""))
         from . import urteil                              # A1939 (K3): Verweise mit geltender Fassung, Themen statt Spezifikation
         for feld in ("ziel", "abnahme"):
             for v in urteil.verweise(con, pid, b[feld]):
@@ -4230,11 +4247,14 @@ def parser():
     x = s.add_parser("bogen", help="Meilensteine: liste | neu | zeigen N | aendern N | status N aktiv|fertig|geplant|verworfen |"
                                    " starten N (Jetzt starten: an den Disponenten) | reihenfolge [N] (berechnet, kritischer Pfad) |"
                                    " zeitplan [N] (geplante Start- und Endzeit je Paket, gleichzeitig, +n min – A2045) |"
+                                   " laufend N an|aus (Lead/Mensch: Wartung ohne Ende, kommt erst mit vorlegen zur Abnahme) | vorlegen N |"
+                                   " pruefung-starten N (Lead/Mensch: Abschlussprüfung nachholen oder nach einem Fehler erneut) |"
                                    " abnehmen N (nur der Mensch: fertigen Meilenstein abnehmen, danach veröffentlicht die AMW)")
     x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen", "freigeben", "zurueck", "bericht",
-                                      "tore", "starten", "reihenfolge", "zeitplan", "feinplanen", "nacharbeit"])
+                                      "tore", "starten", "reihenfolge", "zeitplan", "feinplanen", "nacharbeit", "laufend", "vorlegen",
+                                      "pruefung-starten"])
     x.add_argument("id", type=nummer, nargs="?")
-    x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen")
+    x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen; laufend: an | aus")
     x.add_argument("--titel")
     x.add_argument("--ziel")
     x.add_argument("--abnahme", help="prüfbares Abnahmekriterium")
