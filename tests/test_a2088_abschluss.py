@@ -402,6 +402,12 @@ class Seite(Rundgang):
 class SeiteNichtPruefbar(Seite):
     BELEG = "fehlt"
 
+    def daten(self):
+        p = mock.patch.object(abschlusslage, "pruefer_geht", return_value=True)             # Planer an – mit Lead ist zuerst er dran
+        p.start()
+        self.addCleanup(p.stop)
+        super().daten()
+
     def test_vorbehalt_ueber_dem_knopf_mit_rueckfrage(self):
         text = self.auf()
         for teil in ("nicht prüfbar – 1 Paket ohne gefundenen Commit", "Nicht prüfbar, der Lead klärt die Belege."):
