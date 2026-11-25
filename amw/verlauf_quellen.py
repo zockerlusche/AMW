@@ -22,7 +22,7 @@ ROH = 500                        # so viele jüngste Rohzeilen je Quelle
 GRENZE = 120                     # so viele Einträge je Schritt zeigt die Seite
 BUENDEL_S = 10 * 60
 TITEL_MAX = 70                   # gekürzt wird der Titel, nicht der Satz – was geschah, bleibt lesbar; ganz auf Klick
-RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
+RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "agent", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
         "auslieferung", "ab_angestossen", "ab_bereit", "ab_ergebnis", "ms_fertig")
 # Art → (ein Paket, mehrere); {m} Meilenstein, {t} Titel, {n} Anzahl, {x} Zusatz
 TEXTE = {
@@ -189,6 +189,24 @@ def _eingriffe(con, pid):
     return aus
 
 
+def _agenten(con, pid):
+    """A2095: Agent herausgenommen oder wieder freigegeben – wer, warum, wie viele Pakete in den Pool gingen."""
+    from . import herausnehmen
+    nr = {str(r["id"]): r["nr"] for r in con.execute("SELECT id, nr FROM bogen WHERE projekt_id = ?", (pid,))}
+    aus = []
+    for r in _neueste(con, "SELECT id, zeit_utc, von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?) ORDER BY id DESC",
+                      (pid, herausnehmen.HERAUS, herausnehmen.FREI)):
+        d = _json(r["text"])
+        grund = f" – {d['grund']}" if d.get("grund") else ""
+        if r["art"] == herausnehmen.FREI:
+            text = f"{d.get('agent', '?')} wieder freigegeben{grund}"
+        else:
+            n, je = len(d.get("pakete") or []), ", ".join(f"M{nr[b]}: {k}" for b, k in (d.get("je") or {}).items() if b in nr)
+            text = f"{d.get('agent', '?')} herausgenommen{grund}" + (f"; {n} Paket{'e' if n != 1 else ''} in den Pool" + (f" ({je})" if je else "") if n else "")
+        aus.append(_eintrag("agent", r["id"], r["zeit_utc"], _rolle(r["von"]), r["von"], r["art"], "umsetzung", None, None, text=text))
+    return aus
+
+
 DELTA = ("thema_delta_stimme", "thema_delta_angewandt", "thema_delta_start")
 _ROLLE = {"co": "Co-Entwickler", "lead": "Lead"}
 
@@ -288,7 +306,7 @@ def gesamt(con, pid, weg, schritt_von, grenze=GRENZE):
     """Der ganze Verlauf: die Einträge aus verlauf.projektweg (`weg`, schon gebündelt) und die abgeleiteten, älteste zuerst, höchstens
     `grenze` je Schritt. schritt_von(eintrag) → Schritt eines Eintrags aus `weg`."""
     alle = [{**e, "schritt": schritt_von(e), "rang": (0, e["id"]), "zusatz": None, "nummer": None, "titel": None, "ms": None} for e in weg]
-    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe):
+    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe, _agenten):
         alle += quelle(con, pid)
     alle.sort(key=lambda x: (x["zeit"], x["rang"]))
     je, aus = {}, zusammenfassen(alle)

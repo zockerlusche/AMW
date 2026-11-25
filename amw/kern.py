@@ -1494,7 +1494,8 @@ def aufgabe_neu(con, pid, von, titel, agent=None, auftrag=None, rang=50, pruefer
         einstufung = "aktiv"
         if agent:
             agent = bearbeiter(con, pid, agent)
-            from . import arbeitsliste                # nie vor das laufende Stück des Agenten
+            from . import arbeitsliste, herausnehmen  # nie vor das laufende Stück des Agenten
+            herausnehmen.zuweisen_pruefen(con, pid, agent)         # A2095
             x = arbeitsliste.laufend(con, pid, agent)
             if x and not sofort and agent != von:
                 einstufung = "pool"
@@ -1552,8 +1553,10 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
                 raise AmwFehler(f"{neu} nur mit --auf: worauf? F<nr>, A<nr>, L<nr>, Agent, Entwickler, Monitor:<was>"
                                 " (Erklärung dazu mit --wartet-auf)")
         if neu == "laeuft" and a["status"] != "laeuft":
-            from . import arbeitsliste                # eins nach dem anderen: läuft schon ein Stück, wird abgewiesen
+            from . import arbeitsliste, herausnehmen  # eins nach dem anderen: läuft schon ein Stück, wird abgewiesen
             arbeitsliste.start_pruefen(con, pid, von, a)
+            if t := herausnehmen.darf_starten(con, pid, a["agent"] or von, aid):      # A2095
+                raise AmwFehler(t)
         t = db.jetzt()
         felder = {"status": neu}
         if zusammenfassung:
@@ -1972,6 +1975,10 @@ def kontext(con, pid, kennung):
             z.append(kz)
     except Exception:
         pass
+    from . import herausnehmen                          # A2095
+    if h := herausnehmen.ist(con, pid, kennung):
+        z.append(f"!! DU BIST HERAUSGENOMMEN (von {herausnehmen.name(con, pid, h['von'])}" + (f": {h['grund']}" if h["grund"] else "")
+                 + ") – nichts Neues anfangen." + (f" A{h['stueck']} machst du noch zu Ende." if h["stueck"] else ""))
     halte = aktive_sperren(con, pid, kennung, "halt")
     if halte:
         z.append("!! HALT GILT: " + " | ".join(f"#{s['id']} {s['von']}: {s['text']}" for s in halte)

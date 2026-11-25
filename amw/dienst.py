@@ -273,6 +273,10 @@ class Dienst:
                 zeilen = [z for z in zeilen if z["art"] in NUR_IM_HALT]
                 if not zeilen:
                     continue
+            from . import herausnehmen                     # A2095: nur noch zu seinem laufenden Stück; alles andere wartet bis zum Freigeben
+            zeilen = [z for z in zeilen if herausnehmen.darf_wecken(self.con, pid, agent, z["aufgabe_id"], z["art"])]
+            if not zeilen:
+                continue
             s = aktive_sitzung(self.con, pid, agent)
             if not s:
                 continue                                   # nicht gestartet: bleibt offen bis zur Anmeldung

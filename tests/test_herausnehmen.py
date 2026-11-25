@@ -65,7 +65,7 @@ class Herausnehmen(unittest.TestCase):
 
     def test_laufendes_laeuft_zu_ende(self):
         aus = self.folgen()
-        self.assertEqual(set(aus), {"laufend", "wartend", "unberuehrt", "hinweise"})
+        self.assertEqual(set(aus), {"laufend", "wartend", "bleibt", "unberuehrt", "hinweise"})
         self.assertEqual((aus["laufend"]["id"], aus["laufend"]["titel"]), (self.laeuft, "SSO bauen"))
         self.assertEqual(aus["laufend"]["folge"], "zu_ende")
         self.assertIn("läuft zu Ende", aus["laufend"]["text"])

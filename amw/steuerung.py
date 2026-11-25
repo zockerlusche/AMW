@@ -658,6 +658,10 @@ class Neustarter:
                                   (pid,)).fetchall():
             if self.con.execute("SELECT 1 FROM sitzung WHERE agent_id = ? AND zustand = 'aktiv'", (a["id"],)).fetchone():
                 continue
+            from . import arbeitsliste, herausnehmen
+            h = herausnehmen.ist(self.con, pid, a["kennung"])              # A2095: nicht wieder starten – außer sein Stück läuft noch zu Ende
+            if h and (arbeitsliste.laufend(self.con, pid, a["kennung"]) or {}).get("id") != (h["stueck"] or -1):
+                continue
             s = self.con.execute("SELECT * FROM sitzung WHERE agent_id = ? ORDER BY id DESC LIMIT 1", (a["id"],)).fetchone()
             if not s or not s["beendet_utc"] or not s["fenster_pid"]:
                 continue                                  # ohne bekanntes Fenster kein Urteil → nie automatisch
@@ -767,7 +771,7 @@ def startvorschlaege(con, pid):
     Paket der Art sitzung ist dran (grund „sitzung“), letzte Sitzung endete ohne bewusstes Ende und es gibt Arbeit
     („absturz“), oder es gibt Arbeit in der Liste („arbeit“). Dran = in der Liste ohne offenen Wartegrund; ein p-Paket nur,
     wenn es auf interaktiv wartet (nie im Entwurf). Ohne „Nicht jetzt“ der letzten VORSCHLAG_RUHE_H Stunden."""
-    from . import arbeitsliste
+    from . import arbeitsliste, herausnehmen
     grenze = (datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=VORSCHLAG_RUHE_H)).strftime("%Y-%m-%dT%H:%M:%SZ")
     abgelehnt = {r[0] for r in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND art = 'startvorschlag_nein'"
                                            " AND zeit_utc >= ?", (pid, grenze))}
@@ -776,6 +780,8 @@ def startvorschlaege(con, pid):
                          " AND coalesce(arbeitsweise, 'terminal') = 'terminal' AND coalesce(ordner, '') != '' ORDER BY id", (pid,)).fetchall():
         k = a["kennung"]
         if k in abgelehnt or laeuft(con, pid, k) or _sitzung_mit_prozess(con, pid, k, auch_ruhend=True)[1]:
+            continue
+        if herausnehmen.ist(con, pid, k) and not arbeitsliste.laufend(con, pid, k):     # A2095
             continue
         bereit = [x for x in arbeitsliste.liste(con, pid, k) if x["status"] == "laeuft" or not x["gruende"]]
         art = _paket_arten(con, [x["id"] for x in bereit])

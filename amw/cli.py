@@ -241,6 +241,30 @@ def cmd_agent(a, con):
         print(f"{neu} führt jetzt das Projekt (vorher: {', '.join(alt) or '–'})"
               + (f"; {a.co} ist Co-Entwickler und behält den Dateiaustausch" if a.co else ""))
         return
+    if a.aktion in ("folgen", "herausnehmen", "freigeben"):      # A2095
+        from . import herausnehmen
+        if not a.kennung:
+            raise kern.AmwFehler(f"amw agent {a.aktion} <Agent>" + (" --laufendes zu_ende|zurueck --grund …" if a.aktion != "freigeben" else ""))
+        if a.aktion == "freigeben":
+            print(f"{herausnehmen.freigeben(con, pid, _von(a), a.kennung, a.grund)['agent']} ist wieder freigegeben")
+            return
+        art = a.laufendes or "zu_ende"
+        if a.aktion == "folgen":
+            f = herausnehmen.folgen(con, pid, a.kennung, art)
+            print("läuft: " + (f["laufend"]["text"] if f["laufend"] else "–"))
+            print("in den Pool: " + (", ".join(f"A{x['id']}" for x in f["wartend"]) or "–"))
+            print("bleibt (gebaut): " + (", ".join(f"A{x}" for x in f["bleibt"]) or "–"))
+            for h in f["hinweise"]:
+                print("Hinweis: " + h)
+            return
+        r = herausnehmen.nehmen(con, pid, _von(a), a.kennung, art, a.grund)
+        print(f"{r['agent']} ist herausgenommen" + (f" – A{r['stueck']} läuft zu Ende" if r["stueck"] else "")
+              + f"; in den Pool: {', '.join(f'A{x}' for x in r['pool']) or '–'}; bleibt: {', '.join(f'A{x}' for x in r['bleibt']) or '–'}")
+        for m, (v, n) in r["prognose"].items():
+            print(f"  {m}: P50 {v or '–'} → {n or '–'}")
+        for h in r["hinweise"]:
+            print("Hinweis: " + h)
+        return
     if a.aktion in ("entfernen", "wiederaufnehmen"):  # A2000 (B2917): wie /api/agent/… – der Mensch im eigenen Terminal;
         if not a.kennung:                             # wiederaufnehmen auch der Lead auf ein frisches Wort (--wort W<nr>)
             raise kern.AmwFehler(f"amw agent {a.aktion} <Agent> --von Entwickler"
@@ -3865,16 +3889,19 @@ def parser():
     x.set_defaults(f=cmd_projekt)
 
     x = s.add_parser("agent", help="neu | liste | profil | starten | beenden | startskript | umbenennen ALT NEU | lead NEU --co ALT --grund …"
+                                   " | folgen | herausnehmen | freigeben AGENT (Mensch und Lead: bekommt nichts Neues, wartende Pakete in den Pool)"
                                    " | entfernen | wiederaufnehmen AGENT (der Mensch; wiederaufnehmen auch der Lead mit --wort W<nr>)"
                                    " | alle-beenden [--alle-projekte] [--frist N] (alle Fenster-Agenten sichern und beenden lassen; nur der Mensch)"
                                    " | ende-stand [--alle-projekte] (Rückmeldung: sichert, abgemeldet, beendet) – A2048")
     x.add_argument("aktion", choices=["neu", "liste", "profil", "starten", "beenden", "startskript", "umbenennen", "lead",
-                                      "entfernen", "wiederaufnehmen", "alle-beenden", "ende-stand"])
+                                      "entfernen", "wiederaufnehmen", "alle-beenden", "ende-stand", "folgen", "herausnehmen", "freigeben"])
+    x.add_argument("--laufendes", choices=["zu_ende", "zurueck"], help="folgen, herausnehmen: das laufende Paket läuft zu Ende (Vorgabe)"
+                                                                         " oder kommt mit Übergabe-Notiz in den Pool zurück")
     x.add_argument("--alle-projekte", action="store_true", help="alle-beenden, ende-stand: über alle Projekte auf diesem PC – A2048")
     x.add_argument("--frist", type=int, help="alle-beenden: Minuten bis zum Beenden (Vorgabe: Projekt-Einstellung ende_frist_min, 5)")
     x.add_argument("--co", help="lead: der bisherige Lead wird Co-Entwickler (Wortlaut, Beschlüsse, Fragen an den Menschen,"
                                 " Dokumente; behält den Dateiaustausch); ist NEU schon Lead, setzt --co nur den Co-Entwickler")
-    x.add_argument("--grund", help="lead: warum (z. B. der Beschluss)")
+    x.add_argument("--grund", help="lead: warum (z. B. der Beschluss); herausnehmen, freigeben: warum (herausnehmen: Pflicht für den Lead)")
     x.add_argument("kennung", nargs="?")
     x.add_argument("neu_kennung", nargs="?", metavar="neu", help="umbenennen: der neue Name (der alte bleibt als Alias gültig)")
     x.add_argument("--ordner", help="profil: Arbeitsordner")

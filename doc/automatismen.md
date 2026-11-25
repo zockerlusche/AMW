@@ -641,6 +641,15 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   Der neueste Handgriff gilt, auch gegenüber `amw liste ordnen`. Ein Paar endet mit Grund im Protokoll: erfüllt, das hintere begann
   zuerst, neue Abhängigkeit, anderer Meilenstein, verworfen oder zurückgestellt, ersetzt. Was nicht erfüllt wurde, steht im Verlauf,
   und der Lead bekommt je Runde und Meilenstein eine Nachricht.
+- **Agent herausnehmen und wieder freigeben (A2095, TH164 „Eingriffe“):** `amw agent folgen CC2` zeigt vorher, was geschieht;
+  `amw agent herausnehmen CC2 --laufendes zu_ende|zurueck --grund …` (Mensch und Lead, der Lead mit Grund; Seite `/api/plan/agent`,
+  am PC und online) nimmt ihn heraus: wartende Pakete gehen ohne Bearbeiter in den Pool und werden wie sonst verteilt, das laufende
+  läuft zu Ende oder kommt mit Übergabe-Notiz zurück. Gebaute Pakete (Prüfung offen oder grün) bleiben bei ihm; wird die Prüfung
+  rot, gehen sie in den Pool. Headless-Pakete sind nicht betroffen. Solange er heraus ist, bekommt er nichts Neues: keine Zuteilung,
+  kein „schritt naechster“, kein Start eines anderen Pakets, kein Zuweisen von Hand, keine Leerlauf-Weckrufe. Geweckt wird er nur zu
+  seinem laufenden Stück; alle anderen Nachrichten warten und wecken ihn beim Freigeben. Prozesse und Läufe beendet niemand. Auf
+  „zurueck“ geht es nicht, während ausgeliefert wird oder sein schwerer Lauf oder Gesamtlauf rechnet. Nach einem Absturz startet die
+  AMW ihn nur neu, solange sein Stück zu Ende läuft. Was der Mensch herausgenommen hat, gibt nur er frei (`amw agent freigeben CC2`).
 - **Zeitplan (A2045):** `amw bogen zeitplan [N]` bzw. `/api/zeitplan` legt die Pakete in dieser Reihenfolge auf ihre
   Ressourcen – Headless auf die Arbeitsplätze (so viele gleichzeitig wie Plätze), Fenster-Pakete auf ihren Agenten (eins nach
   dem anderen), dazu die offenen Vorgänger. Ergebnis je Paket: geplante Start- und Endzeit, Dauer, „gleichzeitig mit“ (gleiche

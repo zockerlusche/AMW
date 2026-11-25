@@ -593,6 +593,16 @@ def planen(con, pid, was, d):
             if zahl("aufgabe") is None:
                 raise Ungueltig("Aufgabe fehlt")
             return {"ok": True, **paket_schieben.verschieben(con, pid, e, zahl("aufgabe"), d.get("richtung"), str(d.get("grund") or ""))}
+        if was == "agent":                         # A2095: Agent herausnehmen/freigeben, Vorschau (am PC und online)
+            from . import herausnehmen
+            k, tun, art = str(d.get("kennung") or ""), d.get("was"), d.get("laufendes") or "zu_ende"
+            if tun == "folgen":
+                return {"ok": True, **herausnehmen.folgen(con, pid, k, art)}
+            if tun == "herausnehmen":
+                return {"ok": True, **herausnehmen.nehmen(con, pid, e, k, art, str(d.get("grund") or ""))}
+            if tun == "freigeben":
+                return {"ok": True, **herausnehmen.freigeben(con, pid, e, k, str(d.get("grund") or ""))}
+            raise Ungueltig("was: folgen | herausnehmen | freigeben")
         if was == "check":                         # Befund bewusst akzeptieren oder wieder zählen lassen
             if d.get("wieder"):
                 planung.check_wieder(con, pid, e, d.get("schluessel") or "")

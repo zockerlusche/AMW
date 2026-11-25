@@ -352,6 +352,8 @@ def daten_start(con, pid):
         " FROM agent g LEFT JOIN sitzung s ON s.id = (SELECT max(id) FROM sitzung WHERE agent_id = g.id)"
         " WHERE g.projekt_id = :p AND g.entfernt_utc IS NULL ORDER BY g.id", {"p": pid, "alt": alt}))
     co_k = kern.co_entwickler(con, pid)
+    from . import herausnehmen
+    heraus = herausnehmen.stand(con, pid)
     for a in agenten:
         from . import arbeitsliste                                        # Arbeitsliste: Länge und was in Arbeit ist
         l = arbeitsliste.liste(con, pid, a["kennung"])
@@ -375,6 +377,7 @@ def daten_start(con, pid):
                         (pid, a["kennung"])).fetchone()
         from . import betrieb
         a["warteplatz"] = betrieb.warteposition(con, pid, l) if l else None   # Lauf in der Schlange des Rechners: Platz, auf wen
+        a["heraus"] = heraus.get(a["kennung"])                           # A2095: {"von", "seit_utc", "laufendes", "stueck", "grund"} oder None
         a["co"] = a["kennung"] == co_k                                   # A2019 (W2482): angezeigt als „Co-Entwickler“
     # Lead zuerst, gleiche Fachgebiete nebeneinander, sonst in der angelegten Reihenfolge
     agenten.sort(key=lambda a: (a["rolle"] != "lead", (a["fachgebiet"] or "~").casefold()))

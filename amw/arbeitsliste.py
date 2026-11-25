@@ -157,6 +157,9 @@ def ordnen(con, pid, von, agent, ids, grund=None):
     if not (grund or "").strip():
         raise kern.AmwFehler("Die Reihenfolge rechnet die AMW (kritischer Pfad) – von Hand ordnen nur mit Grund: --grund …")
     agent = kern.bearbeiter(con, pid, agent)
+    from . import herausnehmen                           # A2095: an einen Herausgenommenen geht nichts Neues
+    for aid in ids:
+        herausnehmen.zuweisen_pruefen(con, pid, agent, aid)
     if len(set(ids)) != len(ids):
         raise kern.AmwFehler("eine Aufgabe doppelt genannt")
     with db.schreiben(con):
@@ -225,6 +228,9 @@ def beim_abschluss(con, pid, a, geweckt):
             "SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ?", (pid, agent)).fetchone():
         return None
     if con.execute("SELECT 1 FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'", (pid, agent)).fetchone():
+        return None
+    from . import herausnehmen
+    if herausnehmen.ist(con, pid, agent):                # A2095: kein „weiter in deiner Liste“
         return None
     eigene_geweckt = {x for x in geweckt or [] if con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND agent = ?",
                                                               (x, agent)).fetchone()}

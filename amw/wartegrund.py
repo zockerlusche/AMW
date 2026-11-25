@@ -303,7 +303,7 @@ def startklar_wecken(con, pid):
     """A2053 (4): Aufgabe mit Besitzer, „wartet“/„blockiert“ ohne offenen Grund und ohne Freitext, alle Vorgänger fertig, Besitzer
     ohne laufendes Stück → einmal ein Weckruf „A… ist startklar“ (je Aufgabe und Änderungsstand; nicht, wenn die AMW zu dieser
     Aufgabe seitdem schon geschrieben hat, z. B. „alle Gründe erledigt“). Rückgabe: Texte."""
-    from . import planung
+    from . import herausnehmen, planung
     aus = []
     for a in con.execute("SELECT a.* FROM aufgabe a JOIN agent g ON g.projekt_id = a.projekt_id AND g.kennung = a.agent"
                          " LEFT JOIN paket k ON k.aufgabe_id = a.id WHERE a.projekt_id = ? AND a.status IN ('wartet', 'blockiert')"
@@ -312,6 +312,8 @@ def startklar_wecken(con, pid):
             continue
         if con.execute("SELECT 1 FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'", (pid, a["agent"])).fetchone():
             continue                                    # eins nach dem anderen: er kommt dazu, wenn das laufende fertig ist
+        if herausnehmen.darf_starten(con, pid, a["agent"], a["id"]):
+            continue                                    # A2095: herausgenommen
         zeichen = f"{a['id']}:{a['geaendert_utc']}"
         if con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'startklar_geweckt' AND text = ?", (pid, zeichen)).fetchone():
             continue
@@ -436,6 +438,7 @@ def _leer_weckruf(con, pid, lead, leere):
 
 def leerlauf(con, jetzt=None):
     """Dienst-Runde: freie Sitzungen mit Arbeit wecken, „alles wartet auf den Entwickler“ höchstens alle 6 h an den Lead."""
+    from . import herausnehmen
     jetzt = jetzt or time.time()
     ereignisse = []
     for p in con.execute("SELECT id FROM projekt").fetchall():
@@ -453,8 +456,8 @@ def leerlauf(con, jetzt=None):
                 " AND s.ereignis = 'frei' AND s.ereignis_utc IS NOT NULL", (pid,)).fetchall():
             k = s["kennung"]
             frei_min = (jetzt - _sek(s["ereignis_utc"])) / 60
-            if frei_min < min(LEERLAUF_MIN, leer_min) or kern.halt_gilt(con, pid, k):
-                continue
+            if frei_min < min(LEERLAUF_MIN, leer_min) or kern.halt_gilt(con, pid, k) or herausnehmen.ist(con, pid, k):
+                continue                                # A2095: ein Herausgenommener ist nicht „ohne Arbeit“
             if con.execute("SELECT 1 FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ?"
                            " AND e.agent = ? AND e.status = 'offen' LIMIT 1", (pid, k)).fetchone():
                 continue                                # ungelesene Post: dafür gibt es Wecken und Stillstand

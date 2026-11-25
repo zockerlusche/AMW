@@ -75,6 +75,7 @@ def fach_pruefen(v):
 
 def freie_agenten(con, pid):
     """[(kennung, sitzung)] – frei im Sinne von TH157, die am längsten freien zuerst."""
+    from . import herausnehmen
     co, lead = kern.co_entwickler(con, pid), kern.lead(con, pid)
     aus = []
     for s in con.execute("SELECT s.*, a.kennung FROM sitzung s JOIN agent a ON a.id = s.agent_id WHERE a.projekt_id = ? AND a.soll = 'an'"
@@ -82,8 +83,8 @@ def freie_agenten(con, pid):
                          " AND s.zustand = 'aktiv' AND s.schluessel_datei IS NOT NULL ORDER BY coalesce(s.ereignis_utc, s.gestartet_utc)",
                          (pid,)).fetchall():
         k = s["kennung"]
-        if k in (co, lead) or kern.halt_gilt(con, pid, k) or wartegrund.freie_arbeit(con, pid, k):
-            continue
+        if k in (co, lead) or kern.halt_gilt(con, pid, k) or herausnehmen.ist(con, pid, k) or wartegrund.freie_arbeit(con, pid, k):
+            continue                                                                        # A2095: ein Herausgenommener bekommt nichts
         if wartegrund.haelt_fest(con, pid, k):                # A2053: Antwort/Paket in den ersten 10 min – Prüfung/Stapel/Lauf nie
             continue
         if k not in [x for x, _ in aus]:
@@ -321,8 +322,10 @@ def ausfall(con, pid, jetzt=None):
 
 def runde(con, jetzt=None):
     """Dienst-Runde über alle Projekte: erst Ausfall, dann Verteilen. Rückgabe: Texte fürs Protokoll."""
+    from . import herausnehmen
     aus = []
     for p in con.execute("SELECT id FROM projekt").fetchall():
         aus += ausfall(con, p["id"], jetzt)
+        aus += herausnehmen.nachziehen(con, p["id"])                     # A2095
         aus += verteilen(con, p["id"])
     return aus

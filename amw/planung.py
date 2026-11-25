@@ -415,6 +415,9 @@ def schritt_setzen(con, pid, von, aid=None, titel=None, nach=None, **werte):
         _lead(con, pid, von, "Schritte in einem Meilenstein planen")
     if "agent" in werte:
         werte["agent"] = _bearbeiter(con, pid, werte["agent"])
+        if werte["agent"]:
+            from . import herausnehmen                  # A2095
+            herausnehmen.zuweisen_pruefen(con, pid, werte["agent"], aid)
     if werte.get("bogen_id") is not None:
         bogen_zeile(con, pid, werte["bogen_id"])
     if werte.get("komplexitaet") is not None and not 1 <= int(werte["komplexitaet"]) <= 10:
@@ -517,6 +520,9 @@ def naechster(con, pid, von, nehmen=False):
     nehmen=True übernimmt ihn in derselben Transaktion (Bearbeiter = von, Status läuft)."""
     if nehmen and kern.halt_gilt(con, pid, von):
         raise kern.AmwFehler("HALT gilt – keine neuen Schritte")
+    from . import herausnehmen                          # A2095
+    if t := herausnehmen.sperrtext(con, pid, von):
+        raise kern.AmwFehler(t)
     from . import paket_schieben                         # A2094: dieselbe Auswahl, Handgriffe „früher/später“ gelten auch hier
     with db.schreiben(con) if nehmen else _nichts():
         for a in paket_schieben.nachziehen(con, pid, con.execute(
