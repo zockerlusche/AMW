@@ -54,7 +54,7 @@ class Karte(Rundgang):
                      "1 wartet auf dich:", "Frage beantworten", "Wie soll das Symbol aussehen?",
                      f"4 blockiert durch Lauf L{self.lid}", "(Gesamtlauf vor der Auslieferung)", "Platz 1 von 1 in der Schlange", "Lauf vorziehen",
                      "1 bei der Prüfung:", "Prüfbitte P", "Lead anschreiben", "1 läuft:", "CC1",
-                     f"verschoben aus Meilenstein {self.danach}", f"1 wartet auf A{self.pruef}", "Offen (9)", "Fertig (1)", "Details"):
+                     "verschoben aus Meilenstein 3", f"1 wartet auf A{self.pruef}", "Offen (9)", "Fertig (1)", "Details"):
             self.assertIn(teil.lower(), text.lower())                              # Knöpfe stehen in Großbuchstaben (CSS)
         # „Vorziehen“ nur, wenn davor ein offener Meilenstein steht; Lead-Knöpfe nur im Menü
         self.assertFalse(self.tab.js(f"!!document.querySelector('#bogen-{self.b} .mk-vorziehen')"))

@@ -467,6 +467,8 @@ def suchindex(con, pid):
     """Für die Suche online (web/api.php): Aufgaben, Beschlüsse, Fragen, Wortlaut vollständig, Nachrichten die
     letzten 2000 (nur Kurztext). Je Eintrag [art, ref, titel, suchtext, zusatz, zeit]; gepackt (zlib + Base64)."""
     teile = [
+        ("meilenstein", "SELECT 'M' || nr, titel, 'M' || nr || ' ' || substr(coalesce(ziel, ''), 1, 300), status, angelegt_utc FROM bogen"   # A2089
+                        " WHERE projekt_id = ? ORDER BY id DESC"),
         ("aufgabe", "SELECT 'A' || id, titel, substr(coalesce(bemerkung, ''), 1, 300), status, angelegt_utc FROM aufgabe"
                     " WHERE projekt_id = ? ORDER BY id DESC"),
         ("beschluss", "SELECT 'B' || id, stichwort, substr(regel, 1, 400), status, zeit_utc FROM beschluss WHERE projekt_id = ?"
@@ -476,7 +478,9 @@ def suchindex(con, pid):
                   " WHERE projekt_id = ? ORDER BY id DESC"),
         ("wortlaut", "SELECT 'W' || id, substr(text, 1, 200), substr(text, 201, 400), kanal, zeit_utc FROM wortlaut"
                      " WHERE projekt_id = ? ORDER BY id DESC"),
-        ("nachricht", "SELECT '#' || id, kurz, '', von, zeit_utc FROM nachricht WHERE projekt_id = ? ORDER BY id DESC LIMIT 2000"),
+        ("nachricht", "SELECT '#' || n.id, n.kurz, coalesce((SELECT 'M' || b.nr FROM bogen b WHERE n.bezug LIKE 'M%' AND b.id = CAST(substr(n.bezug, 2)"
+                      " AS INTEGER) AND b.projekt_id = n.projekt_id), ''), n.von, n.zeit_utc FROM nachricht n WHERE n.projekt_id = ?"   # A2089: Bezug
+                      " ORDER BY n.id DESC LIMIT 2000"),
     ]
     eintraege = [[art, *r] for art, sql in teile for r in con.execute(sql, (pid,))]
     roh = json.dumps(eintraege, ensure_ascii=False, separators=(",", ":")).encode("utf-8")

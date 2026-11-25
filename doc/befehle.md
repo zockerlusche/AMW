@@ -987,7 +987,7 @@ options:
 ## suche
 ```
 usage: amw suche [-h]
-                 [--art {aufgabe,beschluss,frage,wortlaut,nachricht,dokument}]
+                 [--art {meilenstein,aufgabe,beschluss,frage,wortlaut,nachricht,dokument}]
                  [--grenze GRENZE] [--wissen] [--von VON] [--projekt PROJEKT]
                  text [text ...]
 
@@ -996,7 +996,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  --art {aufgabe,beschluss,frage,wortlaut,nachricht,dokument}
+  --art {meilenstein,aufgabe,beschluss,frage,wortlaut,nachricht,dokument}
                         nur diese Art (mehrfach)
   --grenze GRENZE
   --wissen              dazu: passende Beschlüsse/Fragen/Regeln wie bei frage

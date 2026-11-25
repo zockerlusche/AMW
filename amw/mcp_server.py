@@ -153,7 +153,7 @@ WERKZEUGE = {
     "lauf_vorziehen": ("Wartenden Lauf vorziehen (Lead: vor die Läufe des eigenen Projekts).", ["lauf", "vorziehen"], [NR("des Laufs")]),
     "suche": ("Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente.", ["suche"],
               [F("text", "s", "Suchtext", "#", True),
-               F("arten", "as", "nur diese Arten", "--art", False, ("aufgabe", "beschluss", "frage", "wortlaut", "nachricht", "dokument")),
+               F("arten", "as", "nur diese Arten", "--art", False, ("meilenstein", "aufgabe", "beschluss", "frage", "wortlaut", "nachricht", "dokument")),
                F("grenze", "i", "höchstens so viele Treffer", "--grenze")]),
     "zeige": ("Einträge ganz lesen, z. B. B5 F12 A120 W3 D5 KR3 oder eine Nachrichtennummer.", ["zeige"],
               [F("refs", "as", "Verweise", "#", True)]),

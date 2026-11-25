@@ -91,3 +91,10 @@ def bezug(con, pid, text):
     """Bezug von der Befehlszeile: M<Projektnummer> → gespeichertes Kürzel M<intern>; alles andere unverändert."""
     m = _M.fullmatch(str(text or ""))
     return f"M{zu_id(con, pid, int(m.group(1)))}" if m else text
+
+
+def suchbezug(con, pid, such):
+    """Suche nach „M19“: das gespeicherte Kürzel (M<intern>) der Nachrichten, die sich auf diesen Meilenstein beziehen; sonst None."""
+    m = _M.fullmatch(such or "")
+    r = con.execute("SELECT id FROM bogen WHERE projekt_id = ? AND nr = ?", (pid, int(m.group(1)))).fetchone() if m else None
+    return f"M{r[0]}" if r else None

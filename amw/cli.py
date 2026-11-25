@@ -4272,7 +4272,7 @@ def parser():
 
     x = s.add_parser("suche", help="Volltext über Aufgaben, Beschlüsse, Fragen, Deine Worte, Nachrichten, Dokumente: amw suche Modem")
     x.add_argument("text", nargs="+")
-    x.add_argument("--art", action="append", choices=["aufgabe", "beschluss", "frage", "wortlaut", "nachricht", "dokument"],
+    x.add_argument("--art", action="append", choices=["meilenstein", "aufgabe", "beschluss", "frage", "wortlaut", "nachricht", "dokument"],
                    help="nur diese Art (mehrfach)")
     x.add_argument("--grenze", type=int, default=15)
     x.add_argument("--wissen", action="store_true", help="dazu: passende Beschlüsse/Fragen/Regeln wie bei frage neu")

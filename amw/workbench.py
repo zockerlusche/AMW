@@ -1232,20 +1232,25 @@ def daten_suche(con, pid, q):
     if len(such) < 2:
         return []
     m = f"%{such}%"
+    from . import meilensteine                            # A2089: „M19“ findet den Meilenstein und die Nachrichten mit Bezug auf ihn
+    bezug = meilensteine.suchbezug(con, pid, such)
     teile = [
+        ("meilenstein", "SELECT 'M' || nr AS ref, titel AS titel, status AS zusatz, angelegt_utc AS zeit FROM bogen"
+                        " WHERE projekt_id = ? AND (titel LIKE ? OR ziel LIKE ? OR 'M' || nr = upper(?))", 4),
         ("aufgabe", "SELECT 'A' || id AS ref, titel AS titel, status AS zusatz, angelegt_utc AS zeit FROM aufgabe"
                     " WHERE projekt_id = ? AND (titel LIKE ? OR bemerkung LIKE ?)", 3),
         ("beschluss", "SELECT 'B' || id, stichwort, status, zeit_utc FROM beschluss WHERE projekt_id = ?"
                       " AND (stichwort LIKE ? OR regel LIKE ?)", 3),
         ("frage", "SELECT 'F' || id, kurz, status, zeit_utc FROM frage WHERE projekt_id = ? AND (kurz LIKE ? OR antwort LIKE ?)", 3),
         ("wortlaut", "SELECT 'W' || id, substr(text, 1, 200), kanal, zeit_utc FROM wortlaut WHERE projekt_id = ? AND text LIKE ?", 2),
-        ("nachricht", "SELECT '#' || id, kurz, von, zeit_utc FROM nachricht WHERE projekt_id = ? AND (kurz LIKE ? OR text LIKE ?)", 3),
+        ("nachricht", "SELECT '#' || id, kurz, von, zeit_utc FROM nachricht WHERE projekt_id = ? AND (kurz LIKE ? OR text LIKE ? OR bezug = ?)", 4),
         ("dokument", "SELECT 'D' || d.id, d.titel, d.art, d.angelegt_utc FROM dokument d WHERE d.projekt_id = ? AND d.status != 'geloescht'"
                      " AND (d.titel LIKE ? OR EXISTS (SELECT 1 FROM dokument_version v WHERE v.dokument_id = d.id AND v.suchtext LIKE ?))", 3),
     ]
     aus = []
     for art, sql, n in teile:
-        for r in con.execute(sql + " ORDER BY 4 DESC LIMIT 25", (pid, *[m] * (n - 1))):
+        par = (pid, m, m, such) if art == "meilenstein" else (pid, m, m, bezug or "") if art == "nachricht" else (pid, *[m] * (n - 1))
+        for r in con.execute(sql + " ORDER BY 4 DESC LIMIT 25", par):
             aus.append({"art": art, "ref": r[0], "titel": r[1], "zusatz": r[2], "zeit": r[3]})
     return aus
 
