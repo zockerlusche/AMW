@@ -235,6 +235,24 @@ def bericht_text(con, pid, bid):
     return "\n".join(z) + "\n"
 
 
+BEREIT_KURZ = "Meilenstein % bereit zur Abnahme (D%"
+
+
+def bereit_beenden(con, pid):
+    """A2108: „bereit zur Abnahme“ endet von selbst, sobald der Meilenstein es nicht mehr ist (abgenommen, zurück, neue Pakete, Prüfung fehlt).
+    Aus der Dienst-Runde (planautomatik.meilensteine). Rückgabe: Texte fürs Protokoll."""
+    from . import abschlusslage
+    aus = []
+    for _, bezug in kern.offene_meldungen(con, BEREIT_KURZ, pid):
+        b = con.execute("SELECT * FROM bogen WHERE id = ? AND projekt_id = ?", (int(bezug[1:]), pid)).fetchone() if bezug[:1] == "M" and bezug[1:].isdigit() else None
+        if not b:
+            continue
+        lage = abschlusslage.lage(con, pid, b) if b["status"] in ("geplant", "aktiv") else None
+        if not abschlusslage.bei_mensch(con, pid, lage) and kern.meldungen_beenden(con, pid, BEREIT_KURZ, bezug, "nicht mehr bereit zur Abnahme"):
+            aus.append(f"M{b['nr']}: „bereit zur Abnahme“ beendet")
+    return aus
+
+
 def bericht_erstellen(con, pid, bid, bereit=False):
     """bereit (A2002): der Meilenstein endet mit einem Urteil und alle Pakete sind fertig – der Bericht geht als Meldung „bereit
     zur Abnahme“ an Lead und Co (und an den Menschen, wenn er freigibt); fertig wird der Meilenstein erst mit dem Ja."""
@@ -256,7 +274,8 @@ def bericht_erstellen(con, pid, bid, bereit=False):
                 kern._posten(con, pid, "AMW", wer, "meldung", f"Meilenstein {b['nr']} „{b['titel'][:50]}“ bereit zur Abnahme (D{did})",
                              f"Alle Pakete sind fertig. Der Meilenstein endet mit: {b['abnahme']}. Die AMW hat den Abschlussbericht"
                              f" erstellt (D{did}, mit Resten und Lehren). Fertig wird der Meilenstein erst mit dem Ja zum Abschluss"
-                             f" ({wer_ja}): Planung › Meilensteine (Ja oder Zurück mit Notiz) oder amw bogen freigeben M{b['nr']} --art abschluss.")
+                             f" ({wer_ja}): Planung › Meilensteine (Ja oder Zurück mit Notiz) oder amw bogen freigeben M{b['nr']} --art abschluss.",
+                             bezug=f"M{bid}")
         return did
     with db.schreiben(con):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=BERICHT, bogen_id=bid,

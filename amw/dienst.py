@@ -653,7 +653,7 @@ def aufpasser_melden(text, teil=None):
         pid = dienst_projekt(con)
         if pid:
             with db.schreiben(con):
-                kern._posten(con, pid, "AMW", kern.ENTWICKLER, "meldung", f"Dienst: {text}")
+                kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"Dienst: {text}")        # A2108: nur wissen
     finally:
         con.close()
     if teil == "hauptschleife":

@@ -570,7 +570,8 @@ def _abschliessen_anbieter(con, pid, version, aus, lauf, anbieter):
         if aus["ergebnis"] == "bestanden":
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=ANBIETER_GEPRUEFT,
                          text=json.dumps({"anbieter": anbieter, "version": version, "dokument": did, "lauf": lauf}))
-            kern._posten(con, pid, "AMW", an, "meldung", f"Anbieter {anbieter} mit Claude Code {version} geprüft, {d}"[:140],
+            for wer in an.split(","):                    # A2108: der Mensch soll es nur wissen
+                kern._posten(con, pid, "AMW", wer, "info" if wer == kern.ENTWICKLER else "meldung", f"Anbieter {anbieter} mit Claude Code {version} geprüft, {d}"[:140],
                          f"Die AMW hat den Anbieter {anbieter} geprüft: jeder Zugriff nach außen abgelehnt, der Schlüssel blieb unsichtbar"
                          f" ({d}). Pakete mit {anbieter} starten jetzt. {RESTRISIKO}")
         else:

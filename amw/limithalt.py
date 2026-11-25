@@ -92,7 +92,8 @@ def runde(con, lage=None):
                          "Laufende Arbeit sauber beenden: Zwischenstand auf deinen Zweig committen, Übergabe-Notiz an die Aufgabe,"
                          " keine neuen Läufe, keine Auslieferung, nichts Neues anfangen – bis „weiter“ kommt (Lead oder Mensch,"
                          " sonst von selbst nach dem Wochenwechsel).")
-            kern._posten(con, pid, "AMW", _an_lead_und_mensch(con, pid), "meldung", f"Wochenlimit-Halt: {text}",
+            for wer in _an_lead_und_mensch(con, pid).split(","):          # A2108: der Mensch soll es nur wissen
+                kern._posten(con, pid, "AMW", wer, "info" if wer == kern.ENTWICKLER else "meldung", f"Wochenlimit-Halt: {text}",
                          f"Angehalten: {', '.join(wen)}. Auch du: nichts Neues anfangen, nur noch Weckrufe, bei denen sonst etwas"
                          " kaputtginge. Aufheben: amw weiter (Lead oder Mensch) – dann diese Woche kein neuer Halt;"
                          " sonst hebt die AMW ihn nach dem Wochenwechsel selbst auf. Schwelle: amw projekt einstellen limit_halt=<Prozent>"

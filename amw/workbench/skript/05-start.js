@@ -81,7 +81,7 @@ function uebersichtKarten(d) {
     ...(d.zur_abnahme || []).map(abnahmeZeile)];                                                    /* A1928: fertig → abnehmen */
   const anzahl = fragen.length + pw.spezifikationen.length + pw.plaene.length + pw.eigene.length + (d.startvorschlaege || []).length
     + (d.themen_fuer_dich || []).length + (d.aufgaben_zur_abnahme || []).length + (d.zur_abnahme || []).length;
-  const frisch = (d.an_dich || []).filter(n => !n.abgelegt), aelterIds = (d.an_dich || []).filter(n => n.abgelegt).map(n => n.id);
+  const frisch = (d.an_dich || []).filter(n => n.zaehlt), aelterIds = (d.an_dich || []).filter(n => n.abgelegt).map(n => n.id);
   const zuNachrichten = () => { try { localStorage.setItem(ablage("amw-nr"), "eingang"); } catch (e) {} zeige("nachrichten"); };
   const fuer = ueKarte("uk_fuer_dich", anzahl,
     fragenGruppe,
@@ -968,7 +968,7 @@ async function sichtNachrichten() {
     try {
       for (const [p, ids] of Object.entries(jeProjekt)) await schicken("/api/gelesen", { ids }, p);
       neu.forEach(x => { x.stand = "erledigt"; gesehen.add(schl(x)); }); markiert.clear();
-      d.zaehler.eingang_offen = Math.max(0, (d.zaehler.eingang_offen || 0) - neu.length);
+      d.zaehler.eingang_offen = Math.max(0, (d.zaehler.eingang_offen || 0) - neu.filter(x => x.zaehlt).length);   /* A2108 */
       nachGelesen(neu); gezeichnet.um = Date.now();    /* selbst gezeichnet: nachAktion zeichnet nicht noch einmal */
       kopfAktualisieren().catch(() => {});
     } catch (e) { toast(t("fehler", { x: e.message }), true); if (knopf) knopf.disabled = false; }

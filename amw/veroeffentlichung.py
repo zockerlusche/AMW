@@ -67,9 +67,9 @@ def veroeffentlichen(con, pid, von, bogen_id=None, lauf=None, repo=None):
 
     def melden(kurz, text):
         lead = kern.lead(con, pid)
-        an = ",".join(x for x in dict.fromkeys([lead, kern.ENTWICKLER]) if x)
         with db.schreiben(con):
-            kern._posten(con, pid, "AMW", an, "meldung", kurz[:200], text)
+            for wer in dict.fromkeys(x for x in (lead, kern.ENTWICKLER) if x):       # A2108: der Mensch soll es nur wissen
+                kern._posten(con, pid, "AMW", wer, "info" if wer == kern.ENTWICKLER else "meldung", kurz[:200], text)
 
     tags = offen(repo, lauf)
     if tags is None:

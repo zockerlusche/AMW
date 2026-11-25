@@ -186,12 +186,13 @@ class Haengt(Grundlage):
                 self.assertTrue(arbeiter.notbremse(p))                                           # beenden tut nur der Mensch
                 t.join(30)
 
-    def test_haenge_melder_an_pruefer_und_mensch(self):
+    def test_haenge_melder_an_pruefer_und_lead(self):
         kern.projekt_einstellen(self.con, self.pid, "TL", paket_pruefer="PRUEF")
         aid = self.paket("Hängt")
         en.haenge_melder(self.pid, aid, self.pfad)("stille", "seit 21 min keine Ausgabe des Arbeiters")
-        for an in ("PRUEF", kern.ENTWICKLER):
+        for an in ("PRUEF", "TL"):                                                                  # A2108: nicht der Mensch
             self.assertTrue(any("hängt?" in k for _, k in self.post(an)), an)
+        self.assertFalse(any("hängt?" in k for _, k in self.post(kern.ENTWICKLER)))
         self.assertEqual(self.con.execute("SELECT count(*) FROM plan_ereignis WHERE art = 'paket_haengt'").fetchone()[0], 1)
 
 

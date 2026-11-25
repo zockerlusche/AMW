@@ -390,7 +390,7 @@ def daten_start(con, pid):
     for f in fragen:
         f["blockiert"] = 1 if f["blockiert"] or fragentopf.blockiert(con, pid, f["id"]) else 0
     an_dich = zeilen(con.execute(           # ohne Nachträge zu offenen Fragen – die zeigt die Frage selbst (geparkte nicht)
-        "SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bis FROM empfang e JOIN nachricht n"
+        f"SELECT n.id, n.zeit_utc, n.von, n.art, n.kurz, n.text, n.antwort_auf, n.bis, {ZAEHLT} AS zaehlt FROM empfang e JOIN nachricht n"
         " ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ? AND e.status != 'erledigt'"
         " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL)"   # Fragen und Nachträge: nur unter „Fragen“ (A1629)
         " ORDER BY n.id DESC LIMIT 30", (pid, kern.ENTWICKLER)))
@@ -412,7 +412,7 @@ def daten_start(con, pid):
         " (SELECT count(*) FROM regel WHERE projekt_id = :p) AS regeln,"
         " (SELECT count(*) FROM release WHERE projekt_id = :p) AS releases", {"p": pid}).fetchone())
     frei, gesamt = speicher_frei_gb()
-    zaehler["an_dich"] = sum(1 for n in an_dich if not n["abgelegt"])
+    zaehler["an_dich"] = sum(1 for n in an_dich if n["zaehlt"])          # A2108
     zaehler["nachrichten"] = an_dich_zahl(con, pid)       # Menü: nur das oben gewählte Projekt (Marcel 13.11., B2691)
     from . import planung
     try:
@@ -664,14 +664,22 @@ def sprache_vorgabe():
         return "auto"
 
 
+# A2108 (Marcel 25.11.): was beim Menschen zählt, ist nur, was er tun muss – Fragen, Prüfbitten, Aufträge, Korrekturen, Antworten auf seine
+# eigenen Nachrichten und die Meldungen der AMW (die AMW schreibt ihm eine Meldung nur, wenn er etwas tun muss: abnehmen, Platz schaffen,
+# anmelden, testen …; was er nur wissen soll, ist eine Info). Infos und Berichte der Agenten bleiben lesbar, zählen aber nie.
+ZAEHLT_ARTEN = ("frage", "pruefbitte", "auftrag", "korrektur")
+ZAEHLT = ("(n.art IN ('" + "', '".join(ZAEHLT_ARTEN) + "') OR (n.art = 'meldung' AND n.von = 'AMW') OR (n.art = 'antwort' AND EXISTS"
+          " (SELECT 1 FROM nachricht v WHERE v.id = n.antwort_auf AND v.von = '" + kern.ENTWICKLER + "')))")
+
+
 def an_dich_zahl(con, pid):
-    """Offene Nachrichten an den Menschen, wie Startseite, Menü und Eingang sie zählen: ohne Nachträge zu offenen Fragen
-    (die zeigt die Frage) und ohne ältere Infos ohne Bezug (eingeklappt, zählen nicht mehr)."""
+    """Offene Nachrichten an den Menschen, wie Startseite, Menü und Eingang sie zählen (ZAEHLT): ohne Nachträge zu offenen Fragen
+    (die zeigt die Frage)."""
     return con.execute(
         "SELECT count(*) FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE n.projekt_id = ? AND e.agent = ?"
-        " AND e.status != 'erledigt' AND NOT (n.art = 'info' AND COALESCE(n.bis, '') = '' AND n.zeit_utc < ?)"
-        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL)",            # Fragen und ihre Nachträge: nur unter „Fragen“ (Marcel 13.11., A1629)
-        (pid, kern.ENTWICKLER, _ablage_grenze(con, pid))).fetchone()[0]
+        f" AND e.status != 'erledigt' AND {ZAEHLT}"
+        " AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL)",            # Fragen und ihre Nachträge: nur unter „Fragen“ (A1629)
+        (pid, kern.ENTWICKLER)).fetchone()[0]
 
 
 def daten_nachrichten(con, pid, grenze=150):
@@ -713,9 +721,9 @@ def daten_nachrichten(con, pid, grenze=150):
                          "antworten": antworten, "zurueckgezogen": zurueck, "zu_frage": n["id"] in zu_fragen,
                          "zurueckziehbar": not zurueck and bool(emp) and n["id"] not in zu_fragen and all(x["status"] == "offen" for x in emp)})
     eingang = []
-    for n in con.execute(f"SELECT {spalten}, e.status AS stand FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+    for n in con.execute(f"SELECT {spalten}, e.status AS stand, {ZAEHLT} AS zaehlt FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
                          " WHERE n.projekt_id = ? AND e.agent = ? AND n.id NOT IN (SELECT v.nachricht_id FROM frage_verlauf v WHERE v.nachricht_id IS NOT NULL) ORDER BY n.id DESC LIMIT ?", (pid, E, grenze)).fetchall():
-        eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand")}, "bezug": bezug(n), "projekt": puid})
+        eingang.append({**{k: n[k] for k in ("id", "zeit_utc", "von", "art", "kurz", "text", "antwort_auf", "stand", "zaehlt")}, "bezug": bezug(n), "projekt": puid})
     fragen = con.execute("SELECT count(*) FROM frage WHERE projekt_id = ? AND an = 'entwickler' AND status = 'offen' AND geparkt_utc IS NULL",
                          (pid,)).fetchone()[0]
     return {"eingang": eingang, "gesendet": gesendet,

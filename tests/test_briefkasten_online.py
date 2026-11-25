@@ -190,7 +190,7 @@ class GanzerWeg(unittest.TestCase):
         kern.agent_neu(self.con, p2, "QL", rolle="lead")
         kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "auftrag", "in P")
         kern.posten(self.con, p2, kern.ENTWICKLER, "QL", "auftrag", "in Q")
-        kern.posten(self.con, p2, "QL", kern.ENTWICKLER, "info", "Antwort aus Q")
+        kern.posten(self.con, p2, "QL", kern.ENTWICKLER, "auftrag", "Antwort aus Q")          # A2108: eine Info zählt nie
         self.ab.hochladen(alle=True)
         ab2 = abgleich.Abgleich(self.con, self.sp, p2)
         ab2.hochladen(alle=True)

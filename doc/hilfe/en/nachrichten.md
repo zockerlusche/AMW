@@ -30,6 +30,9 @@ Everything you write to agents and everything they write to you is in one place 
 ### What do the steps mean?
 **sent** – the message is in AMW. **notified** – the service has woken the agent (chat leads read on their next round). **read** – the agent has fetched it with `amw lesen`. **done** – it has dealt with it. **being sent …** – online only, until the PC has taken it over.
 
+### What counts as a message to you?
+Only what you need to act on: questions, review requests and tasks for you, answers to your messages, and AMW messages that need something from you (for example “ready for acceptance” or “drive is getting full”). Infos and reports stay readable but do not count. “Ready for acceptance” disappears by itself once the milestone no longer is. The lead learns that a priority run has been waiting long or a package is stuck.
+
 ### When does the AMW notify an agent?
 For orders, questions, answers, approvals, review requests and reports – never for an info; that only sits in the inbox and is seen at the next read. If the agent is working right now, the AMW waits until its next stop and then sends everything together as one notification. That saves cost. Immediately, even in the middle of work, only stop, corrections and everything you write yourself get through.
 

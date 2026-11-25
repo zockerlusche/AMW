@@ -12,6 +12,7 @@ from tests import texte_waechter
 AUSNAHMEN = {
     ("amw/meilensteine.py", "Meilenstein {int(bid)}"): "Notbehelf, wenn es den Meilenstein nicht gibt – es gibt dann keine Projektnummer",
     ("amw/planung.py", 'bezug=f"M{bid}"'): "gespeicherter Bezug einer Nachricht: intern (A2079)",
+    ("amw/tore.py", 'bezug=f"M{bid}"'): "gespeicherter Bezug einer Nachricht: intern (A2079)",
     ("amw/cli.py", "ab['bogen']:+d} Tage"): "Abweichung in Tagen, keine Nummer",
 }
 

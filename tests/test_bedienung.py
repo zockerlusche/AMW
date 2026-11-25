@@ -164,7 +164,7 @@ class Seite(Wiederholt, Grund):
                            angelegt_utc=db.jetzt(), angelegt_von="TL")
         self.con.commit()
         n1 = kern.posten(self.con, self.pid, kern.ENTWICKLER, "CC1", "auftrag", "Bitte Linien aufräumen", aufgabe_id=aid)[0]
-        kern.posten(self.con, self.pid, "CC1", kern.ENTWICKLER, "info", "Mache ich")
+        kern.posten(self.con, self.pid, "CC1", kern.ENTWICKLER, "antwort", "Mache ich")           # A2108: eine Info zählt nie
         self.oeffnen("start", "document.querySelector('.nr-start')")
         self.assertIn("1 neue Nachricht an dich", self.tab.js("document.querySelector('#ue-fuer_dich .nr-start').innerText"))   # A1657: Karte „Für dich“
         self.tab.js("document.querySelector('.nr-start').click()")

@@ -90,7 +90,7 @@ class Meldungen(Grund):
         d = workbench.daten_start(self.con, self.pid)
         abgelegt = {n["id"]: n["abgelegt"] for n in d["an_dich"]}
         self.assertEqual(abgelegt, {alt: True, neu: False, mit: False})
-        self.assertEqual(d["zaehler"]["an_dich"], 2)
+        self.assertEqual(d["zaehler"]["an_dich"], 0)                                        # A2108: Infos zählen nie
 
 
 class Spezifikation(Grund):

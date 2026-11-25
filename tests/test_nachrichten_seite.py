@@ -27,7 +27,7 @@ class Nachrichten(unittest.TestCase):
         E = kern.ENTWICKLER
         self.n1 = kern.posten(self.con, self.pid, E, "CC1", "auftrag", "Linien aufräumen", aufgabe_id=self.aid)[0]
         self.n2 = kern.posten(self.con, self.pid, E, "CC1,CC2", "info", "Heute keine Läufe mit Fenster")[0]
-        self.n3 = kern.posten(self.con, self.pid, "CC1", E, "info", "Stand: fertig", antwort_auf=self.n1)[0]
+        self.n3 = kern.posten(self.con, self.pid, "CC1", E, "antwort", "Stand: fertig", antwort_auf=self.n1)[0]
 
     def amw(self, *args):
         aus = io.StringIO()

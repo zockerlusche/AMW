@@ -233,7 +233,7 @@ def abschliessen(con, pid, eid, ergebnis, modell_=None, usd=None, lauf=None, feh
                          + ("\n".join(f"- {x}" for x in e["folgen"]) or "- keine"))
         return "gilt"
     with db.schreiben(con):
-        kern._posten(con, pid, "AMW", kern.ENTWICKLER, "info", f"Änderung wartet auf dein Ja: {was}",
+        kern._posten(con, pid, "AMW", kern.ENTWICKLER, "meldung", f"Änderung wartet auf dein Ja: {was}",      # A2108: etwas zu tun – zählt
                      "Berührt: " + ", ".join(n for k, n in (("beruehrt_ziel", "Ziel"), ("beruehrt_erfolg", "Erfolgskriterien"),
                                                              ("beruehrt_kosten", "Kosten")) if e[k])
                      + ". Folgen:\n" + ("\n".join(f"- {x}" for x in e["folgen"]) or "- keine") + "\nPlanung › Meilensteine: Ja oder Verwerfen.")

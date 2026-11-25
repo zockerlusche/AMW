@@ -30,6 +30,9 @@ Alles, was du an Agenten schreibst und was sie dir schreiben, steht an einer Ste
 ### Was heißen die Schritte?
 **gesendet** – die Nachricht ist in der AMW. **benachrichtigt** – der Dienst hat den Agenten geweckt (Chat-Leads lesen beim nächsten Durchgang). **gelesen** – der Agent hat sie mit `amw lesen` abgerufen. **erledigt** – er hat sie abgearbeitet. **wird übertragen …** – nur online, bis der PC sie übernommen hat.
 
+### Was zählt als Nachricht an dich?
+Nur, was du tun musst: Fragen, Prüfbitten und Aufträge an dich, Antworten auf deine Nachrichten und Meldungen der AMW, die etwas von dir brauchen (zum Beispiel „bereit zur Abnahme“ oder „Laufwerk wird knapp“). Infos und Berichte kannst du lesen, sie zählen nicht. „Bereit zur Abnahme“ verschwindet von selbst, sobald der Meilenstein es nicht mehr ist. Dass ein Lauf mit Vorrang lange wartet oder ein Paket hängt, erfährt der Lead.
+
 ### Wann benachrichtigt die AMW einen Agenten?
 Bei Aufträgen, Fragen, Antworten, Freigaben, Prüfbitten und Meldungen – nie bei einer Info; die steht nur im Postfach und wird beim nächsten Lesen gesehen. Arbeitet der Agent gerade, wartet die AMW bis zu seinem nächsten Halt und schickt dann alles zusammen als eine Benachrichtigung. Das spart Kosten. Sofort, auch mitten in der Arbeit, kommen nur Stopp, Korrekturen und alles, was du selbst schreibst.
 

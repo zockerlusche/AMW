@@ -1450,6 +1450,22 @@ def erledigt(con, pid, kennung, nids, bemerkung=None):
     return n
 
 
+def meldungen_beenden(con, pid, kurz, bezug, grund):
+    """A2108: eine Meldung der AMW (Zustand, nicht Ereignis) endet von selbst, sobald der Zustand vorbei ist – bei allen Empfängern. kurz:
+    LIKE-Muster, bezug: L<nr>, M<nr> …; nur Meldungen mit diesem Bezug (ältere ohne Bezug bleiben, wie sie sind). Anzahl."""
+    with db.schreiben(con):
+        return con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ?, bemerkung = coalesce(bemerkung, ?) WHERE status != 'erledigt'"
+                           " AND nachricht_id IN (SELECT id FROM nachricht WHERE projekt_id = ? AND von = 'AMW' AND art = 'meldung' AND bezug = ? AND kurz LIKE ?)",
+                           (db.jetzt(), f"von selbst beendet: {grund}", pid, bezug, kurz)).rowcount
+
+
+def offene_meldungen(con, kurz, pid=None):
+    """[(Projekt, Bezug)] der offenen AMW-Meldungen mit Bezug, deren Text zum LIKE-Muster kurz passt (A2108)."""
+    return con.execute("SELECT DISTINCT n.projekt_id, n.bezug FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id WHERE e.status != 'erledigt' AND n.von = 'AMW'"
+                       " AND n.art = 'meldung' AND n.bezug IS NOT NULL AND n.kurz LIKE ?" + (" AND n.projekt_id = ?" if pid else ""),
+                       (kurz, *([pid] if pid else []))).fetchall()
+
+
 def erledigt_infos(con, pid, kennung, vor=None):
     """Alle offenen/gelesenen [info] an kennung erledigen (vor: nur ältere als dieses Datum, JJJJ-MM-TT). Anzahl."""
     sql = ("UPDATE empfang SET status = 'erledigt', erledigt_utc = ?, bemerkung = coalesce(bemerkung, 'info gesammelt')"

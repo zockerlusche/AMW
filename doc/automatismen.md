@@ -1041,6 +1041,17 @@ die der Lead nur noch bestätigt oder ändert.
   der Feinplaner plant mit dem Hinweis neue Pakete im laufenden Meilenstein, die AMW legt sie an und startet sie gleich.
   Nach dem Ja zum Abschluss plant die AMW den nächsten Meilenstein fein (A2031).
 
+### Was beim Menschen zählt (A2108, Marcel 25.11.)
+
+- **Zählt** (`workbench.ZAEHLT`): frage, pruefbitte, auftrag, korrektur; Antworten auf seine eigenen Nachrichten; Meldungen der AMW. Die AMW
+  schreibt dem Menschen eine Meldung nur, wenn er etwas tun muss (abnehmen, Platz schaffen, anmelden, testen, ein Fenster ansehen); was er nur
+  wissen soll, ist eine Info. Infos, Meldungen und Antworten der Agenten bleiben lesbar und zählen nie.
+- **An den Lead statt an den Menschen:** „L… mit Vorrang wartet seit …“ (`betrieb.vorrang_meldungen`) und „A… hängt?“ (Prüfer und Lead). Ohne
+  Lead bleibt es beim Menschen.
+- **Zustände enden von selbst:** die Vorrang-Meldung, sobald der Lauf beginnt oder endet; „Meilenstein … bereit zur Abnahme“, sobald er es nicht
+  mehr ist (`tore.bereit_beenden`, je Dienst-Runde; abgenommen, neues Paket, Prüfung fehlt). Nur Meldungen mit Bezug (L…, M…) – ältere schließt
+  der Lead von Hand.
+
 ### Verlauf im Projektweg (A2024, A2077, TH164 „Verlauf“)
 
 - **Was:** je Schritt, wer was getan hat – Themen, Grobplan und Freigaben wie gespeichert (`verlauf.projektweg`), alles Übrige abgeleitet

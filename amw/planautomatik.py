@@ -411,6 +411,8 @@ def meilensteine(con):
     aus = []
     for (pid,) in con.execute("SELECT id FROM projekt").fetchall():
         try:
+            from . import tore
+            tore.bereit_beenden(con, pid)                # A2108
             aus += meilenstein_projekt(con, pid)
         except Exception as x:                           # noqa: BLE001
             aus.append((0, f"Projekt {pid}: {type(x).__name__}: {x}"))

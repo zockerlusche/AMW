@@ -42,11 +42,11 @@ class Postfach(Grund):
             d = workbench.daten_nachrichten(self.con, self.pid)
             self.assertEqual([x["id"] for x in d["eingang"]], [info])                         # Nachtrag nicht im Eingang
             self.assertNotIn(rf, [x["id"] for x in d["gesendet"]])                              # Rückfrage nicht im Gesendet
-            self.assertEqual(d["zaehler"]["eingang_offen"], 1)
-            self.assertEqual(workbench.an_dich_zahl(self.con, self.pid), 1)
+            self.assertEqual(d["zaehler"]["eingang_offen"], 0)                                  # A2108: eine Info zählt nie
+            self.assertEqual(workbench.an_dich_zahl(self.con, self.pid), 0)
             start = workbench.daten_start(self.con, self.pid)
             self.assertEqual([n["id"] for n in start["an_dich"]], [info])
-            self.assertEqual(start["zaehler"]["nachrichten"], 1)
+            self.assertEqual(start["zaehler"]["nachrichten"], 0)
             self.assertEqual(d["zaehler"]["fragen_offen"], 0 if geparkt else 1)                 # nur der Hinweis „n Fragen offen“
             self.assertTrue(nt)
             if not geparkt:

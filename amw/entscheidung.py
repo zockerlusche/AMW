@@ -194,14 +194,14 @@ def haenge_werte(con, pid):
 
 
 def haenge_melder(pid, aid, pfad=None):
-    """Rückruf für arbeiter.laufen(haenge=…): meldet „hängt“ an Prüfer und Mensch – eigene Datenbank-Verbindung (läuft in einem
+    """Rückruf für arbeiter.laufen(haenge=…): meldet „hängt“ an Prüfer und Lead (A2108; ohne Lead an den Menschen) – eigene Datenbank-Verbindung (läuft in einem
     eigenen Faden), protokolliert, beendet nichts (Notbremse bleibt beim Menschen)."""
     def melden(art, text):
         from . import db, kern
         con = db.verbinde(pfad)
         try:
             titel = (con.execute("SELECT titel FROM aufgabe WHERE id = ?", (aid,)).fetchone() or [""])[0]
-            an = {empfaenger(con, pid, "pruefer"), kern.ENTWICKLER}
+            an = {empfaenger(con, pid, "pruefer"), kern.lead(con, pid) or kern.ENTWICKLER}
             with db.schreiben(con):
                 db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="paket_haengt", aufgabe_id=aid,
                              text=f"{art}: {text}")

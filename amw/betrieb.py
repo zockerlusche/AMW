@@ -691,9 +691,17 @@ def _halten_fuer(con, kandidaten, stufe_neu, v=None, speicher_frei=None):
     return beste
 
 
+VORRANG_WARTET = "L% mit Vorrang wartet seit %"
+
+
 def vorrang_meldungen(con, jetzt=None):
-    """Wartet ein Lauf eines Projekts mit Vorrang „hoch“ länger als MELDUNG_MIN Minuten, bekommt der Mensch einmal eine
-    Meldung mit dem Wartegrund (im Projekt des Laufs). Rückgabe: Texte der neuen Meldungen."""
+    """Wartet ein Lauf eines Projekts mit Vorrang „hoch“ länger als MELDUNG_MIN Minuten, bekommt der Lead des Projekts einmal eine
+    Meldung mit dem Wartegrund (A2108: nicht der Mensch; ohne Lead er). Sie endet von selbst, sobald der Lauf beginnt oder endet.
+    Rückgabe: Texte der neuen Meldungen."""
+    for p, bezug in kern.offene_meldungen(con, VORRANG_WARTET):
+        l = con.execute("SELECT status FROM lauf WHERE id = ? AND projekt_id = ?", (int(bezug[1:]), p)).fetchone() if re.fullmatch(r"L\d+", bezug) else None
+        if l and l["status"] != "angemeldet":
+            kern.meldungen_beenden(con, p, VORRANG_WARTET, bezug, f"{bezug} {'läuft' if l['status'] == 'laeuft' else l['status']}")
     v = vorrang()
     if not v:
         return []
@@ -707,9 +715,10 @@ def vorrang_meldungen(con, jetzt=None):
             continue
         grund = wartegrund(con, l["projekt_id"], l)
         with db.schreiben(con):
-            kern._posten(con, l["projekt_id"], "AMW", kern.ENTWICKLER, "meldung", kurz,
-                         f"{l['agent']}: {l['beschreibung']}\n\nWarum: {grund}\n\nNichts wird abgebrochen. Vorziehen kannst nur du: "
-                         f"amw lauf vorziehen {l['id']} (oder in der Workbench: Start › Leitstand › Rechner › „Vorziehen“).", aufgabe_id=l["aufgabe_id"])
+            kern._posten(con, l["projekt_id"], "AMW", kern.lead(con, l["projekt_id"]) or kern.ENTWICKLER, "meldung", kurz,
+                         f"{l['agent']}: {l['beschreibung']}\n\nWarum: {grund}\n\nNichts wird abgebrochen. Vorziehen im Projekt (Lead oder Mensch): "
+                         f"amw lauf vorziehen {l['id']} (oder in der Workbench: Start › Leitstand › Rechner › „Vorziehen“; über alle Projekte nur der Mensch)."
+                         f" Beginnt oder endet der Lauf, schließt sich diese Meldung von selbst.", bezug=f"L{l['id']}", aufgabe_id=l["aufgabe_id"])
         aus.append(kurz)
     return aus
 
