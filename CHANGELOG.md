@@ -4,6 +4,16 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.197.0 – 25.11.2026 · Freigaben wirken beim ersten Klick, das Ja zu einer Konzeptänderung startet immer
+- **Behoben:** Freigeben, Abnehmen und das Anlegen oder Speichern eines Agenten wirken beim ersten Klick, auch wenn die Workbench inzwischen neu gestartet ist. Ein Doppelklick wirkt einmal. Zwischen Drücken und Loslassen zeichnet die Seite nicht neu. Geht etwas schief, steht ein verständlicher Satz da, und der Knopf geht wieder.
+- **Verbessert:** Das Ja zu einer Konzeptänderung startet die neuen Pakete immer, auch wenn der Plan des laufenden Meilensteins inzwischen geändert ist. Ein Entwurf lässt sich mit Grund zurückstellen (`amw thema entwurf-warten TH… --grund …`, `entwurf-weiter TH…`); was der Mensch zurückstellt, hebt nur er auf. Überholte Entwürfe verschwinden.
+- **Verbessert:** Nachrichten: oben steht „n zu tun für dich“, der Reiter „An dich“ filtert „nur ungelesene“, und der Hinweis auf offene Fragen ist als Verweis lesbar.
+- **Verbessert:** Zeitplan und Prognose rechnen eine Pause ein, und der Verlauf zeigt, wer sie wann mit welchem Grund an- und ausgeschaltet hat.
+- **Verbessert:** Die Sprachprüfung rechnet denselben Stand nur einmal; weitere Prüfbitten übernehmen den Befund oder warten auf ihn.
+- **Behoben:** Zwei Sicherungen in derselben Minute brechen eine Auslieferung nicht mehr ab, und der Wartungsmodus einer abgebrochenen Auslieferung endet mit der nächsten erfolgreichen.
+- **Behoben:** Passt bei der Abschlussprüfung nur ein Teil der vorgeschlagenen Nacharbeit nicht, gilt ihr Urteil trotzdem: Die passenden Pakete legt die AMW an, die übrigen gehen mit Grund an den Lead. Ein Headless-Paket mit Testdateien darf seine Tests von selbst schreiben.
+- **Intern:** Vier Bausteine, noch nirgends eingebaut: Version und Versionshinweise eines Bündels schreiben, rotes Bündel teilen, die Liste „Für dich“ und die Daten des Leitstands.
+
 ## 1.196.0 – 25.11.2026 · Erst ausgeliefert, dann abgenommen; Agenten herausnehmen, Prüfpunkte setzen
 - **Behoben:** Abnehmen geht erst, wenn alle fertigen Pakete eines Meilensteins ausgeliefert sind; bis dahin steht „wartet auf Auslieferung“ mit den Paketen, ohne Knopf und ohne Meldung. Die AMW fragt, ob der Commit des Pakets in der Version steckt, nicht nach der Uhrzeit. Pakete ohne eigenen Code brauchen keine Version. Beim Klick auf Abnehmen stehen keine Befehle mehr in der Fehlermeldung.
 - **Neu:** Einen Agenten herausnehmen und wieder freigeben: `amw agent folgen CC2` zeigt vorher, was geschieht, `amw agent herausnehmen CC2 --grund …` und `amw agent freigeben CC2`. Seine wartenden Pakete gehen in den Pool und werden neu verteilt, das laufende macht er zu Ende oder gibt es mit Übergabe-Notiz zurück. Läufe und Prozesse beendet die AMW nie.
