@@ -249,7 +249,7 @@ class Feinplaner(unittest.TestCase):
     def test_eine_nachbesserung_dann_erst_der_mensch(self):
         """A2067: passt die erste Antwort nicht, geht der Fund einmal an den Planer zurück; Gegenprobe: passt sie, kein zweiter Lauf."""
         schlecht = self.plan()
-        schlecht["pakete"][1]["pakettyp"] = None                                                  # p-Paket mit tests/… ohne Testtyp
+        schlecht["pakete"][1]["bereiche"] = "amw/kern.py"                                         # wirklich gesperrt (tests/… ohne Testtyp passt seit A2139)
         laeufe, hinweise = [], []
 
         def planen(con, pid, zeilen, hinweis, modell, prog=None, zusatz=None):
