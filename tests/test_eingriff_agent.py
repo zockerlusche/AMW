@@ -204,6 +204,41 @@ class Sperren(Grund):
             kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "fertig", beleg="x", zusammenfassung="x")
             self.assertEqual(u.kandidaten(self.pid), [])
 
+    def test_start_aus_dem_pool(self):
+        self.nehmen()
+        with self.assertRaisesRegex(kern.AmwFehler, "herausgenommen"):
+            self.start(self.a)
+        self.assertEqual(self.agent_von(self.a), (None, "wartet"))
+
+    def test_gebautes_weckt_ihn_nicht(self):
+        self.pruefung(self.b, "gruen")
+        self.start(self.a)
+        self.nehmen()
+        kern.aufgabe_status(self.con, self.pid, "CC1", self.a, "fertig", beleg="x", zusammenfassung="x")
+        self.assertEqual(self.agent_von(self.b)[0], "CC1")
+        self.assertEqual([x[1] for x in self.post("CC1") if "weiter in deiner Liste" in x[1]], [])
+        self.assertEqual(wartegrund.startklar_wecken(self.con, self.pid), [])
+        herausnehmen.freigeben(self.con, self.pid, MENSCH, "CC1")
+        self.assertEqual(wartegrund.startklar_wecken(self.con, self.pid), [f"CC1 geweckt: A{self.b} startklar"])
+
+    def test_kein_startvorschlag(self):
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE sitzung SET zustand = 'beendet', beendet_utc = ?", (db.jetzt(),))
+            self.con.execute("UPDATE agent SET ordner = 'C:/x', arbeitsweise = 'terminal' WHERE projekt_id = ?", (self.pid,))
+        self.pruefung(self.b, "gruen")
+
+        def wer():
+            return [v["kennung"] for v in steuerung.startvorschlaege(self.con, self.pid)]
+        self.assertIn("CC1", wer())
+        self.nehmen()
+        self.assertNotIn("CC1", wer())
+
+    def test_verteilrunde_zieht_nach(self):
+        self.pruefung(self.b, "gruen")
+        self.nehmen()
+        self.pruefung(self.b, "rot")
+        self.assertIn(f"A{self.b} von CC1 zurück in den Pool", verteilen.runde(self.con))
+
     def test_kontext_sagt_es_ihm(self):
         self.nehmen()
         self.assertIn("DU BIST HERAUSGENOMMEN (von Alex: Urlaub)", kern.kontext(self.con, self.pid, "CC1"))
