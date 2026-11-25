@@ -170,20 +170,19 @@ class Seite(Rundgang):
     def test_trotzdem_freigeben_fragt_nach(self):
         self.groesse("pc")
         self.weg()
-        self.tab.js("window.gefragt = []; window.confirm = x => { gefragt.push(x); return false; }")
         self.tab.js(f"document.querySelector('.pjw-delta .pjw-wartet').open = true; document.querySelector('.pjw-delta {self.TROTZDEM}').click()")
-        self.assertIn(GRUND, self.tab.js("gefragt.join()"))
+        self.assertIn(GRUND, self.rueckfrage(False))                              # A2146: die Rückfrage der Seite
         self.assertFalse(planer.erledigt(self.con, self.pid, (planer.letzter_entwurf(self.con, self.pid, self.t) or {})["id"]))   # Nein: nichts geschieht
-        self.tab.js("window.confirm = () => true")
         self.tab.js(f"document.querySelector('.pjw-delta {self.TROTZDEM}').click()")
+        self.rueckfrage(True)
         self.warten("!document.querySelector('.pjw-delta')")
         self.assertTrue(planer.erledigt(self.con, self.pid, (planer.letzter_entwurf(self.con, self.pid, self.t) or {})["id"]))
 
     def test_trotzdem_freigeben_in_der_planung(self):
         self.groesse("pc")
         self.planung()
-        self.tab.js("window.confirm = () => true")
         self.tab.js(f"document.querySelector('.pm-entwurf').open = true; document.querySelector('.pm-entwurf {self.TROTZDEM}').click()")
+        self.rueckfrage(True)
         self.warten("!document.querySelector('#inhalt .pm-entwurf')")
 
     def test_rundgang(self):

@@ -60,19 +60,18 @@ function frageKarte(f) {
   const notiz = el("textarea", { placeholder: echteOptionen.length ? t("anmerkung_ph") : t("antwort_ph") });
   const meldung = el("span", { class: "rueckmeldung leise" });
   const karte = el("div", { class: "karte frage" });
-  const sperren = text => { for (const b of karte.querySelectorAll("button")) b.disabled = true; notiz.disabled = true; meldung.textContent = text; };
-  async function antworten(art, wert, anmerkung) {
-    try { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
+  const sperren = text => { for (const b of karte.querySelectorAll("button")) { b.disabled = true; b.dataset.bleibtAus = "1"; } notiz.disabled = true; meldung.textContent = text; };
+  /* A2146: je Frage geht eine Antwort zur Zeit hinaus – ein Doppelklick antwortet einmal; bei einem Fehler ein Satz ohne Technik */
+  function antworten(art, wert, anmerkung) {
+    return einmalTun("frage/" + f.id, async () => { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
       const offen = r.status === "offen" || art === "rueckfrage";
       sperren(offen ? t("rueckfrage_gesendet") : t("beantwortet"));
-      if (!offen) { toast(t("beantwortet")); karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); }
-    } catch (e) { toast(t("fehler", { x: e.message }), true); }
+      if (!offen) { toast(t("beantwortet")); karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); } });
   }
-  async function parken(ja) {
-    try { await schicken(`/api/frage/${f.id}/${ja ? "parken" : "aufnehmen"}`, { grund: notiz.value.trim() });
+  function parken(ja) {
+    return einmalTun("frage/" + f.id, async () => { await schicken(`/api/frage/${f.id}/${ja ? "parken" : "aufnehmen"}`, { grund: notiz.value.trim() });
       sperren(t(ja ? "f_geparkt_ok" : "f_aufgenommen")); toast(t(ja ? "f_geparkt_ok" : "f_aufgenommen"));
-      karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); }
-    catch (e) { toast(t("fehler", { x: e.message }), true); }
+      karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); });
   }
   karte.append(...[                                                        // DOM-append schriebe null als Text
     el("div", { class: "meta" }, el("span", { class: "ref" }, `F${f.id}`), t("von", { x: f.von }), el("span", { class: "sehrleise" }, `${zeit(f.zeit_utc)} · ${seit(f.zeit_utc)}`),

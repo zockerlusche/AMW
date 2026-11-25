@@ -111,29 +111,26 @@ class ThemenTor(Rundgang):
         self.assertEqual(self.tab.js(f"{self.DICH}.innerText"), "Wartet auf dich: 1 Thema")
         self.tab.js(self.OFFEN[0] % self.letzt)
         self.warten(self.OFFEN[1])
-        self.tab.js("window.__fragen = []; window.confirm = x => { window.__fragen.push(x); return false; };"
-                    " document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
-        self.assertEqual(self.tab.js("window.__fragen"), ["Damit ist der Schritt Konzept abgeschlossen. Als Nächstes kommt die Grobplanung."])
+        self.tab.js("document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
+        self.assertEqual(self.rueckfrage(False), "Damit ist der Schritt Konzept abgeschlossen. Als Nächstes kommt die Grobplanung.")   # A2146: Dialog der Seite
         self.assertEqual(themen.status(self.con, themen.finden(self.con, self.pid, self.letzt))["status"], "dich")   # abgebrochen
-        self.tab.js("window.confirm = x => { window.__fragen.push(x); return true; };"
-                    " document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
+        self.tab.js("document.querySelector('.th-knoepfe button[data-h=freigeben]').click()")
+        self.rueckfrage(True)
         self.warten(f"!{self.DICH} && document.querySelector('.th-zeile[data-th=\"{self.letzt}\"] .th-status.frei')")
         self.assertIsNone(self.tab.js(self.DICH))                                     # nichts mehr für dich: keine Zeile
         self.assertEqual(len(themen.tor_ereignisse(self.con, self.pid)), schon + 1)
-        self.assertEqual(self.tab.js("window.__fragen.length"), 2)
 
     def test_zurueck_ohne_frage(self):
         """Zurückgeben schließt nie – keine Frage."""
         self.oeffnen("themen", "document.querySelector('.th-liste .th-zeile')")
         self.tab.js(self.OFFEN[0] % self.letzt)
         self.warten(self.OFFEN[1])
-        self.tab.js("window.__fragen = []; window.confirm = x => { window.__fragen.push(x); return true; };"
-                    " document.querySelector('.th-knoepfe button[data-h=zurueck]').click()")
+        self.tab.js("document.querySelector('.th-knoepfe button[data-h=zurueck]').click()")
         self.warten("document.querySelector('.th-kasten textarea')")
         self.tab.js("document.querySelector('.th-kasten textarea').value = 'Noch die Sicherung';"
                     " document.querySelector('.th-kasten .klein-knopf.haupt').click()")
         self.warten(f"document.querySelector('.th-zeile[data-th=\"{self.letzt}\"] .th-status.arbeit')")
-        self.assertEqual(self.tab.js("window.__fragen"), [])
+        self.assertIsNone(self.tab.js("document.querySelector('.rueckfrage-hg')"))   # A2146: keine Rückfrage
 
     def test_bilder(self):
         liste = "document.querySelector('.th-liste .th-zeile')"

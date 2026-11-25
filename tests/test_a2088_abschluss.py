@@ -429,12 +429,13 @@ class Seite(Rundgang):
         knopf = "[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent === t('pjw_trotzdem'))"
         self.assertTrue(self.tab.js(f"!!{knopf} && {knopf}.getBoundingClientRect().top > document.querySelector('.pjw-vorbehalte').getBoundingClientRect().bottom"))
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].filter(b => b.textContent.startsWith(t('pjw_abnehmen_m', { m: '' }).trim())).length"), 0)
-        self.tab.js(f"window.confirm = x => (window._frage = x, false); {knopf}.click()")
-        self.assertIn("Der Ausfall des Firmenkontos", self.tab.js("window._frage"))
+        self.tab.js(f"{knopf}.click()")
+        self.assertIn("Der Ausfall des Firmenkontos", self.rueckfrage(False))
         self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE id = ?", (self.m,)).fetchone()[0], "aktiv")      # Nein gesagt: nichts geschieht
         self.tab.js("document.querySelector('.pjw-beleg summary').click()")
         self.assertIn("app/login.py", self.tab.js("document.querySelector('.pjw-beleg[open] .pjw-beleg-paket').innerText"))
-        self.tab.js(f"window.confirm = () => true; {knopf}.click()")
+        self.tab.js(f"{knopf}.click()")
+        self.rueckfrage(True)
         self.warten_db("SELECT status = 'fertig' FROM bogen WHERE id = ?")
 
     def warten_db(self, sql):
@@ -465,13 +466,13 @@ class SeiteAlt(Seite):
         self.assertIn("Prüfung von vor dieser Version", self.auf())
         knopf = "[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent === t('pjw_trotzdem'))"
         self.assertFalse(self.tab.js("[...document.querySelectorAll('.pjw-ansicht button')].some(b => b.textContent === t('pjw_abnehmen_m', { m: 'M1' }))"))
-        self.tab.js(f"window.confirm = x => (window._frage = x, false); {knopf}.click()")
-        self.assertIn("der Prüfer sah den Code nicht", self.tab.js("window._frage"))
+        self.tab.js(f"{knopf}.click()")
+        self.assertIn("der Prüfer sah den Code nicht", self.rueckfrage(False))
         self.oeffnen("planung", "document.querySelector('#inhalt .pm-zeile')")
         self.tab.js(f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m}\"]').click()")
         self.warten("document.querySelector('[data-h=ab-ja]')")
-        self.tab.js("window.confirm = x => (window._frage2 = x, false); document.querySelector('[data-h=ab-ja]').click()")
-        self.assertIn("der Prüfer sah den Code nicht", self.tab.js("window._frage2"))
+        self.tab.js("document.querySelector(\'[data-h=ab-ja]\').click()")
+        self.assertIn("der Prüfer sah den Code nicht", self.rueckfrage(False))
         self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE id = ?", (self.m,)).fetchone()[0], "aktiv")
 
     def test_rundgang(self):
@@ -498,13 +499,13 @@ class SeiteNichtPruefbar(Seite):
         knopf = "[...document.querySelectorAll('.pjw-ansicht button')].find(b => b.textContent === t('pjw_trotzdem'))"
         self.assertFalse(self.tab.js(f"{knopf}.classList.contains('haupt')"))
         self.assertTrue(self.tab.js(f"!!{knopf}"))                                          # verboten ist es dem Menschen nicht
-        self.tab.js(f"window.confirm = x => (window._frage = x, false); {knopf}.click()")
-        self.assertIn("nicht prüfbar, Belege fehlen", self.tab.js("window._frage"))
+        self.tab.js(f"{knopf}.click()")
+        self.assertIn("nicht prüfbar, Belege fehlen", self.rueckfrage(False))
         self.oeffnen("planung", "document.querySelector('#inhalt .pm-zeile')")              # Planung › Meilensteine: dieselbe Rückfrage
         self.tab.js(f"document.querySelector('#inhalt .th-zeile[data-ms=\"{self.m}\"]').click()")
         self.warten("document.querySelector('[data-h=ab-ja]')")
         self.assertEqual(self.tab.js("document.querySelector('[data-h=ab-ja]').textContent"), "Trotz Vorbehalt abnehmen")
-        self.tab.js("window.confirm = x => (window._frage2 = x, false); document.querySelector('[data-h=ab-ja]').click()")
-        self.assertIn("nicht prüfbar, Belege fehlen", self.tab.js("window._frage2"))
+        self.tab.js("document.querySelector(\'[data-h=ab-ja]\').click()")
+        self.assertIn("nicht prüfbar, Belege fehlen", self.rueckfrage(False))
         self.assertEqual(self.con.execute("SELECT status FROM bogen WHERE id = ?", (self.m,)).fetchone()[0], "aktiv")
 

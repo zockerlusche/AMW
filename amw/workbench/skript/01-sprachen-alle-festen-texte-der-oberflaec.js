@@ -112,9 +112,31 @@ async function einmalTun(schluessel, tun) {
   if (einmalLaeuft.has(schluessel)) return null;
   einmalLaeuft.add(schluessel);
   const knopf = letzterKnopf; if (knopf) knopf.disabled = true;
-  const frei = () => { einmalLaeuft.delete(schluessel); if (knopf) knopf.disabled = false; };
+  const frei = () => { einmalLaeuft.delete(schluessel); if (knopf && !knopf.dataset.bleibtAus) knopf.disabled = false; };   /* A2146: bleibtAus – die Karte hat ihn danach selbst gesperrt */
   try { const r = await tun(); setTimeout(frei, 1500); return r === undefined ? true : r; }       /* meist ist dann schon neu gezeichnet */
   catch (e) { frei(); toast(fehlerSatz(e), true); return null; }
+}
+/* A2146: Rückfrage als Dialog der Seite statt confirm/prompt (Browser können confirm unterdrücken). Esc, ✕ und Klick daneben
+   brechen ab; die Haupthandlung hat den Fokus, mit `eingabe` das Feld (Enter schickt). Rückgabe: true, der Text (mit eingabe) oder
+   null. Danach gilt wieder der Knopf, der gefragt hat – so sperrt einmalTun ihn und nicht den Knopf im Dialog. Ist schon eine
+   Rückfrage offen (Doppelklick), bleibt es bei dieser einen. */
+function rueckfrage(text, { ja = t("ua_ja"), eingabe = null } = {}) {
+  if (document.querySelector(".rueckfrage-hg")) return Promise.resolve(null);
+  const ausloeser = letzterKnopf;
+  return new Promise(fertig => {
+    const feld = eingabe !== null ? el("input", { type: "text", maxlength: 500, placeholder: eingabe, "aria-label": text }) : null;
+    const ende = wert => { hg.remove(); letzterKnopf = ausloeser; ausloeser?.isConnected && ausloeser.focus({ preventScroll: true }); fertig(wert); };
+    const haupt = el("button", { class: "knopf haupt", type: "button", onclick: () => {
+      if (!feld) return ende(true);
+      if (feld.value.trim()) ende(feld.value.trim()); else feld.focus(); } }, ja);
+    const hg = el("div", { class: "dialog-hg rueckfrage-hg", onclick: e => { if (e.target === hg) ende(null); } },
+      el("div", { class: "karte dialog einst rueckfrage", role: "dialog", "aria-modal": "true", "aria-label": text.split("\n")[0] },
+        el("p", { class: "rueckfrage-text" }, text), feld,
+        el("div", { class: "rueckfrage-knoepfe" }, el("button", { class: "knopf still", type: "button", onclick: () => ende(null) }, t("abbrechen")), haupt)));
+    if (feld) { const an = () => { haupt.disabled = !feld.value.trim(); }; feld.addEventListener("input", an); an(); }
+    document.body.append(hg);
+    (feld || haupt).focus();
+  });
 }
 /* A2117: ein Satz ohne Technik: kein „Failed to fetch“, keine nackte Zahl */
 const fehlerSatz = e => e instanceof TypeError && /fetch|network|load failed/i.test(e.message) ? t("ohne_verbindung") : /^\d*$/.test(String(e.message)) ? t("ging_nicht") : t("fehler", { x: e.message });

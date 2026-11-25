@@ -238,6 +238,16 @@ class Rundgang(Wiederholt, Grund):
             time.sleep(0.1)
         self.fail(f"nach {sekunden * ZEIT:.0f} s nicht {ruhe} s am Stück erfüllt: {bedingung}\nSeite: {seitenzustand(self)}")
 
+    def rueckfrage(self, ja, text=None):
+        """A2146: die Rückfrage der Seite (statt confirm/prompt) beantworten – Ja/Abbrechen, mit `text` ins Feld. Gibt ihren Text zurück."""
+        self.warten("document.querySelector('.rueckfrage-hg .knopf.haupt')")
+        frage = self.tab.js("document.querySelector('.rueckfrage-text').textContent")
+        if text is not None:
+            self.tab.js(f"(() => {{ const f = document.querySelector('.rueckfrage input'); f.value = {text!r}; f.dispatchEvent(new Event('input')); }})()")
+        self.tab.js("document.querySelector('.rueckfrage-hg ." + ("knopf.haupt" if ja else "knopf.still") + "').click()")
+        self.warten("!document.querySelector('.rueckfrage-hg')")
+        return frage
+
     def oeffnen(self, sicht, bereit="true", reiter=None):
         self.besuche = getattr(self, "besuche", 0) + 1                    # neue Adresse = echtes Neuladen (nur #… lädt nicht neu,
         self.tab.senden("Page.navigate", url=f"{self.basis}?r={self.besuche}#{sicht}")   # Dialoge blieben offen)

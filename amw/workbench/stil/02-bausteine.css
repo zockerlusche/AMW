@@ -796,3 +796,8 @@ main.geteilt-seite { padding-bottom: 16px; }
 .agent-dialog .eintrag-zusatz { font-size: 12px; margin-top: 3px; }
 .agent-dialog .eintrag-text.gross { font-size: 15px; font-weight: 600; }
 .agent-dialog .leer-klein { font-size: 13px; padding: 2px 0; }
+/* A2146: Rückfrage der Seite statt confirm/prompt */
+.rueckfrage-text { white-space: pre-line; margin: 0 0 14px; line-height: 1.5; }
+.rueckfrage input[type=text] { width: 100%; padding: 8px; margin: 0 0 14px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; color: var(--tinte); font: inherit; }
+.rueckfrage-knoepfe { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 760px) { .dialog-hg.rueckfrage-hg { padding: 8px; } .rueckfrage { width: 100%; } .rueckfrage-knoepfe .knopf { flex: 1 1 0; } }

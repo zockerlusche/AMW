@@ -98,7 +98,8 @@ function pmAnsicht(pa, art) {
   m.append(pmStand(pa));
   if (art === "plan" && pa.starten && !API) m.append(el("div", { class: "pm-start" },   /* „Jetzt starten“ nur, wenn alles freigegeben ist */
     el("span", {}, t("pm_start_text", { n: pa.meilensteine.filter(x => x.status === "geplant" && x.pakete.length).length })),
-    el("button", { class: "knopf pm-start-knopf", type: "button", onclick: async () => { if (!confirm(t("pm_start_frage"))) return;
+    el("button", { class: "knopf pm-start-knopf", type: "button", onclick: async () => { if (!await rueckfrage(t("pm_start_frage"), { ja: t("pm_start") })) return;   /* A2146 */
+     
       await einmalTun("ms/starten", async () => { const r = await schicken("/api/meilenstein/starten", {}); toast(t("pm_ok_start", { x: r.gestartet.join(", ") })); zeige("planung", true); }); } }, t("pm_start"))));
   if (art === "grob" && (pa.aenderungen || []).length) m.append(el("div", { class: "pm-entwuerfe pm-aenderungen" },   /* A1957 */
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_aenderungen", { n: pa.aenderungen.length })),

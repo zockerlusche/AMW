@@ -77,9 +77,9 @@ async function sichtThemen() {
     let s; try { s = await holen(`/api/thema?id=${offen}`); } catch (e) { rechts.replaceChildren(el("div", { class: "leer" }, String(e.message || e))); return; }
     const z = s.zustand, text = s.zusammenfassung?.text || "", kasten = el("div", { class: "th-kasten" });
     const schliesst = h => (s.tor?.schliesst || []).includes(h);              /* A1913: diese Handlung schlösse den Schritt Konzept ab */
-    const tun = async (was, daten, ok) => { if (schliesst(was) && !confirm(t("th2_tor_frage"))) return;   /* W2449: Hinweis vorher, kein eigener Knopf */
-      try { const r = await schicken(`/api/thema/${was}`, { thema: s.id, ...daten }) || {}; toast(schliesst(was) ? t("th2_ok_tor") : typeof ok === "function" ? ok(r) : ok); zustand.themaOffen = s.id; zeige("themen", true); }
-      catch (e) { toast(t("fehler", { x: e.message }), true); } };
+    const tun = async (was, daten, ok) => { if (schliesst(was) && !await rueckfrage(t("th2_tor_frage"), { ja: t("th2_h_" + was) })) return;   /* W2449: Hinweis vorher, kein eigener Knopf; A2146: als Dialog */
+      return einmalTun(`thema/${s.id}/${was}`, async () => {                   /* A2146: ein Klick, ein Ja – auch beim Doppelklick */
+        const r = await schicken(`/api/thema/${was}`, { thema: s.id, ...daten }) || {}; toast(schliesst(was) ? t("th2_ok_tor") : typeof ok === "function" ? ok(r) : ok); zustand.themaOffen = s.id; zeige("themen", true); }); };
     const eingabe = h => {
       const feld = el("textarea", { class: "th-feld", placeholder: h === "zurueck" ? t("th2_notiz_ph") : "" });
       if (h === "bearbeiten") feld.value = text;
@@ -326,7 +326,7 @@ const pwDeltaOk = ja => t(ja.startet ? "pjw_ok_delta_start" : "pjw_ok_delta");
 /* A2118: ein zurückgestellter Entwurf zeigt den Grund statt des Knopfs; der Mensch darf ihn hinter einem Klick, mit Rückfrage, doch freigeben. */
 const pwZurueckgestellt = (w, tun) => el("details", { class: "pjw-wartet" }, el("summary", {}, t("pjw_wartet_grund", { x: w.grund })),
   API ? el("div", { class: "leise" }, t("pm_nur_pc")) : el("button", { class: "klein-knopf", type: "button", "data-h": "trotzdem",
-    onclick: () => { if (confirm(t("pjw_wartet_frage", { x: w.grund }))) tun(); } }, t("pjw_trotzdem_frei")));
+    onclick: async () => { if (await rueckfrage(t("pjw_wartet_frage", { x: w.grund }), { ja: t("pjw_trotzdem_frei") })) tun(); } }, t("pjw_trotzdem_frei")));   /* A2146 */
 const pwDeltaOffen = f => f.delta.filter(x => !x.wartet);
 function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
@@ -382,7 +382,7 @@ function pwUmsetzung(d) {
 }
 /* A2088: Vorbehalte und Gründe {art, n} bzw. {art: "pruefer", text} in Worten – auch für Planung › Meilensteine */
 const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n, z: v.zweig || "main" });
-const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
+const pwTrotzdem = (liste, tun) => async () => { if (await rueckfrage(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"), { ja: t("pjw_trotzdem") })) tun(); };   /* A2146 */
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
 const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht", "auslieferung"].includes(lage) ? null
   : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt_" + alt)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
