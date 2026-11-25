@@ -201,6 +201,23 @@ class EchterWeg(Grund):
         self.assertIn(f"- TH{self.t1}: nicht prüfbar (1 Paket ohne gefundenen Commit)", z)
 
 
+class Wort(Grund):
+    def test_verlauf_nennt_nicht_pruefbar(self):
+        """A2092: nur Belege fehlen – der Verlauf sagt „nicht prüfbar“, nicht „nicht erfüllt“."""
+        from amw import verlauf_quellen
+
+        def verlauf():
+            return [e["text"] for e in verlauf_quellen._abschluss(self.con, self.pid) if "Prüfung " in e["text"] and "gestartet" not in e["text"]]
+        self.belege("abc1234", self.sha)
+        self.laufen(self.text())
+        self.assertEqual([x.split(": ")[1] for x in verlauf()], ["Prüfung nicht prüfbar"])
+        for zustaende, rc, erwartet in ((("nicht_pruefbar", "erfuellt"), 0, "nicht prüfbar"), (("nicht_pruefbar", "nicht_erfuellt"), 0, "nicht erfüllt"),
+                                        (("nicht_pruefbar", "erfuellt"), 1, "nicht erfüllt"), (("nicht_erfuellt",), 0, "nicht erfüllt")):
+            e = {"themen": [{"zustand": z, "erfuellt": z == "erfuellt"} for z in zustaende], "test": {"befehl": "x", "rc": rc}}
+            self.assertEqual(abschluss.wort(e), erwartet)
+        self.assertEqual((abschluss.wort({"ok": True}), abschluss.wort({"themen": [{"erfuellt": False}]})), ("erfüllt", "nicht erfüllt"))
+
+
 class OhneRepo(Grund):
     REPO = False
 
@@ -383,7 +400,7 @@ class Seite(Rundgang):
             self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234', fertig_utc = ? WHERE bogen_id = ?", (db.jetzt(), m))
         with mock.patch.object(abschluss, "vor_bereit", return_value="melden"), mock.patch.object(abschlusslage, "nur_lead", return_value=False):
             b = self.con.execute("SELECT * FROM bogen WHERE id = ?", (m,)).fetchone()
-            pak = [{"paket": i, "titel": ti, "quelle": "commit", "befund": be, "grund": gr, "sha": sha, "dateien": da, "mehr": False, "themen": [th]}
+            pak = [{"paket": i, "titel": ti, "quelle": "commit", "befund": be, "grund": gr, "sha": sha, "dateien": da, "mehr": False, "commits": [], "themen": [th]}
                    for i, ti, be, gr, sha, da, th in (
                        (1, "Login", *(("nicht_pruefbar", "commit_fehlt", None, []) if self.BELEG == "fehlt" else ("vorbehalt", "commit_daneben", "a" * 40, ["app/login.py"])), t1),
                        (2, "Nachtsicherung", "ok", None, "b" * 40, ["app/sicherung.py", "tests/test_sicherung.py"], t2))]

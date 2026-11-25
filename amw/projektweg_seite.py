@@ -354,7 +354,7 @@ def _belege(con, e, frei):
     if b and not frei:
         aus["stand"] = {"zweig": b.get("zweig"), "sha": (b.get("sha") or "")[:8] or None}
         aus["pakete"] = [{"id": p["paket"], "titel": p["titel"], "befund": p["befund"], "grund": p["grund"], "sha": (p["sha"] or "")[:8] or None,
-                          "dateien": p["dateien"], "mehr": p["mehr"], "themen": [f"TH{t}" for t in p["themen"]]} for p in b["pakete"]]
+                          "commits": [s[:8] for s in p.get("commits") or []], "dateien": p["dateien"], "mehr": p["mehr"], "themen": [f"TH{t}" for t in p["themen"]]} for p in b["pakete"]]
     return aus
 
 

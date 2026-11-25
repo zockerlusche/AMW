@@ -213,7 +213,7 @@ def _abschluss(con, pid):
                 n = len(d["angelegt"])
                 text = f"{m}: Prüfung – {n} Paket{'e' if n != 1 else ''} Nacharbeit"
             else:
-                text = f"{m}: Prüfung " + ("erfüllt" if d.get("ok") else "nicht erfüllt")
+                text = f"{m}: Prüfung {abschluss.wort(d)}"
             aus.append(_eintrag("ab_ergebnis", r["id"], r["zeit_utc"], "pruefer", "Prüfer", r["art"], "abschluss", r["bogen_id"], None, text=text))
     return aus
 

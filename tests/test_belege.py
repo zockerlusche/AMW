@@ -160,7 +160,38 @@ class Pakete(Repo):
         with mock.patch.object(belege, "_git", zaehle):
             x = belege.meilenstein(self.con, self.pid, self.m)
         self.assertEqual(({p["befund"] for p in x["pakete"]}, {tuple(p["dateien"]) for p in x["pakete"]}), ({"ok"}, {("app/login.py",)}))
-        self.assertEqual(n, ["rev-parse", "cat-file", "rev-list", "rev-list", "diff-tree"])
+        self.assertEqual(n, ["rev-parse", "cat-file", "rev-list", "rev-list", "rev-list", "diff-tree"])
+
+    def test_commits_des_pakets_fuer_die_dateiliste(self):
+        """A2092: der Beleg nennt den Versions-Commit – die Dateien kommen auch aus den Commits „A<nr>: …“, zuerst."""
+        aid = self.paket("wird gesetzt")
+        eins = self.commit("app/eins.py", "1\n", f"A{aid}: erster Teil")
+        zwei = self.commit("app/zwei.py", "2\n", f"A{aid}: zweiter Teil")
+        self.commit("app/andere.py", "3\n", f"A{aid}0: andere Nummer")
+        self.commit("app/erwaehnt.py", "4\n", f"1.2.3: Bündel mit A{aid}: nur erwähnt")
+        version = self.commit("CHANGELOG.md", "5\n", "1.2.3: Version")
+        self.git("switch", "-q", "-c", "noch", "HEAD")
+        self.commit("app/daneben.py", "6\n", f"A{aid}: nicht ausgeliefert")
+        self.git("switch", "-q", "main")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET beleg = ? WHERE id = ?", (version[:7], aid))
+        p = belege.meilenstein(self.con, self.pid, self.m)["pakete"][0]
+        self.assertEqual((p["befund"], p["sha"], p["commits"], p["dateien"]), ("ok", version, [zwei, eins], ["app/zwei.py", "app/eins.py", "CHANGELOG.md"]))
+        with db.schreiben(self.con):                                                        # der Befund bleibt am Beleg
+            self.con.execute("UPDATE aufgabe SET beleg = 'abc1234' WHERE id = ?", (aid,))
+        p = belege.meilenstein(self.con, self.pid, self.m)["pakete"][0]
+        self.assertEqual((p["befund"], p["grund"], p["dateien"]), ("nicht_pruefbar", "commit_fehlt", ["app/zwei.py", "app/eins.py"]))
+        with mock.patch.object(belege, "MAX_COMMITS_JE_PAKET", 1):
+            self.assertEqual(belege.meilenstein(self.con, self.pid, self.m)["pakete"][0]["commits"], [zwei])
+
+    def test_zweig_im_text(self):
+        self.git("branch", "-m", "main", "master")
+        aid = self.paket(self.neben)
+        bef = belege.meilenstein(self.con, self.pid, self.m)
+        self.assertEqual((bef["zweig"], bef["pakete"][0]["grund"]), ("master", "commit_daneben"))
+        v = belege.auswerten(bef, [])["vorbehalte"]
+        self.assertEqual((v[0]["pakete"], belege.text(v[0])), ([aid], "1 Paket: Commit gefunden, liegt aber nicht auf master"))
+        self.assertEqual(belege.text({"art": "commit_daneben", "n": 2}), "2 Pakete: Commit gefunden, liegt aber nicht auf main")     # ältere Ergebnisse ohne Zweig
 
     def test_andere_belege_bei_commit_quelle_sind_ein_vorbehalt(self):
         for text in ("Ja von CCamwTL", "D1516", "P640, B2938", "#32703"):

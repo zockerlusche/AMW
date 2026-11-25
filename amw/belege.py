@@ -22,6 +22,8 @@ VERSION = re.compile(r"\bv(\d+\.\d+\.\d+)\b")
 ANDERE = re.compile(r"(?i)^\s*(ja\b|nein\b|abgenommen|freigegeben)|\b[DPBRL]\d+\b|#\d+")
 DOKUMENT = re.compile(r"\bD(\d+)\b")
 MAX_DATEIEN_JE_PAKET = 40
+MAX_COMMITS_JE_PAKET = 20
+BETREFF = re.compile(r"A(\d+):")         # A2092: so beginnt der Betreff eines Commits zu Aufgabe A<nr>
 # Grenzen des Codes für den Prüfer
 MAX_DATEIEN, MAX_DATEI, MAX_GESAMT = 2000, 400 * 1024, 20 * 1024 * 1024
 WEG_NAMEN = re.compile(r"(?i)(^|/)(\.env[^/]*|\.git[^/]*|\.claude|CLAUDE(\.local)?\.md|\.mcp\.json|id_[a-z0-9]+(\.pub)?|\.npmrc|\.netrc|\.pgpass|credentials[^/]*|secrets?[^/]*)(/|$)")
@@ -115,6 +117,21 @@ def dateien_der(ordner, shas):
     return {k: (list(dict.fromkeys(v))[:MAX_DATEIEN_JE_PAKET], len(set(v)) > MAX_DATEIEN_JE_PAKET) for k, v in je.items()}
 
 
+def commits_zu(ordner, kopf, aids):
+    """A2092: {Aufgabe: [sha, neueste zuerst]} – Commits auf kopf, deren Betreff mit „A<nr>:“ genau dieser Aufgabe beginnt. Nur für die
+    Dateiliste (der Beleg nennt oft den Versions-Commit); die Beleg-Prüfung selbst bleibt am Beleg."""
+    aids, aus = set(aids), {}
+    if not aids:
+        return aus
+    _, zeilen = _git(ordner, "rev-list", "--format=%H%x00%s", kopf)
+    for z in zeilen.decode("utf-8", "replace").splitlines():
+        sha, trenner, betreff = z.partition("\0")         # ohne Trenner: die Kopfzeile „commit <sha>“
+        m = BETREFF.match(betreff) if trenner else None
+        if m and int(m[1]) in aids and len(aus.setdefault(int(m[1]), [])) < MAX_COMMITS_JE_PAKET:
+            aus[int(m[1])].append(sha)
+    return aus
+
+
 def paket(con, pid, a, st, gefunden):
     """Der Befund zu einem fertigen Paket: {"paket", "titel", "quelle", "befund", "grund", "sha", "dateien", "mehr", "themen"}.
     gefunden: commits() zu allen Belegen, oder None – git antwortete nicht."""
@@ -161,12 +178,18 @@ def meilenstein(con, pid, bid):
         except (GitFehler, ValueError):
             pass                                          # git ging nicht: „Code nicht geprüft“
     pakete = [paket(con, pid, a, st, gefunden) for a in zeilen]
-    try:
-        je = dateien_der(ordner, [p["sha"] for p in pakete if p["sha"]])
-    except GitFehler:
-        je = {}                                           # der Commit steht fest, nur die Dateiliste fehlt
-    for p in pakete:
-        p["dateien"], p["mehr"] = je.get(p["sha"], ([], False))
+    eigene, je = {}, {}
+    if st:
+        try:
+            eigene = commits_zu(ordner, st[1], [p["paket"] for p in pakete])
+            je = dateien_der(ordner, [s for p in pakete for s in [*eigene.get(p["paket"], []), p["sha"]] if s])
+        except GitFehler:
+            pass                                          # der Befund steht fest, nur die Dateiliste fehlt
+    for p in pakete:                                      # erst die eigenen Commits, dann der Beleg
+        p["commits"] = eigene.get(p["paket"], [])
+        teile = [je.get(s, ([], False)) for s in dict.fromkeys([*p["commits"], p["sha"]]) if s]
+        alle = list(dict.fromkeys(d for t in teile for d in t[0]))
+        p["dateien"], p["mehr"] = alle[:MAX_DATEIEN_JE_PAKET], len(alle) > MAX_DATEIEN_JE_PAKET or any(t[1] for t in teile)
     return {"zweig": st[0] if st else None, "sha": st[1] if st else None, "pakete": pakete}
 
 
@@ -174,7 +197,7 @@ def meilenstein(con, pid, bid):
 
 TEXT = {"commit_fehlt": ("1 Paket ohne gefundenen Commit", "{n} Pakete ohne gefundenen Commit"),
         "kein_beleg": ("1 Paket ohne Beleg", "{n} Pakete ohne Beleg"),
-        "commit_daneben": ("1 Paket: Commit gefunden, liegt aber nicht auf main", "{n} Pakete: Commit gefunden, liegt aber nicht auf main"),
+        "commit_daneben": ("1 Paket: Commit gefunden, liegt aber nicht auf {zweig}", "{n} Pakete: Commit gefunden, liegt aber nicht auf {zweig}"),
         "kein_commit": ("1 Paket: im Beleg steht kein Commit", "{n} Pakete: im Beleg steht kein Commit"),
         "thema_offen": ("1 Paket: sein Thema ist nicht freigegeben", "{n} Pakete: ihr Thema ist nicht freigegeben"),
         "frist_offen": ("1 Paket: die Frist ist nicht erfüllt", "{n} Pakete: die Frist ist nicht erfüllt"),
@@ -187,7 +210,7 @@ def text(x):
     """Ein Grund bzw. Vorbehalt {"art", "n"} in Worten (Meldungen, Abschlussbericht; die Seite hat dafür pjw_vb_<art>)."""
     if x["art"] == "pruefer":
         return x["text"]
-    return TEXT[x["art"]][0 if x.get("n") == 1 else 1].format(n=x.get("n"))
+    return TEXT[x["art"]][0 if x.get("n") == 1 else 1].format(n=x.get("n"), zweig=x.get("zweig") or ZWEIGE[0])
 
 
 def auswerten(bef, themen_, test=None):
@@ -207,7 +230,7 @@ def auswerten(bef, themen_, test=None):
         vorbehalt["kein_gesamttest"] = []
 
     def liste(x):
-        return [{"art": g, "n": len(a), "pakete": a} for g, a in x.items()]
+        return [{"art": g, "n": len(a), "pakete": a, **({"zweig": bef["zweig"]} if g == "commit_daneben" else {})} for g, a in x.items()]
     return {"themen": {k: liste(v) for k, v in je.items() if k is not None}, "ziel": liste(je.get(None) or {}), "vorbehalte": liste(vorbehalt)}
 
 

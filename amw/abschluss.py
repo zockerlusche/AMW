@@ -265,8 +265,9 @@ def _beleg_text(bef, aid):
     x = next((p for p in (bef or {}).get("pakete") or [] if p["paket"] == aid), None)
     if not x:
         return ""
-    t = _BEFUND[x["befund"]] + (f" ({belege.text({'art': x['grund'], 'n': 1}).removeprefix('1 Paket: ')})" if x["grund"] else "")
+    t = _BEFUND[x["befund"]] + (f" ({belege.text({'art': x['grund'], 'n': 1, 'zweig': bef['zweig']}).removeprefix('1 Paket: ')})" if x["grund"] else "")
     return f"Beleg-Prüfung der AMW: {t}" + (f" · {x['sha'][:8]}" if x["sha"] else "") + (
+        "\nCommits des Pakets: " + ", ".join(s[:8] for s in x["commits"]) if x["commits"] else "") + (
         "\nGeänderte Dateien: " + ", ".join(x["dateien"]) + (" …" if x["mehr"] else "") if x["dateien"] else "") + "\n"
 
 
@@ -579,6 +580,16 @@ def nacharbeit(con, pid, von, bid, hinweis):
         from . import meilensteine
         raise kern.AmwFehler(f"{meilensteine.name(con, bid) if b else meilensteine.unbekannt(bid)}: Nacharbeit nur für einen laufenden Meilenstein (auch wenn er auf die Abnahme wartet)")
     return feinplanung.anstossen(con, pid, [bid], von=von, hinweis=hinweis, nacharbeit=True)
+
+
+def wort(e):
+    """Das Ergebnis in einem Wort (Verlauf): „nicht prüfbar“, wenn nur Belege fehlen (A2092) – wie abschlusslage.lage."""
+    if e.get("ok"):
+        return "erfüllt"
+    zustaende = [x.get("zustand") or ("erfuellt" if x.get("erfuellt") else "nicht_erfuellt") for x in [*(e.get("themen") or []), *([e["ziel"]] if e.get("ziel") else [])]]
+    test = e.get("test") or {}
+    rot = bool(test.get("befehl") and test.get("rc") != 0)
+    return "nicht prüfbar" if "nicht_pruefbar" in zustaende and "nicht_erfuellt" not in zustaende and not rot else "nicht erfüllt"
 
 
 def _urteil(x):

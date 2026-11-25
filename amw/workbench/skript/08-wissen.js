@@ -363,7 +363,7 @@ function pwUmsetzung(d) {
   return teile;
 }
 /* A2088: Vorbehalte und Gründe {art, n} bzw. {art: "pruefer", text} in Worten – auch für Planung › Meilensteine */
-const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n });
+const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n, z: v.zweig || "main" });
 const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
 const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht"].includes(lage) ? null
@@ -377,7 +377,7 @@ function pwUrteil(x, name, p) {
   if (!pakete.length) return el("span", {}, kopf);
   return el("details", { class: "pjw-beleg" }, el("summary", {}, kopf), z === "nicht_pruefbar" && (x.beleg || x.fehlt) ? el("div", { class: "leise" }, t("pjw_pruefer_sagt", { x: x.fehlt || x.beleg })) : null,
     ...pakete.map(k => el("div", { class: "pjw-beleg-paket" }, el("div", {}, k.titel), el("div", { class: "leise" },
-      [k.sha, k.grund ? t("pjw_bg_" + k.grund) : k.befund === "urteil" ? t("pjw_bg_urteil") : null, k.dateien.length ? k.dateien.join(", ") + (k.mehr ? " …" : "") : null].filter(Boolean).join(" · ")))));
+      [[...new Set([...k.commits.slice(0, 3), ...(k.sha ? [k.sha] : [])])].join(", ") + (k.commits.length > 3 ? " …" : ""), k.grund ? t("pjw_bg_" + k.grund, { z: p.stand?.zweig || "main" }) : k.befund === "urteil" ? t("pjw_bg_urteil") : null, k.dateien.length ? k.dateien.join(", ") + (k.mehr ? " …" : "") : null].filter(Boolean).join(" · ")))));
 }
 function pwAbschlussKarte(x, einzig, haupt) {
   /* A2082 (B2938): x.lage kommt vom Server (abschlusslage.lage). Dran ist der Mensch nur, wenn x.bei_dir – sonst steht neutral da,
