@@ -45,9 +45,10 @@ def _mit_gruenden(con, a):
 
 
 def _andere_aktive(con, pid, kennung):
+    heraus = stand(con, pid)                                                 # A2095: andere Herausgenommene arbeiten auch nicht
     return [r["kennung"] for r in con.execute(
         "SELECT kennung FROM agent g WHERE projekt_id = ? AND kennung != ? AND entfernt_utc IS NULL AND (soll = 'an' OR EXISTS"
-        " (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id AND s.zustand = 'aktiv')) ORDER BY id", (pid, kennung))]
+        " (SELECT 1 FROM sitzung s WHERE s.agent_id = g.id AND s.zustand = 'aktiv')) ORDER BY id", (pid, kennung)) if r["kennung"] not in heraus]
 
 
 def _hinweise(con, pid, zeile, weitere):

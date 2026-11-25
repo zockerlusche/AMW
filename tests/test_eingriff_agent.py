@@ -86,11 +86,13 @@ class Herausnehmen(Grund):
         self.start(a)
         r = self.nehmen(laufendes="zu_ende")
         self.assertEqual((r["stueck"], r["pool"], self.agent_von(a)), (a, [b], ("CC1", "laeuft")))
-        kern.aufgabe_status(self.con, self.pid, "CC1", a, "wartet", auf=["Monitor:pruefung:P9"])
+        with db.schreiben(self.con):
+            lid = db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Test", status="laeuft", angemeldet_utc=db.jetzt())
+        kern.aufgabe_status(self.con, self.pid, "CC1", a, "wartet", auf=f"L{lid}")
         herausnehmen.nachziehen(self.con, self.pid)
-        self.assertEqual(self.agent_von(a)[0], "CC1")                                 # wartet auf Prüfung: bleibt seins
+        self.assertEqual(self.agent_von(a)[0], "CC1")                                 # wartet auf seinen Lauf: bleibt seins
         self.start(a)                                                                 # darf weitermachen
-        kern.aufgabe_status(self.con, self.pid, "CC1", a, "wartet", auf=["TL"])
+        kern.aufgabe_status(self.con, self.pid, "CC1", a, "wartet", auf="TL")
         self.assertEqual(herausnehmen.nachziehen(self.con, self.pid), [f"A{a} von CC1 zurück in den Pool"])
         self.assertEqual(self.agent_von(a), (None, "wartet"))
 

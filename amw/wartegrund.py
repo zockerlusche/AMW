@@ -312,8 +312,9 @@ def startklar_wecken(con, pid):
             continue
         if con.execute("SELECT 1 FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status = 'laeuft'", (pid, a["agent"])).fetchone():
             continue                                    # eins nach dem anderen: er kommt dazu, wenn das laufende fertig ist
-        if herausnehmen.darf_starten(con, pid, a["agent"], a["id"]):
-            continue                                    # A2095: herausgenommen
+        h = herausnehmen.ist(con, pid, a["agent"])
+        if h and a["id"] != h["stueck"]:
+            continue                                    # A2095: herausgenommen – auch zu Gebautem keine Weckrufe
         zeichen = f"{a['id']}:{a['geaendert_utc']}"
         if con.execute("SELECT 1 FROM plan_ereignis WHERE projekt_id = ? AND art = 'startklar_geweckt' AND text = ?", (pid, zeichen)).fetchone():
             continue
