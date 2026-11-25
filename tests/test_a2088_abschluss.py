@@ -369,8 +369,10 @@ class TexteVollstaendig(Grund):
         for s in ("de", "en"):
             with open(os.path.join(pfad, f"{s}.json"), encoding="utf-8") as f:
                 t = json.load(f)
-            self.assertIn("pjw_vb_kein_gesamttest", t, s)
-            for art in set(belege.TEXT) - {"kein_gesamttest"}:
+            allgemein = {"kein_gesamttest", "test_anderer_stand"}                             # gelten dem Meilenstein, nicht einem Paket
+            for art in allgemein:
+                self.assertIn(f"pjw_vb_{art}", t, s)
+            for art in set(belege.TEXT) - allgemein:
                 for k in (f"pjw_vb_{art}", f"pjw_vb_{art}1", f"pjw_bg_{art}"):
                     self.assertIn(k, t, s)
             for z in ("erfuellt", "nicht_erfuellt", "nicht_pruefbar"):

@@ -203,6 +203,7 @@ TEXT = {"commit_fehlt": ("1 Paket ohne gefundenen Commit", "{n} Pakete ohne gefu
         "frist_offen": ("1 Paket: die Frist ist nicht erfüllt", "{n} Pakete: die Frist ist nicht erfüllt"),
         "dokument_fehlt": ("1 Paket: das genannte Dokument gibt es nicht", "{n} Pakete: das genannte Dokument gibt es nicht"),
         "code_ungeprueft": ("Code nicht geprüft", "Code nicht geprüft"),
+        "test_anderer_stand": ("der Gesamttest lief auf einem anderen oder unsauberen Stand", "der Gesamttest lief auf einem anderen oder unsauberen Stand"),
         "kein_gesamttest": ("kein Gesamttest eingestellt – Projekt-Einstellung", "kein Gesamttest eingestellt – Projekt-Einstellung")}
 
 
@@ -228,6 +229,8 @@ def auswerten(bef, themen_, test=None):
         vorbehalt.setdefault("code_ungeprueft", [])
     if bef["sha"] and test is not None and not test.get("befehl"):
         vorbehalt["kein_gesamttest"] = []
+    if bef["sha"] and (test or {}).get("anderer_stand"):      # A2093: nicht der Code, den der Prüfer sieht
+        vorbehalt["test_anderer_stand"] = []
 
     def liste(x):
         return [{"art": g, "n": len(a), "pakete": a, **({"zweig": bef["zweig"]} if g == "commit_daneben" else {})} for g, a in x.items()]

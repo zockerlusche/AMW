@@ -104,7 +104,7 @@ def ergebnis(con, pid, bid, stand=None):
     return e[-1] if e else None
 
 
-_GRUENDE = (("geaendert", r"Stand hat sich geändert"), ("grenze", r"Tagesgrenze"), ("start", r"ließ sich nicht starten"), ("lesbar", r"kein JSON|oben muss ein Objekt"),
+_GRUENDE = (("geaendert", r"Stand hat sich geändert"), ("abgebrochen", r"^Gesamttest \(L\d+\) wurde abgebrochen"), ("testfrist", r"^Gesamttest \(L\d+\) lief länger als"), ("grenze", r"Tagesgrenze"), ("start", r"ließ sich nicht starten"), ("lesbar", r"kein JSON|oben muss ein Objekt"),
             ("laenge", r"zu lang:|höchstens \d+ vorbehalte"), ("unvollstaendig", r"nicht bewertet|gehört nicht zu M|braucht erfuellt|keine nacharbeit|nacharbeit:"),
             ("frist", r"Frist .*überschritten|TimeoutExpired"), ("lauf", r"kein Ergebnis \(rc|^\w*(Error|Fehler|Exception): "))
 
@@ -242,7 +242,8 @@ def gesamttest(con, pid, b):
     """Der Gesamttest des Projekts: ein vorhandener grüner Gesamtlauf auf genau dem ausgelieferten Stand (A2093), sonst ein Lauf der
     Schlange (schwer, ein Gesamtlauf zur Zeit): {"lauf", "rc", "befehl", "ende"} – oder {"rc": None, "befehl": None}, wenn das Projekt
     keinen gesamtlauf_befehl hat. Läuft schon der Gesamttest einer anderen Prüfung, wartet diese darauf und sieht dann noch einmal
-    nach. Änderte sich der Stand während des Laufs, zählt er nicht: "geaendert" ist True."""
+    nach. Änderte sich der Stand während des Laufs, zählt er nicht: "geaendert" ist True. Ohne Rückgabewert (abgebrochen, Frist):
+    "ohne" sagt warum. Lief er nicht sauber auf dem ausgelieferten Stand: "anderer_stand" (ein Vorbehalt)."""
     import time
     from . import belegung, betrieb, einrichtung, freigabereif, laufdienst
     ordner = kern.projekt_ordner(con, pid)
@@ -271,8 +272,9 @@ def gesamttest(con, pid, b):
             l = betrieb.lauf_zeile(con, pid, lid)
             if l["status"] == "laeuft":
                 break
-            if l["status"] in ("fertig", "abgebrochen"):
-                return {"lauf": lid, "rc": l["rc"], "befehl": befehl, "ende": f"L{lid} {l['status']}"}
+            if l["status"] in ("fertig", "abgebrochen"):     # von außen beendet, bevor er dran kam
+                return {"lauf": lid, "rc": l["rc"], "befehl": befehl, "ende": f"L{lid} {l['status']}",
+                        **({"ohne": "wurde abgebrochen"} if l["status"] == "abgebrochen" or l["rc"] is None else {})}
             time.sleep(WARTE_S)
         da = _vorhandener(con, pid, ordner, befehl, amw)     # inzwischen fertig geworden, während dieser wartete
         if da:
@@ -289,14 +291,19 @@ def gesamttest(con, pid, b):
                                     stdin=subprocess.DEVNULL, timeout=TEST_FRIST_S,
                                     creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)).returncode
             except subprocess.TimeoutExpired:
-                rc = 124
+                text += f": Frist von {TEST_FRIST_S // 60} min überschritten"
+                return {"lauf": lid, "rc": None, "befehl": befehl, "ende": "", "ohne": f"lief länger als {TEST_FRIST_S // 60} min"}
+        if betrieb.lauf_zeile(con, pid, lid)["status"] == "abgebrochen":     # von außen abgebrochen, während er rechnete
+            return {"lauf": lid, "rc": None, "befehl": befehl, "ende": "", "ohne": "wurde abgebrochen"}
         with open(pfad, encoding="utf-8", errors="replace") as f:
             zeilen = "".join(f.readlines()[-60:])
         danach = betrieb.pruefstand([befehl], ordner)
         geaendert = (s and s[1]) != (danach and danach[1]) or zweig != _ausgeliefert(ordner)
         stand = betrieb.stand_text(s if not (s and danach) else (s[0], s[1], s[2] and danach[2]))   # „sauber“ nur, wenn er es am Ende noch war
         text = f"Gesamttest Meilenstein {b['nr']}: rc {rc} · " + ("Stand hat sich geändert" if geaendert else stand)
-        return {"lauf": lid, "rc": rc, "befehl": befehl, "ende": zeilen, **({"geaendert": True} if geaendert else {"stand": zweig})}
+        anderer = bool(zweig) and not (s and danach and s[1] == zweig and s[2] and danach[2])     # nicht der Code, den der Prüfer sieht
+        return {"lauf": lid, "rc": rc, "befehl": befehl, "ende": zeilen,
+                **({"geaendert": True} if geaendert else {"stand": zweig, **({"anderer_stand": True} if anderer else {})})}
     finally:
         try:
             betrieb.lauf_ende(con, pid, agent, lid, rc, text[:500], abgebrochen=rc is None)
@@ -414,6 +421,8 @@ def ausfuehren(con, pid, bid, stand, prog=None, zusatz=None):
     try:
         test = gesamttest(con, pid, b)
         bef = belege.meilenstein(con, pid, bid)           # A2088: erst die AMW selbst, dann der Prüfer
+        if test.get("ohne"):                              # A2093: rot ist nur ein echter Rückgabewert ungleich 0
+            return eintragen(con, pid, bid, stand, None, None, fehler=f"Gesamttest (L{test['lauf']}) {test['ohne']}")
         if test.get("geaendert") or (test.get("stand") and bef["sha"] and test["stand"] != bef["sha"]):      # A2093: weder erfüllt noch nicht erfüllt – der Lead startet neu
             return eintragen(con, pid, bid, stand, None, None, fehler=f"Stand hat sich geändert, während der Gesamttest (L{test['lauf']}) lief – das Ergebnis zählt nicht")
         aus = pruefer_mit_nachbesserung(con, pid, b, test, prog=prog, zusatz=zusatz, bef=bef)

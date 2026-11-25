@@ -973,7 +973,9 @@ die der Lead nur noch bestätigt oder ändert.
   ausgelieferten Stand (dieselbe Erkennung wie freigabereif), gilt er als Gesamttest; Nummer im Ergebnis und auf der Karte, gerechnet
   wird nichts. Andere Stände, geänderte Bäume und rote Läufe zählen nicht. Prüfen zwei Meilensteine zugleich, rechnet nur der ältere
   Lauf, der andere wartet und sieht dann noch einmal nach. Ändert sich während des Laufs der Stand (Projektordner oder ausgelieferter
-  Zweig), zählt er nicht: „Stand hat sich geändert“ ist eine gescheiterte Prüfung, der Lead bekommt die Meldung und startet neu.
+  Zweig), zählt er nicht: „Stand hat sich geändert“ ist eine gescheiterte Prüfung, der Lead bekommt die Meldung und startet neu. Auch ein
+  abgebrochener Lauf oder einer über der Frist ist eine gescheiterte Prüfung; rot ist nur ein Rückgabewert ungleich 0. Lief der Test nicht
+  sauber auf dem ausgelieferten Stand (Projektordner auf anderem Zweig oder geändert), ist das ein Vorbehalt.
 - **Belege prüft die AMW selbst (A2088, `belege.py`):** vor dem Prüfer, ohne Modell, git nur lesend, im Projektordner gegen `main`
   (sonst `master`). Bei der Fertig-Quelle commit muss ein Hex-Teil oder Versions-Tag aus dem Beleg ein Commit auf dem Zweig sein;
   thema, frist und ja nach ihrer Art. Nirgends gefunden oder gar kein Beleg: das Thema (Pakete ohne Thema: das Ziel) ist **nicht

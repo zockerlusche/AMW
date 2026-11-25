@@ -175,6 +175,69 @@ class Geaendert(Grund):
         e = self.waehrend(lambda: self.git("branch", "-f", "main", self.neben))
         self.assertIn("Stand hat sich geändert", e["fehler"])
 
+    def test_abgebrochen_ist_nicht_rot(self):
+        """Von außen abgebrochen (in der Schlange oder während er rechnet) oder ohne Rückgabewert: „Prüfung ging nicht“, keine Nacharbeit."""
+        def lauf_id():
+            return self.con.execute("SELECT max(id) FROM lauf").fetchone()[0]
+        echt = betrieb.lauf_zeile
+
+        def in_der_schlange(con, pid, lid):
+            with db.schreiben(self.con):
+                self.con.execute("UPDATE lauf SET status = 'abgebrochen' WHERE id = ?", (lid,))
+            return echt(con, pid, lid)
+
+        def beim_rechnen():
+            betrieb.lauf_ende(self.con, self.pid, "TL", lauf_id(), None, "von Hand", abgebrochen=True)
+        for was, ausfuehren in (("Schlange", lambda: self.mit(betrieb, "lauf_zeile", in_der_schlange)), ("Rechnen", lambda: self.waehrend(beim_rechnen))):
+            with self.subTest(was=was):
+                e = ausfuehren()
+                self.assertIn("wurde abgebrochen", e["fehler"])
+                self.assertEqual((e["angelegt"], self.offen(), self.lage(), abschluss.deuten(e["fehler"])), ({}, [], "fehler", [{"art": "abgebrochen", "x": {}}]))
+
+    def mit(self, wo, name, ersatz):
+        with mock.patch.object(wo, name, ersatz), mock.patch("amw.arbeiter.laufen", side_effect=AssertionError("der Prüfer darf nicht laufen")):
+            return abschluss.ausfuehren(self.con, self.pid, self.m, self.jetzt())
+
+    def test_frist_ist_nicht_rot(self):
+        echt = abschluss.subprocess.run
+
+        def run(befehl, *a, **k):
+            if befehl == BEFEHL:
+                raise abschluss.subprocess.TimeoutExpired(befehl, 1)
+            return echt(befehl, *a, **k)
+        e = self.mit(abschluss.subprocess, "run", run)
+        self.assertIn("lief länger als", e["fehler"])
+        self.assertEqual((e["angelegt"], abschluss.deuten(e["fehler"])), ({}, [{"art": "testfrist", "x": {}}]))
+        self.assertEqual(self.con.execute("SELECT status FROM lauf").fetchone()[0], "abgebrochen")
+
+    def test_echt_rot_bleibt_rot(self):
+        rot = f'"{sys.executable}" -c "raise SystemExit(3)"'
+        n = [{"schluessel": "N1", "meilenstein": "M1", "thema": f"TH{self.t1}", "titel": "Beheben", "auftrag": "x", "groesse": "M", "art": "sicherheit",
+              "ausfuehrung": "agent", "fertig_quelle": "commit", "interaktiv_grund": "y"}]
+        with mock.patch("amw.freigabereif._gesamtlauf_befehl", return_value=rot), \
+                mock.patch("amw.arbeiter.laufen", return_value={"rc": 0, "abweichungen": [], "ergebnis": {"result": self.text(self.urteil((True, True), n)), "total_cost_usd": 0.1}}):
+            e = abschluss.ausfuehren(self.con, self.pid, self.m, self.jetzt())
+        self.assertEqual((e["test"]["rc"], e.get("fehler"), self.offen()), (3, None, ["Beheben"]))
+
+    def mit_vorbehalt(self):
+        with mock.patch("amw.arbeiter.laufen", return_value={"rc": 0, "abweichungen": [], "ergebnis": {"result": self.text(), "total_cost_usd": 0.1}}):
+            e = abschluss.ausfuehren(self.con, self.pid, self.m, self.jetzt())
+        self.assertEqual((e["ok"], e.get("fehler"), [v["art"] for v in e["vorbehalte"]]), (True, None, ["test_anderer_stand"]))
+        return e
+
+    def test_anderer_zweig_ist_ein_vorbehalt(self):
+        self.git("switch", "-q", "seite")
+        e = self.mit_vorbehalt()
+        self.assertIn(f"Stand {self.neben} sauber", self.zeile(e["test"]["lauf"])["ergebnis"])
+        self.assertIsNone(abschluss._vorhandener(self.con, self.pid, self.repo, BEFEHL, False))     # hilft main nicht
+
+    def test_unsauberer_ordner_ist_ein_vorbehalt(self):
+        with open(os.path.join(self.repo, "app", "login.py"), "a", encoding="utf-8") as f:
+            f.write("# in Arbeit\n")
+        self.mit_vorbehalt()
+        self.assertIsNone(abschluss._vorhandener(self.con, self.pid, self.repo, BEFEHL, False))
+        self.assertIn("Vorbehalt: der Gesamttest lief auf einem anderen oder unsauberen Stand", "\n".join(abschluss.bericht_teil(self.con, self.pid, self.m)))
+
     def test_am_ende_geaenderte_dateien_dann_nicht_sauber(self):
         def tun():
             with open(os.path.join(self.repo, "app", "login.py"), "a", encoding="utf-8") as f:
@@ -190,6 +253,7 @@ class Geaendert(Grund):
             with mock.patch.object(abschluss.subprocess, "run", run):
                 e = abschluss.ausfuehren(self.con, self.pid, self.m, self.jetzt())
         self.assertTrue(e["ok"], e.get("fehler"))
+        self.assertEqual([v["art"] for v in e["vorbehalte"]], ["test_anderer_stand"])
         self.assertIn("geändert", self.zeile(e["test"]["lauf"])["ergebnis"])
         self.assertNotIn("sauber", self.zeile(e["test"]["lauf"])["ergebnis"])
 
