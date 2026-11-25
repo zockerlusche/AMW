@@ -621,12 +621,13 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
     """{"schritte": {aid: {"p50","p85","bearbeiter"}}, "boegen": {bid: {"start","p50","p85","ampel"}}} – Daten als JJJJ-MM-TT;
     start = Median des Tages, an dem der erste offene Schritt des Bogens beginnt (Bearbeiter frei, Vorgänger fertig).
     Je Bearbeiter (Agent, Mensch, „frei“ = Team) eine Warteschlange in Planreihenfolge; je Lauf zieht jeder Tag einen
-    zufälligen Tageswert aus seinem Durchsatz; ein Schritt endet nie vor seinen Vorgängern."""
+    zufälligen Tageswert aus seinem Durchsatz; ein Schritt endet nie vor seinen Vorgängern. Pause des Projekts (A2138, in ganzen Tagen):
+    bis zu ihrem Ende beginnt kein Schritt, Laufendes läuft zu Ende; ohne Ende gelten die Daten „frühestens“ (wartet_auf „Pause“)."""
     echt = heute is None                               # die Pause durch das Wochenlimit gilt ab jetzt – nicht für ein gedachtes Heute
     heute = heute or datetime.date.today()
     zufall = zufall or random.Random(42)
     offen = con.execute(
-        "SELECT a.id, a.agent, a.bogen_id FROM aufgabe a LEFT JOIN bogen b ON b.id = a.bogen_id WHERE a.projekt_id = ?"
+        "SELECT a.id, a.agent, a.bogen_id, a.status FROM aufgabe a LEFT JOIN bogen b ON b.id = a.bogen_id WHERE a.projekt_id = ?"
         " AND a.status IN ('wartet', 'laeuft', 'blockiert') AND a.einstufung IN ('aktiv', 'keine_prio') AND a.bogen_id IS NOT NULL"
         " AND b.status IN ('geplant', 'aktiv') ORDER BY b.status != 'aktiv', b.nr, a.status != 'laeuft', a.rang, a.id", (pid,)).fetchall()
     if not offen:
@@ -644,23 +645,33 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
     vor = {i: [v for v in vorgaenger(con, i) if v in set(ids)] for i in ids}
     ende = {i: [] for i in ids}
     beginn = {i: [] for i in ids}
+    from . import zeitplan                             # A2138: Tage bis zum Ende der Pause – davor beginnt kein Schritt
+    laufend = {a["id"] for a in offen if a["status"] == "laeuft"}
+    pause_an, pause_ende = zeitplan.pause_lage(con, pid)
+    pause = max(0, (pause_ende.astimezone().date() - heute).days) if pause_ende else 0
+    letzter = pause + 3650
+    spaeter = lambda i, v: pause if i in laufend and v not in laufend else 0   # die Pause hält den Vorgänger auf, nicht das Laufende dahinter
     for _ in range(laeufe):
         tag, ab = {}, {}
         for b, schlange in schlangen.items():
             d, rest, frei = 0, list(schlange), 0
-            while rest and d < 3650:
+            while rest and d < letzter:
+                if d < pause and laufend.isdisjoint(rest):
+                    d = pause                                     # nichts läuft mehr: weiter geht es nach der Pause
                 d += 1
                 for _ in range(zufall.choice(raten[b])):
-                    if rest:
-                        x = rest.pop(0)
-                        tag[x], ab[x], frei = d, frei, d          # beginnt, wenn der Bearbeiter frei wird
+                    x = next((y for y in rest if d > pause or y in laufend), None)
+                    if x is not None:
+                        rest.remove(x)
+                        tag[x], ab[x], frei = d, frei if x in laufend else max(frei, pause), d   # beginnt, wenn der Bearbeiter frei wird
             for x in rest:
-                tag[x], ab[x] = 3650, 3650
+                tag[x], ab[x] = letzter, letzter
         for i in ids:                                    # Vorgänger: nie vor ihnen fertig (Reihenfolge der Liste genügt meist)
             for _ in range(2):
                 if vor[i]:
-                    tag[i] = max(tag[i], max(tag[v] for v in vor[i]) + 1)
-                    ab[i] = max(ab[i], max(tag[v] for v in vor[i]))
+                    frueh = max(tag[v] - spaeter(i, v) for v in vor[i])
+                    tag[i] = max(tag[i], frueh + 1)
+                    ab[i] = max(ab[i], frueh)
         for i in ids:
             ende[i].append(tag[i])
             beginn[i].append(ab[i])
@@ -681,14 +692,15 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
     aus = {"schritte": schritte, "boegen": aus_b}
     from . import zwischenpruefung                     # A2096: hinter einem Prüfpunkt ist die Zeit unbekannt – die Daten gelten dann „frühestens“
     hinter = zwischenpruefung.dahinter(con, pid)
-    if hinter:
-        name = kern.entwickler_name(con, pid)
+    name = kern.entwickler_name(con, pid) if hinter else None
+    ruht = set(ids) - laufend if pause_an and pause_ende is None else set()   # A2138: ebenso in einer Pause ohne Ende – der Prüfpunkt geht vor
+    for menge, text in ((ruht, zeitplan.PAUSE), (hinter, name)):
         for i in ids:
-            if i in hinter:
-                schritte[i]["wartet_auf"] = name
+            if i in menge:
+                schritte[i]["wartet_auf"] = text
         for bid, liste in boegen_p.items():
-            if any(i in hinter for i in liste):
-                aus_b[bid]["wartet_auf"] = name
+            if any(i in menge for i in liste):
+                aus_b[bid]["wartet_auf"] = text
     if echt:
         tokenprognose.einrechnen(con, aus)
     return aus
