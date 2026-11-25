@@ -12,7 +12,7 @@ import json
 import random
 import re
 
-from . import db, kern
+from . import db, einmal, kern
 
 TEILE = ("anforderungen", "entwurf", "schritte")
 KLAEREN = re.compile(r"\[KL(?:Ä|AE)REN:\s*([^\]]+)\]", re.IGNORECASE)
@@ -347,11 +347,32 @@ def spec_entscheiden(con, pid, von, bid, teil, frei, kommentar=None):
 
 # --- Abhängigkeiten ------------------------------------------------------------------------------
 
+def _kanten(con):
+    """A2145: alle Abhängigkeiten mit dem Status des Vorgängers, {nach: [(vor, art, status)]} in der Reihenfolge der Tabelle – in einer
+    Anfrage oder Runde (einmal.merken) nur einmal gelesen statt je Paket. None außerhalb davon und in einer Schreib-Transaktion: dann
+    fragen vorgaenger/offene_vorgaenger einzeln wie bisher; jede Änderung macht den Merker leer, Geschriebenes ist sofort sichtbar."""
+    if getattr(con, "merker", None) is None or (con.in_transaction and not getattr(con, "schnappschuss", False)):
+        return None
+
+    def lesen():
+        k = {}
+        for r in con.execute("SELECT d.nach, d.vor, d.art, a.status FROM abhaengigkeit d LEFT JOIN aufgabe a ON a.id = d.vor ORDER BY d.rowid"):
+            k.setdefault(r[0], []).append((r[1], r[2], r[3]))
+        return k
+    return einmal.einmal(con, ("abhaengigkeit",), lesen)
+
+
 def vorgaenger(con, aid):
+    k = _kanten(con)
+    if k is not None:
+        return sorted(v for v, _, _ in k.get(aid, ()))
     return [r[0] for r in con.execute("SELECT vor FROM abhaengigkeit WHERE nach = ? ORDER BY vor", (aid,))]
 
 
 def offene_vorgaenger(con, aid):
+    k = _kanten(con)
+    if k is not None:
+        return [v for v, art, st in k.get(aid, ()) if art == "FS" and st is not None and st not in ("fertig", "verworfen")]
     return [r[0] for r in con.execute("SELECT d.vor FROM abhaengigkeit d JOIN aufgabe a ON a.id = d.vor WHERE d.nach = ?"
                                       " AND d.art = 'FS' AND a.status NOT IN ('fertig', 'verworfen')", (aid,))]
 
