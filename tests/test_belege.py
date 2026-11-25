@@ -72,6 +72,16 @@ class Commits(Repo):
         self.assertEqual(belege.hex_teile("Ja von CCamwTL, D1516"), [])
         self.assertEqual(belege.hex_teile("demo002"), [])
 
+    def test_versions_tag_zaehlt_wie_ein_commit(self):
+        s1 = self.commit("a.txt", "1\n")
+        self.git("tag", "-a", "v1.71.0", "-m", "v", s1)
+        self.git("switch", "-q", "-c", "seite")
+        self.git("tag", "v1.72.0", self.commit("b.txt", "2\n"))
+        kopf = (belege.stand(self.repo) or ("", ""))[1]
+        self.assertEqual(belege.hex_teile("live (v1.71.0)"), ["refs/tags/v1.71.0"])
+        self.assertEqual(belege.commits(self.repo, kopf, ["refs/tags/v1.71.0", "refs/tags/v1.72.0", "refs/tags/v9.9.9"]),
+                         ([s1], ["refs/tags/v1.72.0"], ["refs/tags/v9.9.9"]))
+
     def test_dateien_des_commits_mit_grenze(self):
         s = self.commit("x/a.txt")
         self.assertEqual(belege.dateien_des(self.repo, s), (["x/a.txt"], False))

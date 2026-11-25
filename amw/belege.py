@@ -1,7 +1,7 @@
 """A2088: Belege fertiger Pakete prüfen – ohne Modell, nur lesend. Dazu der Code des geprüften Stands für den Prüfer zum Abschluss.
 
 Der Beleg ist Freitext (z. B. „8a31992, Gesamtlauf L3506“ oder „Ja von CCamwTL“). Bei der Fertig-Quelle commit (auch wenn keine
-gespeichert ist) muss mindestens ein Hex-Teil daraus ein Commit sein, der auf dem ausgelieferten Zweig liegt (main, sonst master):
+gespeichert ist) muss mindestens ein Hex-Teil oder Versions-Tag (v1.71.0) daraus ein Commit sein, der auf dem ausgelieferten Zweig liegt (main, sonst master):
 - ok            – gefunden
 - nicht_pruefbar – ein Commit ist genannt, aber keiner liegt auf dem Zweig; oder gar kein erkennbarer Beleg
 - vorbehalt     – der Beleg ist etwas anderes (Ja, D-, P-, B-, R-, L-Nummer, #Nachricht) als die Fertig-Quelle verlangt, oder Code nicht prüfbar
@@ -17,6 +17,7 @@ import subprocess
 FRIST_S = 60
 ZWEIGE = ("main", "master")
 HEX = re.compile(r"\b[0-9a-f]{7,40}\b")
+VERSION = re.compile(r"\bv(\d+\.\d+\.\d+)\b")
 ANDERE = re.compile(r"(?i)^\s*(ja\b|nein\b|abgenommen|freigegeben)|\b[DPBRL]\d+\b|#\d+")
 DOKUMENT = re.compile(r"\bD(\d+)\b")
 MAX_DATEIEN_JE_PAKET = 40
@@ -70,7 +71,9 @@ def stand(ordner):
 
 
 def hex_teile(text):
-    return list(dict.fromkeys(HEX.findall((text or "").lower())))
+    """Was im Beleg ein Commit sein kann: Hex-Teile und Versions-Tags (v1.71.0 → refs/tags/v1.71.0)."""
+    t = (text or "").lower()
+    return list(dict.fromkeys(HEX.findall(t) + [f"refs/tags/v{x}" for x in VERSION.findall(t)]))
 
 
 def commits(ordner, kopf, teile):
