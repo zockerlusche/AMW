@@ -27,6 +27,7 @@ EINGEORDNET_FREI = {
     "amw/fenster.py": "Lead-Sperre nur für Meldung „Fenster ohne Schirm“",
     "amw/gespraech.py": "Muster zum Ausblenden von Geheimnissen (Anzeige)",
     "amw/messung.py": "Wort „tokens“ in Kostenwerten",
+    "amw/nummernsuche.py": "liest die Spalte „kanal“ der Wortlaute, nur lesend (A2114)",
     "amw/planung.py": "Lead-Sperren für Planung (Bögen, Pakete)",
     "amw/platte.py": "Absender Entwickler in Meldungen",
     "amw/runde.py": "Lead-Runde (Nachrichten zwischen Leads)",
