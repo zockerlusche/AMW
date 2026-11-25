@@ -154,11 +154,12 @@ function pwWert(d, i) {
     const l = g.fassungen.at(-1); return l ? t("pjw_fassung", { n: l.fassung }) : "–"; }
   if (i === 2) { const l = f.meilensteine.find(m => m.laeuft); if (l) return t("pjw_in_arbeit");
     const w = pwFeinOffen(d); if (w) return w.fehler ? t("pjw_w_fein_fehler", { m: pwM(w) }) : t("pjw_w_fein", { m: pwM(w), p: pwPakete(w.pakete.length) });
-    if (f.delta_fehler.length && !f.delta.length) { const n = f.delta_fehler.length, teil = f.delta_fehler.filter(x => x.teilweise).length;   /* A2076; A2086: teilweise umgesetzt */
+    const od = pwDeltaOffen(f);                                                                        /* A2118 */
+    if (f.delta_fehler.length && !od.length) { const n = f.delta_fehler.length, teil = f.delta_fehler.filter(x => x.teilweise).length;   /* A2076; A2086: teilweise umgesetzt */
       const wort = teil === n ? "pjw_w_delta_teil" : teil ? "pjw_w_delta_klaeren" : "pjw_w_delta_fehler";
       return n === 1 ? t(wort + "1", { t: `TH${f.delta_fehler[0].thema}` }) : t(wort + "_n", { n }); }
-    if (f.delta.length) return f.delta.length === 1 ? t("pjw_w_delta1", { t: `TH${f.delta[0].thema}`, p: pwPakete(f.delta[0].karten.length) })   /* A2068 */
-      : t("pjw_w_delta_n", { n: f.delta.length });
+    if (od.length) return od.length === 1 ? t("pjw_w_delta1", { t: `TH${od[0].thema}`, p: pwPakete(od[0].karten.length) })   /* A2068 */
+      : t("pjw_w_delta_n", { n: od.length });
     const z = f.meilensteine.filter(m => m.frei && m.status !== "fertig").at(-1); if (z) return `${pwM(z)} · ${t("pjw_freigegeben")}`;
     return f.naechster ? t("pjw_w_naechster", { m: pwM(f.naechster) }) : "–"; }                     /* A2086: nach der Abnahme steht da, was als Nächstes geplant wird */
   if (i === 3) { const ms = u.meilensteine; if (!ms.length) return "–";
@@ -264,8 +265,9 @@ function pwFein(d) {
   const f = d.fein, teile = [];
   const offenerPlan = pwFeinOffen(d), lead = f.lead_klaert;
   const planWartet = !API && !!offenerPlan && !(offenerPlan.fehler && lead);                         /* eine Hauptaktion je Ansicht (TH156, TL #32217): zuerst der Plan */
-  f.delta.forEach((x, i) => teile.push(pwDeltaKarte(x, f.delta.length === 1 && !planWartet, !planWartet && i === 0)));   /* A2065: Karten statt Textwand */
-  f.delta_fehler.forEach((x, i) => teile.push(pwDeltaFehler(x, !lead && !planWartet && !f.delta.length && i === 0, lead)));   /* A2076 */
+  const od = pwDeltaOffen(f);                                                                          /* A2118: zurückgestellte zuletzt */
+  [...od, ...f.delta.filter(x => x.wartet)].forEach((x, i) => teile.push(pwDeltaKarte(x, od.length === 1 && x === od[0] && !planWartet, !planWartet && x === od[0])));   /* A2065: Karten statt Textwand */
+  f.delta_fehler.forEach((x, i) => teile.push(pwDeltaFehler(x, !lead && !planWartet && !od.length && i === 0, lead)));   /* A2076 */
   if (!f.meilensteine.length) return teile.concat(teile.length ? [] : [el("div", { class: "leer" }, t("pjw_f_leer"))]);
   const offen = f.meilensteine.filter(m => m.status !== "fertig");                  /* A2061: fertige Meilensteine nicht in der Auswahl */
   const gew = f.meilensteine.find(m => m.bogen === zustand.pwMs) || pwFeinOffen(d) || f.meilensteine.find(m => m.laeuft) || offen.at(-1) || f.meilensteine.at(-1);
@@ -288,7 +290,7 @@ function pwFein(d) {
   if (!API && gew.fehler) {                                             /* A2056: abgelehnter Feinplan → mit Hinweis neu planen lassen */
     teile.push(pwHinweisFeld(t("pjw_f_fehler_ph")));
     teile.push(pwHandlungen(pwKnopf(t("pjw_ueberarbeiten"), () => { const x = pwHinweisText(); if (!x) { toast(t("pjw_text_fehlt"), true); return; }
-      pwTun("/api/meilenstein/fein-neu", { bogen: gew.bogen, hinweis: x }, t("pjw_ok_ueberarbeiten")); }, !lead && !f.delta.length)));
+      pwTun("/api/meilenstein/fein-neu", { bogen: gew.bogen, hinweis: x }, t("pjw_ok_ueberarbeiten")); }, !lead && !od.length)));
   }
   if (!API && (!gew.frei || gew.delta_start) && !gew.laeuft && gew.pakete.length && gew.status === "geplant") {
     if (!gew.delta_start) teile.push(pwHinweisFeld(t("pjw_f_hinweis_ph")));
@@ -321,12 +323,16 @@ function pwDeltaKnopfText(thema, ja) {
   return t(ja.startet ? "pjw_delta_start_n" : "pjw_delta_ja_n", { t: `TH${thema}`, p: pwPakete(ja.pakete), m: wohin })
     + (ja.aendern ? " · " + t("pjw_n_geaendert", { n: ja.aendern }) : "") + (ja.verwerfen ? " · " + t("pjw_n_verworfen", { n: ja.verwerfen }) : "");
 }
-const pwDeltaOk = ja => t(ja.startet ? "pjw_ok_delta_start" : ja.lead_startet ? "pjw_ok_delta_lead" : "pjw_ok_delta");
-const pwDeltaDanach = ja => ja.lead_startet ? t("pjw_delta_lead_startet") : null;                  /* der Plan des laufenden Ziels ist geändert: das Ja startet nicht */
+const pwDeltaOk = ja => t(ja.startet ? "pjw_ok_delta_start" : "pjw_ok_delta");
+/* A2118: ein zurückgestellter Entwurf zeigt den Grund statt des Knopfs; der Mensch darf ihn hinter einem Klick, mit Rückfrage, doch freigeben. */
+const pwZurueckgestellt = (w, tun) => el("details", { class: "pjw-wartet" }, el("summary", {}, t("pjw_wartet_grund", { x: w.grund })),
+  API ? el("div", { class: "leise" }, t("pm_nur_pc")) : el("button", { class: "klein-knopf", type: "button", "data-h": "trotzdem",
+    onclick: () => { if (confirm(t("pjw_wartet_frage", { x: w.grund }))) tun(); } }, t("pjw_trotzdem_frei")));
+const pwDeltaOffen = f => f.delta.filter(x => !x.wartet);
 function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
   const karte = el("div", { class: "pjw-karte pjw-delta", "data-thema": x.thema },
-    el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), pwStatus(t("pjw_wartet_dich"), "dran")),
+    el("div", { class: "pjw-kopf" }, el("h3", {}, t("pjw_delta", { x: `TH${x.thema} ${x.name}` })), x.wartet ? pwStatus(t("pjw_wartet")) : pwStatus(t("pjw_wartet_dich"), "dran")),
     el("div", { class: "pjw-werte" }, el("span", {}, el("b", {}, x.karten.length), " ", t(x.karten.length === 1 ? "pjw_paket_w" : "pjw_pakete_w")),
       el("span", {}, el("b", {}, x.karten.filter(k => k.wer.startsWith("Headless")).length), " Headless"), x.ziele.length ? el("span", {}, t("pjw_in_x", { x: x.ziele.map(z => z.neu ? t("pjw_neuem_ms", { x: z.titel }) : `M${z.nr}`).join(", ") })) : null));
   if (x.karten.length) {
@@ -343,9 +349,10 @@ function pwDeltaKarte(x, einzig, haupt) {
   if ((x.nacharbeit || []).length) karte.append(el("div", { class: "pjw-hinweise" }, el("div", { class: "pjw-lbl" }, t("pjw_nacharbeit_lbl")),   /* A2059 */
     x.nacharbeit.map(y => el("div", {}, `A${y.aufgabe} ${y.alt || ""}`, y.grund ? el("span", { class: "leise" }, ` – ${y.grund}`) : null))));
   if (x.wer && x.wer.length) karte.append(el("div", { class: "leise" }, t("pjw_delta_wer", { x: x.wer.join(", ") })));   /* A2080 (2) */
-  if (pwDeltaDanach(x.ja)) karte.append(el("div", { class: "leise pjw-danach" }, pwDeltaDanach(x.ja)));   /* A2112 */
+  const frei = () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, pwDeltaOk(x.ja));
+  if (x.wartet) { karte.append(pwZurueckgestellt(x.wartet, frei)); return karte; }                     /* A2118 */
   if (API) { karte.append(el("div", { class: "leise pjw-nur-pc" }, t("pm_nur_pc"))); return karte; }
-  const ja = pwKnopf(pwDeltaKnopfText(x.thema, x.ja), () => pwTun("/api/meilenstein/plan-ja", { thema: x.thema, eid: x.eid }, pwDeltaOk(x.ja)), haupt);
+  const ja = pwKnopf(pwDeltaKnopfText(x.thema, x.ja), frei, haupt);
   if (einzig) pwHaupt = ja;
   else karte.append(pwHandlungen(ja));
   return karte;

@@ -469,22 +469,21 @@ def _geaendert_seit(con, pid, tid, seit_id):
 
 def aenderung_ja(con, pid, d):
     """A2112: was das Ja zu einer Konzeptänderung tut – Projektweg und Planung zeigen daraus denselben Knopf: {"pakete", "aendern",
-    "verwerfen" (Zahlen), "ziele": [{"nr", "titel", "neu"}], "neuer_ms", "startet", "lead_startet"}. lead_startet: ein Ziel läuft, sein
-    Plan ist aber nicht (mehr) frei – die neuen Pakete startet der Lead (delta_start lässt den Plan offen)."""
+    "verwerfen" (Zahlen), "ziele": [{"nr", "titel", "neu"}], "neuer_ms", "startet"}. startet: ein neuer Meilenstein oder ein laufendes
+    Ziel – auch, wenn dessen Plan gerade offen ist (A2118)."""
     from . import delta_start, projektweg_seite
-    k, z = projektweg_seite._entwurf_karten(con, pid, d), _zustaende(con, pid)
+    k = projektweg_seite._entwurf_karten(con, pid, d)
     nummern = {m["bestehend"] for m in d.get("meilensteine") or [] if m.get("bestehend")}
-    laufend = [bool((z.get((r["id"], "plan")) or {}).get("an")) for r in con.execute(
-        "SELECT id, nr FROM bogen WHERE projekt_id = ? AND status = 'aktiv' ORDER BY id", (pid,)).fetchall() if r["nr"] in nummern]
     neu = delta_start.legt_an(d)
-    startet = neu or any(laufend)
+    startet = neu or any(r["nr"] in nummern for r in con.execute("SELECT nr FROM bogen WHERE projekt_id = ? AND status = 'aktiv'", (pid,)).fetchall())
     return {"pakete": len(k["karten"]), "aendern": len(k["aendern"]), "verwerfen": len(k["verwerfen"]), "ziele": k["ziele"], "neuer_ms": neu,
-            "startet": startet, "lead_startet": bool(k["karten"] and not startet and laufend and kern.lead(con, pid))}
+            "startet": startet}
 
 
 def entwuerfe(con, pid, namen):
-    """A1940 (K4): offene Entwürfe des Planers zum Ja/Neu-planen und Planer, die gerade laufen – je Thema."""
-    from . import planer, planer_fortschritt
+    """A1940 (K4): offene Entwürfe des Planers zum Ja/Neu-planen und Planer, die gerade laufen – je Thema. A2118: zurückgestellte tragen
+    "wartet" {"grund", "von", "seit_utc"}; was ein späterer Vermerk „nichts zu bauen“ überholt hat, steht nicht mehr da."""
+    from . import entwurf_warten, planer, planer_fortschritt
     offen, laufend = [], []
     for tid, name in sorted(namen.items()):
         l = planer.laeuft(con, pid, tid)
@@ -494,7 +493,7 @@ def entwuerfe(con, pid, namen):
                             "fortschritt_zeile": planer_fortschritt.zeile(f) if f else None})
             continue
         e = planer.letzter_entwurf(con, pid, tid)
-        if not e or planer.erledigt(con, pid, e["id"]):
+        if not e or planer.erledigt(con, pid, e["id"]) or planer.geklaert(con, pid, tid, e["id"]):
             continue
         d = e.get("entwurf")
         offen.append({"thema": tid, "name": name, "eid": e["id"], "zeit_utc": e["zeit_utc"], "modell": e.get("modell"), "usd": e.get("usd"),
@@ -502,7 +501,8 @@ def entwuerfe(con, pid, namen):
                       "meilensteine": len(d["meilensteine"]) if d and not d["nichts_zu_bauen"] else 0,
                       "pakete": len(d["pakete"]) if d and not d["nichts_zu_bauen"] else 0,
                       "zeilen": planer.zusammenfassung(d).split(chr(10)) if d and not d["nichts_zu_bauen"] else [],
-                      "ja": aenderung_ja(con, pid, d) if d and d.get("delta") and not d["nichts_zu_bauen"] and not e.get("fehler") else None})     # A2112
+                      "ja": aenderung_ja(con, pid, d) if d and d.get("delta") and not d["nichts_zu_bauen"] and not e.get("fehler") else None,     # A2112
+                      "wartet": entwurf_warten.stand(con, pid, e["id"])})
     return {"entwuerfe": offen, "planer_laeuft": laufend}
 
 

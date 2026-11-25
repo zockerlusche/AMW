@@ -254,18 +254,20 @@ def _ortszeit(bis, seit):
     return ende.strftime("%H:%M" if ende.date() == db.utc_lesen(seit).astimezone().date() else "%d.%m. %H:%M")
 
 
-DELTA = ("thema_delta_stimme","thema_delta_angewandt", "thema_delta_start")
+DELTA = ("thema_delta_stimme", "thema_delta_angewandt", "thema_delta_start", "thema_entwurf_wartet")
 _ROLLE = {"co": "Co-Entwickler", "lead": "Lead"}
 
 
 def _delta(con, pid):
     aus = []
-    for r in _neueste(con, "SELECT id, zeit_utc, von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?, ?)"
+    for r in _neueste(con, "SELECT id, zeit_utc, von, art, text FROM plan_ereignis WHERE projekt_id = ? AND art IN (?, ?, ?, ?)"
                            " ORDER BY id DESC", (pid, *DELTA)):
         d = _json(r["text"])
         th = f"TH{d.get('thema', '?')}"
         if r["art"] == "thema_delta_stimme":
             text = f"{th}: Ja zur Änderung" + (f" ({_ROLLE.get(d['rolle'], d['rolle'])})" if d.get("rolle") else "")
+        elif r["art"] == "thema_entwurf_wartet":                    # A2118
+            text = f"{th}: Entwurf " + (f"wartet – {d.get('grund')}" if d.get("an") else "wieder frei zum Ja")
         elif r["art"] == "thema_delta_angewandt":
             n = len(d.get("uebersprungen") or [])
             text = f"{th}: Änderung angewandt" + (f", {n} Paket{'e' if n != 1 else ''} blieb{'en' if n != 1 else ''} unverändert" if n else "")

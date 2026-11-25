@@ -156,7 +156,10 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
         from . import planer_delta
         aendern, verwerfen, nacharbeit = planer_delta.pruefen_teil(daten, delta, f)
     if daten.get("nichts_zu_bauen") is True:
-        grund = _text(daten.get("grund"), "grund", "nichts zu bauen", f)
+        grund = daten.get("grund")
+        if isinstance(grund, str) and len(grund.strip()) > LAENGE["grund"]:      # A2118 (TH167, L3368): zu lang ist kein Scheitern
+            grund = grund.strip()[:LAENGE["grund"] - 1].rstrip() + "…"
+        grund = _text(grund, "grund", "nichts zu bauen", f)
         if daten.get("meilensteine") or daten.get("pakete") or aendern or verwerfen or nacharbeit:
             f.append("nichts zu bauen, aber Meilensteine oder Pakete angegeben" + (" (oder Änderungen)" if aendern or verwerfen else ""))
         if f:
@@ -472,6 +475,16 @@ def erledigt(con, pid, eid):
                                                                (pid, art))])
 
 
+def geklaert(con, pid, tid, eid):
+    """Nach diesem Entwurf „nichts zu bauen“ vermerkt (oder bestätigt) oder ein Plan angenommen? Dann ist nichts mehr zu tun (A2118: gilt
+    für jede Anzeige offener Entwürfe). Ein späterer Entwurf ist davon nicht betroffen."""
+    from . import tore
+    nichts = [x for x in _ereignisse(con, pid, tid, NICHTS) if x["id"] > eid]
+    if nichts:
+        return bool(nichts[-1].get("an", True))
+    return any(x["id"] > eid for art in (JA, tore.NICHTS_JA) for x in _ereignisse(con, pid, tid, art))
+
+
 # --- Ja des Leads: anlegen -----------------------------------------------------------------------------------------------
 
 def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
@@ -504,6 +517,8 @@ def uebernehmen(con, pid, von, tid, eid=None, geaendert=None):
     with db.schreiben(con):                          # P462 (4): angenommen wird einmal – Marke zuerst, in einer Transaktion
         if erledigt(con, pid, e["id"]):
             raise kern.AmwFehler(f"Der Planentwurf zu TH{tid} ist schon angenommen")
+        from . import entwurf_warten
+        entwurf_warten.sperre(con, pid, von, tid, e["id"])          # A2118
         if ist_delta:
             delta_start.recht_pruefen(con, pid, von, entwurf)     # A2080: neuer Meilenstein → wer auch Grobpläne freigibt
             fehlt = planer_delta.stimme(con, pid, von, tid, e["id"])

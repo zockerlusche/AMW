@@ -182,15 +182,6 @@ def fein(con, pid, freigaben):
     return {"meilensteine": aus, "delta": delta, "delta_fehler": delta_fehler, "lead_klaert": lead_klaert(con, pid), "naechster": naechster}
 
 
-def _geklaert(con, pid, tid, eid):
-    """Nach diesem Entwurf „nichts zu bauen“ vermerkt (oder bestätigt) oder ein Plan angenommen? Dann ist nichts mehr zu tun."""
-    from . import planer, tore
-    nichts = [x for x in planer._ereignisse(con, pid, tid, planer.NICHTS) if x["id"] > eid]
-    if nichts:
-        return bool(nichts[-1].get("an", True))
-    return any(x["id"] > eid for art in (planer.JA, tore.NICHTS_JA) for x in planer._ereignisse(con, pid, tid, art))
-
-
 def lead_klaert(con, pid):
     """B2938: Ein gescheiterter Planer ist zuerst Sache des Leads – sein Name, oder None (kein Lead: der Mensch)."""
     lead = kern.lead(con, pid)
@@ -227,8 +218,8 @@ def _fehler_wort(fehler):
 def _ist_aenderung(con, pid, tid, e):
     """Gehört dieser abgelehnte Entwurf zur freigegebenen Fassung und war er eine Konzeptänderung? Ältere Ereignisse ohne das Feld
     delta: nach dem heutigen Stand des Themas."""
-    from . import planer_delta, themen
-    if themen.status(con, themen.finden(con, pid, tid)).get("freigegeben") != e.get("fassung") or _geklaert(con, pid, tid, e["id"]):
+    from . import planer, planer_delta, themen
+    if themen.status(con, themen.finden(con, pid, tid)).get("freigegeben") != e.get("fassung") or planer.geklaert(con, pid, tid, e["id"]):
         return False
     return bool(e.get("delta")) or planer_delta.kontext(con, pid, tid) is not None
 
@@ -498,15 +489,16 @@ def daten(con, pid):
             if x["schritt"] == "fein" and x["zustand"] == "dran":
                 x.update(wer=wer_plan, bei_dir=ich in wer_plan)
     start = [m for m in f["meilensteine"] if m["delta_start"]]         # A2080 (5): wartet auf „freigeben und starten“
-    if f["delta"] or f["delta_fehler"] or start:                  # A2076: auch eine gescheiterte Änderung; A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
-        wer_plan = f["delta"][0]["wer"] if f["delta"] else [ich] if start else fehler_wer
+    delta = [x for x in f["delta"] if not x.get("wartet")]        # A2118: ein zurückgestellter Entwurf wartet auf niemanden
+    if delta or f["delta_fehler"] or start:                  # A2076: auch eine gescheiterte Änderung; A2068: eine offene Änderung wartet auf ihr Ja – auch nach erledigtem Feinplan
+        wer_plan = delta[0]["wer"] if delta else [ich] if start else fehler_wer
         for x in schritte:
             if x["schritt"] == "fein":
                 x.update(zustand="dran", zeichen=projektweg.ZEICHEN["dran"], wer=wer_plan, bei_dir=ich in wer_plan,
-                         fehlt=(f"{len(f['delta'])} Änderung(en) am Konzept warten auf das Ja" if f["delta"]
+                         fehlt=(f"{len(delta)} Änderung(en) am Konzept warten auf das Ja" if delta
                                 else f"{len(f['delta_fehler'])} Änderung(en) am Konzept: {_fehler_wort(f['delta_fehler'])}" if f["delta_fehler"]
                                 else f"{len(start)} Meilenstein(e) einer Änderung warten auf das Starten"))
-        nur_lead = lead and not f["delta"] and not start     # B2938: was der Lead klärt, holt den Menschen nicht von seinem Schritt weg
+        nur_lead = lead and not delta and not start     # B2938: was der Lead klärt, holt den Menschen nicht von seinem Schritt weg
         if not nur_lead and dran in (None, "umsetzung", "abschluss") or (dran == "grob" and start and g["angenommen"]):   # früher Offenes geht vor –
             dran = "fein"                                # außer der Grobplan steht schon und nur der Start der Änderung fehlt
     k = konzept(con, pid, g["bestand"])

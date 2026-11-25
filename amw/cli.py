@@ -3110,9 +3110,18 @@ def cmd_thema(a, con):
         weg = planansicht.anhalten(con, pid, _von(a), t["id"], bid)
         print(f"TH{t['id']}: " + (f"angehalten: {', '.join(f'A{x}' for x in weg)}" if weg else "keine nicht begonnenen Pakete"))
         return
-    if a.aktion in ("planen", "plan-ja") and _von(a) == kern.ENTWICKLER and _aus_agenten_sitzung():   # P462 (3)
+    if a.aktion in ("planen", "plan-ja", "entwurf-warten", "entwurf-weiter") and _von(a) == kern.ENTWICKLER and _aus_agenten_sitzung():   # P462 (3)
         raise kern.AmwFehler(f"thema {a.aktion}: als Entwickler nur im eigenen Terminal des Menschen oder in der Workbench am PC –"
                              " nicht aus einer Agenten-Sitzung")
+    if a.aktion in ("entwurf-warten", "entwurf-weiter"):     # A2118: einen offenen Entwurf zurückstellen
+        from . import entwurf_warten
+        if not a.name:
+            raise kern.AmwFehler(f"amw thema {a.aktion} TH<n>" + (" --grund …" if a.aktion == "entwurf-warten" else ""))
+        if a.aktion == "entwurf-warten":
+            print(f"TH{entwurf_warten.zurueckstellen(con, pid, _von(a), a.name, a.grund)}: Entwurf wartet")
+        else:
+            print(f"TH{entwurf_warten.freischalten(con, pid, _von(a), a.name)}: Entwurf ist wieder frei zum Ja")
+        return
     if a.aktion in ("planen", "plan", "plan-ja"):     # A1940 (K4): Grobplanung aus Themen per -p-Planer
         from . import planer
         if not a.name:
@@ -4121,12 +4130,14 @@ def parser():
                                    " grobplan [--fassung N] [--neu] (Fassungen und Entwurf zeigen, neu planen lassen) |"
                                    " grobplan-ja [--fassung N] (legt die Meilensteine an – wer Ja sagt wie bei den Themen) – A2030 |"
                                    " hinweis grob|TH12 --text … [--zu TH3|M2|P4|A123] (Ergänzung an den Planer) |"
-                                   " ueberarbeiten grob|TH12 (Planer legt mit den offenen Hinweisen eine neue Fassung vor; Mensch, Lead, Co) – A2028")
+                                   " ueberarbeiten grob|TH12 (Planer legt mit den offenen Hinweisen eine neue Fassung vor; Mensch, Lead, Co) – A2028 |"
+                                   " entwurf-warten TH12 --grund … (offenen Entwurf zurückstellen; Lead, Co, Mensch) | entwurf-weiter TH12"
+                                   " (wieder freischalten) – A2118")
     x.add_argument("aktion", nargs="?", default="liste", choices=["liste", "zeige", "neu", "einstellen", "pflegen", "bestaetigen",
                                                                   "dokument", "status", "freigeben", "zurueck", "markieren",
                                                                   "entmarkieren", "nur_mensch", "nicht_nur_mensch", "vermerk", "luecken", "planen", "plan", "plan-ja", "anhalten",
                                                                   "uebernehmen", "konzept-abschliessen", "grobplan", "grobplan-ja",
-                                                                  "hinweis", "ueberarbeiten"])
+                                                                  "hinweis", "ueberarbeiten", "entwurf-warten", "entwurf-weiter"])
     x.add_argument("--zu", help="hinweis: die Karte – TH3, M2, P4 oder A123 (ohne: der ganze Plan) – A2028")
     x.add_argument("--fassung", type=int, help="grobplan, grobplan-ja: diese Fassung des Grobplans statt der neuesten – A2030")
     x.add_argument("--neu", action="store_true", help="grobplan: den Grob-Planer neu planen lassen (neue Fassung) – A2030")

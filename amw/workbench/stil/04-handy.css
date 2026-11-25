@@ -163,7 +163,8 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-stufen { display: flex; flex-direction: column; gap: 10px; }
 .pjw-stufe { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
 .pjw-snr { width: 26px; height: 26px; border-radius: 50%; border: 1px solid var(--linie2); display: flex; align-items: center; justify-content: center; font: 600 13px var(--titel); color: var(--leise); margin-top: 6px; }
-.pjw-pakete { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
+.pjw-pakete { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr)); gap: 8px; }
+.pjw-wartet > summary { cursor: pointer; color: var(--leise); padding: 6px 0; } .pjw-wartet > button { margin-top: 4px; }
 .pjw-paket { display: flex; flex-direction: column; gap: 4px; padding: 9px 12px; border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); cursor: pointer; text-align: left; color: var(--tinte); font: inherit; }
 .pjw-paket:hover { background: var(--flaeche2); }
 .pjw-paket.blockiert { border-color: var(--bernstein); }

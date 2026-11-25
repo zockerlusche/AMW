@@ -3,7 +3,8 @@
 - Neuer Meilenstein aus der Änderung: Das Ja ist zugleich seine Grob- und Plan-Freigabe, und er startet (reihenfolge.starten).
 - Bestehender Meilenstein: War sein Plan vor dem Ja frei, bleibt er frei (neuer Fingerabdruck, nur durch dieses Ja); läuft er,
   werden genau die mit diesem Ja angelegten Pakete startklar – kein anderes (zurückgehaltene bleiben), und der Plan-Stand
-  (Grundlage der Abweichung) bleibt. War der Plan schon offen oder geändert, bleibt er offen.
+  (Grundlage der Abweichung) bleibt. War der Plan schon offen oder geändert, bleibt er offen – die Pakete dieses Ja starten im laufenden
+  Meilenstein trotzdem (A2118: der Mensch hat genau sie freigegeben), kein anderes.
 - Kein neues Recht: Legt die Änderung einen neuen Meilenstein an, gibt sie nur frei, wer Grobplan UND Feinplan freigeben darf.
 - Erneuert wird nur, was das Ja selbst geändert hat: Hat sich am Meilenstein daneben noch etwas anderes bewegt (ein Paket eines
   anderen, Titel, Ziel), bleibt die Freigabe offen und der Lead bekommt eine Meldung.
@@ -175,12 +176,14 @@ def nach_dem_ja(con, pid, von, tid, eid, entwurf, angelegt, vorher):
         eigene |= {int(str(x["paket"]).lstrip("Aa")) for x in entwurf.get(k) or []}
     from . import planansicht, themen
     for bid, v in vorher.items():
-        if not v["plan"]:
-            continue                                      # war schon offen oder geändert: bleibt offen
+        laeuft = con.execute("SELECT status FROM bogen WHERE id = ?", (bid,)).fetchone()[0] == "aktiv"
         try:
-            fremd = _fremd(con, pid, bid, v, eigene)
+            fremd = _fremd(con, pid, bid, v, eigene) if v["plan"] else None
             if fremd:
                 aus["offen"][str(bid)] = fremd
+            if fremd or not v["plan"]:                    # der Plan war oder ist offen: er bleibt es; die eigenen Pakete starten (A2118)
+                if laeuft:
+                    _neue_startklar(con, pid, von, bid, neu, aus)
                 continue
             z = planansicht._zustaende(con, pid)
             grob_weg = v["grob"] and not (z.get((bid, "grob")) or {}).get("an")     # ohne Grobplan zählen die Themen der Pakete mit
@@ -190,7 +193,7 @@ def nach_dem_ja(con, pid, von, tid, eid, entwurf, angelegt, vorher):
                 if not (z.get((bid, "plan")) or {}).get("an"):
                     _frei(con, pid, von, bid, "plan", ja["id"], durch)
             aus["erneuert"].append(bid)
-            if con.execute("SELECT status FROM bogen WHERE id = ?", (bid,)).fetchone()[0] == "aktiv":
+            if laeuft:
                 _neue_startklar(con, pid, von, bid, neu, aus)
         except Exception as x:                           # noqa: BLE001 – angelegt ist schon alles; der Fehler gehört auf die Seite
             aus["fehler"][str(bid)] = str(x)[:300]
