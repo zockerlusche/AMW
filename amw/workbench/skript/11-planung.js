@@ -387,6 +387,8 @@ const tokenStueck = (p, k = zustand.token) => p?.pause_tage ? el("span", { class
   ` ${TKZ} ` + t("tk_plus", { n: p.pause_tage, x: datumKurz(p.p50_mit) })) : null;
 /* Übersicht: echte Zeitachse, gepackt. Ein Block je Bogen von Start bis Prognose (Balken fest bis P50, schraffiert bis P85),
    gestrichelt weiter bis zum Zieldatum (◆). Bögen, die sich zeitlich nicht überschneiden, teilen sich eine Spur. ● deine Schritte, heute. */
+/* A2096: hinter einem Prüfpunkt ist die Zeit unbekannt – „wartet auf <Name>“ statt eines Datums */
+const ppWann = p => p.wartet_auf ? t("pp_wartet_auf", { x: p.wartet_auf }) : `≈ ${datumKurz(p.p50)}`;
 function uebersicht(d) {
   const tagNr = x => Math.round(Date.parse(x + "T12:00:00Z") / 864e5), datum = n => new Date(n * 864e5).toISOString().slice(0, 10);
   const alle = d.boegen.filter(b => b.status !== "verworfen").map(b => {
@@ -751,7 +753,7 @@ function bogenKarte(b) {
     b.zieldatum ? el("span", { class: "ziel", style: `left:${proz(b.zieldatum)}`, title: `${t("pl_zieldatum")} ${datumKurz(b.zieldatum)}` }) : null,
     el("span", { class: "mk-marke l" }, t("mk_beginn", { x: datumKurz(beginn) })),
     el("span", { class: "mk-marke r" }, [b.zieldatum ? t("mk_ziel", { x: datumKurz(b.zieldatum) }) : null,
-      p && !fertigB ? t("mk_prog", { a: datumKurz(p.p50), b: datumKurz(p.p85) }) : null, fertigB && b.fertig_utc ? t("mk_fertig_am", { x: datumKurz(b.fertig_utc.slice(0, 10)) }) : null]
+      p && !fertigB ? p.wartet_auf ? t("pp_wartet_auf", { x: p.wartet_auf }) : t("mk_prog", { a: datumKurz(p.p50), b: datumKurz(p.p85) }) : null, fertigB && b.fertig_utc ? t("mk_fertig_am", { x: datumKurz(b.fertig_utc.slice(0, 10)) }) : null]
       .filter(Boolean).join(" · ")));
 
   /* Mini-Zeitlinie je Aufgabe auf derselben Achse: angelegt (Strich), gearbeitet (voll), gewartet (gestrichelt), fertig */
@@ -773,7 +775,7 @@ function bogenKarte(b) {
     el("span", { class: "mk-meta" }, [s.agent === "Entwickler" ? t("pl_du") : (s.agent || t("pl_frei")),
       s.status !== "fertig" && s.status !== "verworfen" && mkSeit(s) ? t("mk_seit", { x: zeit(mkSeit(s)) }) : null,
       (s.kriterien || []).length ? `✓ ${s.kriterien.filter(k => k.erfuellt).length}/${s.kriterien.length}` : null,
-      s.prognose && !["fertig", "verworfen"].includes(s.status) ? `≈ ${datumKurz(s.prognose.p50)}` : null].filter(Boolean).join(" · "),
+      s.prognose && !["fertig", "verworfen"].includes(s.status) ? ppWann(s.prognose) : null].filter(Boolean).join(" · "),
       s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null),
     s.verschoben_aus ? el("span", { class: "mk-verschoben" }, "↪ " + t("mk_verschoben_aus", { b: bogenNr(s.verschoben_aus.bogen), x: datumKurz(s.verschoben_aus.am.slice(0, 10)) })) : null,
     mini(s, u));
@@ -798,7 +800,7 @@ function bogenKarte(b) {
       ...(Object.keys(b.specs || {}).length ? ["anforderungen", "entwurf", "schritte"].flatMap(spec) : []),     /* alter Bestand */
       el("dt", {}, t("pl_zieldatum")), el("dd", {}, datumKurz(b.zieldatum),
         b.baseline_datum && b.baseline_datum !== b.zieldatum ? el("span", { class: "sehrleise", title: b.baseline_grund || "" }, ` · ${t("pl_baseline")} ${datumKurz(b.baseline_datum)}`) : null,
-        p ? el("span", { class: "sehrleise" }, ` · ${t("pl_prognose")} ${datumKurz(p.p50)} – ${datumKurz(p.p85)}`, tokenStueck(p),
+        p ? el("span", { class: "sehrleise" }, ` · ${t("pl_prognose")} ${p.wartet_auf ? t("pp_wartet_auf", { x: p.wartet_auf }) : `${datumKurz(p.p50)} – ${datumKurz(p.p85)}`}`, tokenStueck(p),
           p.ampel_ohne_pause ? el("span", { class: "sehrleise", title: t("tk_ampel_h") }, " " + t("tk_ampel")) : null) : null),
       b.zuwachs ? [el("dt", {}, t("mk_hinzu")), el("dd", { title: t("zw_h") }, t("zw_satz", zwText(b.zuwachs)))] : null,
       b.dokumente ? [el("dt", {}, t("mk_dokumente")), el("dd", {}, el("a", { class: "verweis", onclick: () => { zustand.dok = { status: "aktuell", bezug: `bogen:${b.id}` }; zeige("dokumente"); } }, t("dk_n", { n: b.dokumente })))] : null,
@@ -840,7 +842,7 @@ function schrittZeile(s, ohneId) {         /* ohneId: in den Details der Meilens
     el("span", { class: "schritt-meta sehrleise" },
       [mensch ? t("pl_du") : (s.agent || t("pl_frei")), k.length ? `✓ ${erfuellt}/${k.length}` : null,
        s.komplexitaet ? `K${s.komplexitaet}` + (s.komplexitaet >= 7 ? (s.plan_status === "frei" ? " · Plan ✓" : " · " + t("pl_plan_fehlt")) : "") : null,
-       s.prognose && s.status !== "fertig" ? `≈ ${datumKurz(s.prognose.p50)}` + (s.prognose.pause_tage ? ` ${TKZ} ${t("tk_plus", { n: s.prognose.pause_tage, x: datumKurz(s.prognose.p50_mit) })}` : "") : null,
+       s.prognose && s.status !== "fertig" ? ppWann(s.prognose) + (s.prognose.pause_tage && !s.prognose.wartet_auf ? ` ${TKZ} ${t("tk_plus", { n: s.prognose.pause_tage, x: datumKurz(s.prognose.p50_mit) })}` : "") : null,
        s.anforderungen].filter(Boolean).join(" · "),
       s.dokumente ? el("a", { class: "verweis", style: "margin-left:6px", onclick: () => { zustand.dok = { status: "aktuell", bezug: `aufgabe:${s.id}` }; zeige("dokumente"); } }, `📎 ${s.dokumente}`) : null));
 }

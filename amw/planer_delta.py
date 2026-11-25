@@ -226,6 +226,10 @@ def anwenden(con, pid, von, tid, eid, entwurf, aus=None):
     aus.update(geaendert=[], verworfen=[], uebersprungen=[])
 
     def frei(e):
+        from . import zwischenpruefung
+        if zwischenpruefung.ist(con, e["paket"]):         # A2096: den Prüfpunkt ändert und verwirft kein Planer
+            aus["uebersprungen"].append(f"A{e['paket']} ist ein Prüfpunkt")
+            return False
         g = _noch_nicht_begonnen(con, pid, e["paket"])
         if g == "stoppen":
             return True

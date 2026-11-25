@@ -79,7 +79,8 @@ def offene_urteile(a):
 
 
 def zur_abnahme(con, pid):
-    """Für „Für dich“: offene Aufgaben mit Fertig-Quelle „ja“, deren Ergebnis steht. [{id, titel, agent, grund, offen}]"""
+    """Für „Für dich“: offene Aufgaben mit Fertig-Quelle „ja“, deren Ergebnis steht. [{id, titel, agent, grund, offen, pruefpunkt}]"""
+    from . import zwischenpruefung
     aus = []
     for a in con.execute("SELECT * FROM aufgabe WHERE projekt_id = ? AND status NOT IN ('fertig', 'verworfen') AND id IN"
                          " (SELECT aufgabe_id FROM plan_ereignis WHERE projekt_id = ? AND art = 'fertig_quelle') ORDER BY rang, id",
@@ -89,7 +90,7 @@ def zur_abnahme(con, pid):
         f = fakt(con, a)
         if f:
             aus.append({"id": a["id"], "titel": a["titel"], "agent": a["agent"], "grund": GRUND[f[0]].format(r=f[1]),
-                        "grund_art": f[0], "grund_ref": f[1], "offen": offene_urteile(a)})
+                        "grund_art": f[0], "grund_ref": f[1], "offen": offene_urteile(a), "pruefpunkt": zwischenpruefung.ist(con, a["id"])})
     return aus
 
 
@@ -117,6 +118,10 @@ def entscheiden(con, pid, von, aid, ja=True, grund_text=None):
     a = _aufgabe(con, pid, aid)
     if not kern.ist_lead(con, pid, von):
         raise kern.AmwFehler("Abnehmen kann der Mensch oder der Lead")
+    from . import zwischenpruefung
+    pruefpunkt = zwischenpruefung.ist(con, aid)
+    if pruefpunkt and von != kern.ENTWICKLER:            # A2096: der Prüfpunkt gehört dem Menschen
+        raise kern.AmwFehler(f"A{aid} ist ein Prüfpunkt und wartet auf {kern.entwickler_name(con, pid)}")
     if von == a["agent"]:
         raise kern.AmwFehler(f"A{aid}: der Bearbeiter nimmt seine eigene Aufgabe nicht ab")
     if a["status"] in ("fertig", "verworfen"):
@@ -134,6 +139,11 @@ def entscheiden(con, pid, von, aid, ja=True, grund_text=None):
             if a["agent"] and a["agent"] != kern.ENTWICKLER:
                 kern._posten(con, pid, AUTO, a["agent"], "korrektur", f"A{aid} nicht abgenommen – zurück von {wer}",
                              grund_text.strip(), aufgabe_id=aid)
+            lead = kern.lead(con, pid)
+            if pruefpunkt and lead and lead != a["agent"]:      # A2096: die Nacharbeit schneidet der Lead
+                kern._posten(con, pid, AUTO, lead, "auftrag", f"Prüfpunkt A{aid}: zurück von {kern.entwickler_name(con, pid)} – Nacharbeit schneiden"[:140],
+                             f"{(grund_text or '').strip()}\n\nDie Pakete dahinter warten weiter. Nacharbeit als Vorgänger von A{aid} anlegen (amw aufgabe neu …,"
+                             f" dann die Abhängigkeit setzen); danach packt der Packer neu.", aufgabe_id=aid)
         return "zurueck"
     liste = planung._json(a["kriterien"], [])
     for k in liste:
@@ -145,7 +155,7 @@ def entscheiden(con, pid, von, aid, ja=True, grund_text=None):
         db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art=JA, aufgabe_id=aid, text=g)
     zusammen = (f"Abgenommen von {wer} ({g})." + (f" Kriterien {erfuellt}/{len(liste)}." if liste else "")
                 + " Den Status hat die AMW gesetzt.")
-    kern.aufgabe_status(con, pid, AUTO, aid, "fertig", beleg=f"Ja von {von} · {g}", zusammenfassung=zusammen, automatik=True)
+    kern.aufgabe_status(con, pid, AUTO, aid, "fertig", beleg=f"Ja von {von} · {g}", zusammenfassung=zusammen, automatik="pruefpunkt")
     if a["agent"] and a["agent"] not in (kern.ENTWICKLER, von):
         with db.schreiben(con):
             kern._posten(con, pid, AUTO, a["agent"], "info", f"A{aid} abgenommen – fertig", zusammen, aufgabe_id=aid)

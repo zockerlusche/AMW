@@ -603,6 +603,13 @@ def planen(con, pid, was, d):
             if tun == "freigeben":
                 return {"ok": True, **herausnehmen.freigeben(con, pid, e, k, str(d.get("grund") or ""))}
             raise Ungueltig("was: folgen | herausnehmen | freigeben")
+        if was == "pruefpunkt":                    # A2096: Prüfpunkt hinter ein Paket setzen oder wieder wegnehmen
+            from . import zwischenpruefung
+            if zahl("aufgabe") is None:
+                raise Ungueltig("Aufgabe fehlt")
+            grund = str(d.get("grund") or "")
+            return {"ok": True, **(zwischenpruefung.entfernen(con, pid, e, zahl("aufgabe"), grund) if d.get("entfernen") else
+                                   zwischenpruefung.einfuegen(con, pid, e, zahl("aufgabe"), d.get("agent") or None, grund, str(d.get("hinweis") or "")[:500] or None))}
         if was == "check":                         # Befund bewusst akzeptieren oder wieder zählen lassen
             if d.get("wieder"):
                 planung.check_wieder(con, pid, e, d.get("schluessel") or "")

@@ -317,6 +317,17 @@ def _themen_fuer_dich(con, pid):
         return []
 
 
+def _pruefpunkte(con, pid):
+    """A2096: die offenen Prüfpunkte mit Zustand (packt | wartet_mensch | zurueck) und den Paketen, die warten."""
+    from . import zwischenpruefung
+    try:
+        return zwischenpruefung.uebersicht(con, pid)
+    except Exception as e:                                     # noqa: BLE001 – die Startdaten gehen auch ohne, aber nicht still
+        import logging
+        logging.getLogger("amw.workbench").warning("Prüfpunkte: %s: %s", type(e).__name__, e)
+        return []
+
+
 def _aufgaben_zur_abnahme(con, pid):
     """A1939 (K3): Aufgaben, die an einem Urteil hängen und bereit sind – unter „Für dich“, ein Ja genügt."""
     try:
@@ -463,7 +474,7 @@ def daten_start(con, pid):
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),
             "startvorschlaege": _startvorschlaege(con, pid),
             "themen_fuer_dich": _themen_fuer_dich(con, pid),
-            "zur_abnahme": _zur_abnahme(con, pid), "aufgaben_zur_abnahme": _aufgaben_zur_abnahme(con, pid),
+            "zur_abnahme": _zur_abnahme(con, pid), "aufgaben_zur_abnahme": _aufgaben_zur_abnahme(con, pid), "pruefpunkte": _pruefpunkte(con, pid),
             "bogen_nr": {str(r[0]): r[1] for r in con.execute("SELECT id, nr FROM bogen WHERE projekt_id = ?", (pid,))},   # A2089: intern → Projektnummer
             "speicher": {"frei": frei, "gesamt": gesamt}, "zeit": db.jetzt()}
 

@@ -650,6 +650,16 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   seinem laufenden Stück; alle anderen Nachrichten warten und wecken ihn beim Freigeben. Prozesse und Läufe beendet niemand. Auf
   „zurueck“ geht es nicht, während ausgeliefert wird oder sein schwerer Lauf oder Gesamtlauf rechnet. Nach einem Absturz startet die
   AMW ihn nur neu, solange sein Stück zu Ende läuft. Was der Mensch herausgenommen hat, gibt nur er frei (`amw agent freigeben CC2`).
+- **Prüfpunkt beim Menschen (A2096, TH164 „Eingriffe“):** `amw aufgabe pruefpunkt N --grund …` (Mensch oder Lead mit Grund; Seite:
+  `/api/plan/pruefpunkt`) setzt hinter Paket N das Paket „Stand packen – <Name> testet“ mit der Fertig-Quelle `ja`. Die noch nicht begonnenen
+  Pakete dahinter warten über Abhängigkeiten, Laufendes läuft zu Ende, alles andere läuft weiter. Was „packen“ heißt, steht in der
+  Projekt-Einstellung `packen_befehl` (leer: allgemeiner Auftrag); die AMW führt den Befehl nie aus, er steht nur im Auftrag. Nichts geht nach
+  außen: `release ausliefern` mit diesem Paket lehnt ab. Legt der Packer sein Dokument ab, steht es unter „Für dich“. Ja sagt nur der Mensch;
+  „Zurück“ geht an Packer und Lead (der die Nacharbeit schneidet). Von Hand, mit der Auslieferung oder einem gemergten PR schließt sich das
+  Paket nicht. Wegnehmen: `--entfernen` (der Mensch immer, der Lead nur einen eigenen) – genau die Kanten, die der Prüfpunkt gesetzt hat.
+  Später dazugekommene Nachfolger warten auch (`zwischenpruefung.nachziehen`, beim Setzen der Abhängigkeit und je Dienst-Runde). Zeitplan und
+  Prognose zeigen dahinter „wartet auf <Name>“ statt einer Zeit; der Plan-Stand bleibt. Ereignisse: `pruefpunkt`, `pruefpunkt_kanten`,
+  `pruefpunkt_ende`.
 - **Zeitplan (A2045):** `amw bogen zeitplan [N]` bzw. `/api/zeitplan` legt die Pakete in dieser Reihenfolge auf ihre
   Ressourcen – Headless auf die Arbeitsplätze (so viele gleichzeitig wie Plätze), Fenster-Pakete auf ihren Agenten (eins nach
   dem anderen), dazu die offenen Vorgänger. Ergebnis je Paket: geplante Start- und Endzeit, Dauer, „gleichzeitig mit“ (gleiche

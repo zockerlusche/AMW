@@ -50,7 +50,7 @@ function urteilZeile(x) {
       zeige("start", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } };
   const g = t("ua_" + x.grund_art, { r: x.grund_ref }) + (x.offen.length ? " · " + t(x.offen.length === 1 ? "ua_offen1" : "ua_offen", { n: x.offen.length }) : "");
   return el("div", { class: "ue-zeile ua-zeile", "data-aufgabe": x.id }, el("span", { class: "ref" }, `A${x.id}`),
-    el("span", { class: "ue-text" }, el("b", {}, t("ua_bereit", { x: x.titel })), " ", el("span", { class: "leise" }, g)),
+    el("span", { class: "ue-text" }, el("b", {}, t(x.pruefpunkt ? "ua_pruefpunkt" : "ua_bereit", { x: x.titel })), " ", el("span", { class: "leise" }, g)),   /* A2096 */
     API ? el("span", { class: "sehrleise" }, t("ua_nur_pc")) : el("span", { class: "sv-knoepfe" },
       el("button", { class: "klein-knopf ue-knopf", type: "button", onclick: () => tun(true) }, t("ua_ja")),
       el("button", { class: "klein-knopf", type: "button", onclick: () => tun(false) }, t("ua_zurueck")),

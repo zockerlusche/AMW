@@ -371,6 +371,9 @@ def _erreichbar(con, start, ziel):
 
 
 def abhaengigkeit_setzen(con, pid, von, nach, vor_liste, art="FS", entfernen=False):
+    if not entfernen:                                # A2096: Nacharbeit vor einem Prüfpunkt – seine eigene Kante dorthin weicht
+        from . import zwischenpruefung
+        zwischenpruefung.nacharbeit(con, pid, nach, vor_liste)
     for v in vor_liste:
         for x in (v, nach):
             if not con.execute("SELECT 1 FROM aufgabe WHERE id = ? AND projekt_id = ?", (x, pid)).fetchone():
@@ -383,6 +386,9 @@ def abhaengigkeit_setzen(con, pid, von, nach, vor_liste, art="FS", entfernen=Fal
                 con.execute("DELETE FROM abhaengigkeit WHERE vor = ? AND nach = ?", (v, nach))
             else:
                 con.execute("INSERT OR REPLACE INTO abhaengigkeit (vor, nach, art) VALUES (?, ?, ?)", (v, nach, art))
+    if not entfernen:                                # A2096: steht ein Prüfpunkt davor, wartet auch der neue Nachfolger
+        from . import zwischenpruefung
+        zwischenpruefung.nachziehen(con, pid)
 
 
 def wellen(con, aids):
@@ -673,6 +679,16 @@ def prognose(con, pid, laeufe=1000, heute=None, zufall=None):
         ampel = None if not ziel else "gruen" if p85 <= ziel else "gelb" if p50 <= ziel else "rot"
         aus_b[bid] = {"start": start, "p50": p50, "p85": p85, "ampel": ampel}
     aus = {"schritte": schritte, "boegen": aus_b}
+    from . import zwischenpruefung                     # A2096: hinter einem Prüfpunkt ist die Zeit unbekannt – die Daten gelten dann „frühestens“
+    hinter = zwischenpruefung.dahinter(con, pid)
+    if hinter:
+        name = kern.entwickler_name(con, pid)
+        for i in ids:
+            if i in hinter:
+                schritte[i]["wartet_auf"] = name
+        for bid, liste in boegen_p.items():
+            if any(i in hinter for i in liste):
+                aus_b[bid]["wartet_auf"] = name
     if echt:
         tokenprognose.einrechnen(con, aus)
     return aus

@@ -2344,6 +2344,8 @@
   "th2_grund": "because of: {x}",
   "th2_ja_fehlt": "Still missing a yes from: {x}",
   "th2_nur_mensch": "Only you approve this (deletion, cost, schema or external effect)",
+  "ua_pruefpunkt": "Build is packed – please test",
+  "pp_wartet_auf": "waiting for {x}",
   "ua_bereit": "“{x}” is ready for your acceptance",
   "ua_gemeldet": "reported by {r}",
   "ua_pruefung": "review {r} green",

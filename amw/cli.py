@@ -194,6 +194,7 @@ RECHTE_EINSTELLUNGEN = ("paket_pruefer", "leerlauf_lead", "limit_halt", "merge_b
                         "verteilen", "verteilen_fach",    # A1927 (#29773, P374): ob und wem die AMW Arbeit zuteilt
                         "veroeffentlichen",               # A1928 (#29781): wann die AMW nach außen veröffentlicht
                         "sperrmuster",                    # A1919: was p-Pakete im Projekt nie ändern dürfen
+                        "packen_befehl",                  # A2096: was „Stand packen“ im Projekt heißt (nur ein Auftragstext)
                         "regression_befehl", "abnahme_frist_min",   # A1920: was Prüfung C je Projekt ausführt
                         "sprachpruefung",                 # A1962: Sprach-Server in Prüfung C (auto | pyright | aus)
                         "gesamtlauf_prozesse",            # A1966: Prozesse des parallelen Gesamtlaufs
@@ -1015,6 +1016,24 @@ def cmd_aufgabe(a, con):
         art, nr = arbeitsliste.dazwischen(con, pid, _von(a), a.id, a.grund)
         print(f"Frage F{nr} an den Menschen gestellt: A{a.id} dazwischenschieben? – „Ja“ führt es aus" if art == "frage"
               else f"A{a.id} kommt jetzt dran" + (f"; A{nr} wartet und kommt danach wieder dran" if nr else ""))
+        return
+    if a.aktion == "pruefpunkt":                          # A2096: hinter ein Paket setzen oder wegnehmen
+        from . import zwischenpruefung
+        if not a.id:
+            raise kern.AmwFehler("amw aufgabe pruefpunkt <nr> --grund … [--agent X] [--bemerkung „Hinweis“] | pruefpunkt <nr> --entfernen --grund …")
+        if a.entfernen:
+            r = zwischenpruefung.entfernen(con, pid, _von(a), a.id, a.grund)
+            print(f"Prüfpunkt A{a.id} entfernt – {len(r['kanten'])} Abhängigkeiten zurückgenommen")
+        else:
+            r = zwischenpruefung.einfuegen(con, pid, _von(a), a.id, a.agent, a.grund, a.bemerkung)
+            print(f"Prüfpunkt A{r['paket']} hinter A{a.id}: {len(r['wartet'])} Paket(e) warten auf {r['wartet_auf']} ({', '.join(f'A{x}' for x in r['wartet'])})"
+                  + (f" · läuft schon und läuft zu Ende: {', '.join(f'A{x}' for x in r['laeuft_schon'])}" if r["laeuft_schon"] else "") + f" · {r['weiter']} laufen weiter")
+            if r["fehlt"]:
+                print(f"  noch nicht startklar, es fehlt: {', '.join(r['fehlt'])}")
+        from . import meilensteine
+        for bid, p50 in r["nachher"].items():
+            if r["vorher"].get(bid) != p50:
+                print(f"  {meilensteine.name(con, bid)} P50 {r['vorher'].get(bid)} → {p50}")
         return
     if a.aktion in ("schieben", "frueher", "spaeter"):    # A2094: innerhalb des Meilensteins, mit dem Nachbarn
         from . import paket_schieben
@@ -3967,10 +3986,11 @@ def parser():
                                      " bereit N (Ergebnis steht, bei --fertig-wenn ja) | abnehmen N [--zurueck --kommentar] |"
                                      " plan N --text | planfrei N [--zurueck --kommentar] | nachtrag N --titel … (Folgearbeit"
                                      " zu einer fertigen Aufgabe) | schieben N (was geht) · frueher N | spaeter N --grund …"
-                                     " (Paket im Meilenstein verschieben, Mensch und Lead)")
+                                     " (Paket im Meilenstein verschieben, Mensch und Lead) | pruefpunkt N --grund … (Stand packen, der Mensch"
+                                     " testet; die Pakete hinter N warten) · pruefpunkt N --entfernen")
     x.add_argument("aktion", choices=["neu", "aendern", "liste", "zeige", "start", "blockiert", "wartet", "fertig", "verwerfen",
                                        "parken", "aktiv", "keine_prio", "pool", "kriterium", "plan", "planfrei", "nachtrag",
-                                       "dazwischen", "schieben", "frueher", "spaeter", "bereit", "abnehmen", "hinweis"])
+                                       "dazwischen", "schieben", "frueher", "spaeter", "pruefpunkt", "bereit", "abnehmen", "hinweis"])
     x.add_argument("id", type=nummer, nargs="?")
     x.add_argument("nr", type=int, nargs="?", help="kriterium: Nummer des Kriteriums")
     x.add_argument("--titel")
@@ -3991,6 +4011,7 @@ def parser():
                                               " geplanten gibt)")
     x.add_argument("--ohne-bogen", action="store_true", help="neu: Lead – bewusst ohne Meilenstein; steht dann in der Planung"
                                                             " unter „Ohne Meilenstein“")
+    x.add_argument("--entfernen", action="store_true", help="pruefpunkt N: den Prüfpunkt wieder wegnehmen")
     x.add_argument("--kriterium", action="append", help="Planung: Abnahmekriterium, mehrfach (ersetzt die Liste)")
     x.add_argument("--fertig-wenn", dest="fertig_wenn", help="neu/aendern (A1938): Fertig-Quelle – commit | thema TH<n> |"
                                                              " frist <Tage> nach <Version> | ja; die AMW schließt die Aufgabe selbst")

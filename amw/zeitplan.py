@@ -39,7 +39,7 @@ def _ressource(a, art):
 
 def berechnen(con, pid, jetzt=None):
     """{"jetzt", "plaetze", "pakete": [{aid, titel, agent, art, ressource, zustand, platz, start_utc, ende_utc, dauer_min, plus_min,
-    gleichzeitig, nach, hinweis}]} in der Reihenfolge von reihenfolge.berechnen."""
+    gleichzeitig, nach, hinweis, wartet_auf}]} – wartet_auf (A2096): Name des Menschen, die Zeit ist dann unbekannt – in der Reihenfolge von reihenfolge.berechnen."""
     from . import arbeitspaket, planung, platz, reihenfolge
     jetzt = jetzt or datetime.datetime.now(UTC)
     reihe = reihenfolge.berechnen(con, pid)
@@ -51,6 +51,11 @@ def berechnen(con, pid, jetzt=None):
     vor = {z["aid"]: [v for v in planung.vorgaenger(con, z["aid"]) if v in offen] for z in reihe}
     zeilen = {r["id"]: r for r in con.execute(
         f"SELECT id, agent, begonnen_utc FROM aufgabe WHERE id IN ({','.join('?' * len(offen)) or 'NULL'})", tuple(offen))}
+    from . import kern, zwischenpruefung                # A2096: hinter einem Prüfpunkt ist die Zeit unbekannt – frühestens, und „wartet auf <Name>“
+    hinter, mensch = zwischenpruefung.dahinter(con, pid), None
+    pakete_pp = {p["paket"]: zwischenpruefung.zustand(con, p["paket"]) for p in zwischenpruefung.offene(con, pid)}
+    if hinter or pakete_pp:
+        mensch = kern.entwickler_name(con, pid)
     erledigt, aus = set(), []
     rest = [x for x in reihe if x["zustand"] == "laeuft"] + [x for x in reihe if x["zustand"] != "laeuft"]   # Laufendes belegt zuerst
     while rest:                                         # Reihenfolge der Berechnung, Vorgänger zuerst (Kreise: wie geliefert)
@@ -88,7 +93,8 @@ def berechnen(con, pid, jetzt=None):
         erledigt.add(aid)
         aus.append({"aid": aid, "titel": z["titel"], "agent": z["agent"], "art": "headless" if art == "p" else "fenster",
                     "ressource": res, "zustand": z["zustand"], "platz": z["platz"], "start_utc": _iso(start), "ende_utc": _iso(schluss),
-                    "dauer_min": int(round(z["dauer_h"] * 60)), "plus_min": plus, "nach": vor[aid], "hinweis": hinweis})
+                    "dauer_min": int(round(z["dauer_h"] * 60)), "plus_min": plus, "nach": vor[aid], "hinweis": hinweis,
+                    "wartet_auf": mensch if aid in hinter or pakete_pp.get(aid) == "wartet_mensch" else None})
     je_start = {}
     for x in aus:
         if x["zustand"] != "laeuft":
@@ -103,7 +109,7 @@ def berechnen(con, pid, jetzt=None):
 def zeile(x, ortszeit=None):
     """Eine Zeile für die Befehlszeile: „A12 12:14–12:39 · 25 min · gleichzeitig mit A13 · nach A11“."""
     f = ortszeit or (lambda t: db.utc_lesen(t).astimezone().strftime("%H:%M"))
-    teile = [f"A{x['aid']}", f"{f(x['start_utc'])}–{f(x['ende_utc'])}", f"{x['dauer_min']} min"]
+    teile = [f"A{x['aid']}", f"wartet auf {x['wartet_auf']}" if x.get("wartet_auf") else f"{f(x['start_utc'])}–{f(x['ende_utc'])}", f"{x['dauer_min']} min"]
     if x["plus_min"]:
         teile.append(f"+{x['plus_min']} min")
     if x["gleichzeitig"]:

@@ -388,6 +388,13 @@ class Kette:
         return fehlt
 
     # --- Vorbedingungen -------------------------------------------------------------------------------------------------
+    def pruefpunkte(self, *aufgaben):
+        """A2096: ein Prüfpunkt-Paket („Stand packen“) stößt keine Auslieferung an. Ein Commit des Packers darf mitgehen, sein Paket schließt er
+        nicht (kern.aufgabe_status)."""
+        from . import zwischenpruefung
+        return [f"Prüfpunkt: A{n} packt nur den Stand zum Testen und liefert nichts aus" for n in dict.fromkeys(int(x) for x in aufgaben if x)
+                if zwischenpruefung.ist(self.con, n)]
+
     def versions_commits(self, sha, art):
         """A2054: ein Commit, der die Versionsdatei ändert (der Versions-Commit), ändert nur CHANGELOG, Versionsdatei und
         web/inc/VERSION – mechanisch geprüft, damit kein Code ungeprüft im Versions-Commit mitfährt. Rückgabe: fehlende Punkte."""
@@ -487,6 +494,7 @@ class Kette:
             text += f"\n- **Server-Code geändert:** {', '.join(server[:6])}" + (" …" if len(server) > 6 else "")
         fehlt += self.reihenfolge(sha, version)
         fehlt += self.versions_commits(sha, a)            # A2054 (TH167 F4 Merge-Tor 4)
+        fehlt += self.pruefpunkte(p["aufgabe_id"], aufgabe)       # A2096
         fehlt += self.staende(sha, ausnahme_aufgabe=aufgabe if niedrig else None)
         if fehlt:                                        # A1814: alles auf einmal – nicht eine Freigabe nach der anderen
             self.stopp("Freigaben", f"{len(fehlt)} fehlt: " + " · ".join(fehlt))

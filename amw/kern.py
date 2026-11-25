@@ -501,6 +501,15 @@ def projekt_einstellen(con, pid, von, **werte):
                 else:
                     e.pop(k, None)
                 continue
+            if k == "packen_befehl":                     # A2096: was „Stand packen“ hier heißt – steht nur als Auftrag im Prüfpunkt-Paket
+                v = str(v if v is not None else "").strip()
+                if len(v) > 500 or "\n" in v or "\r" in v:
+                    raise AmwFehler("packen_befehl: ein Befehl in einer Zeile, bis 500 Zeichen (leer = allgemeiner Auftrag)")
+                if v:
+                    e[k] = v
+                else:
+                    e.pop(k, None)
+                continue
             if k == "regression_befehl":                 # A1920: Rückschritt-Tests je Projekt (Befehl | aus | leer = Vorgabe)
                 v = str(v if v is not None else "").strip()
                 if len(v) > 500 or "\n" in v or "\r" in v:
@@ -1516,11 +1525,11 @@ def _aufgabe_fuer_aenderung(con, pid, von, aid):
 
 
 def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, bemerkung=None, zusammenfassung=None,
-                   auf=None, erledigt=None, hinweise=None, hinweis=None, gruppe=None, automatik=False, art=None):
+                   auf=None, erledigt=None, hinweise=None, hinweis=None, gruppe=None, automatik: bool | str = False, art=None):
     """auf: Wartegründe als Verweise (F…, A…, L…, Agent, Entwickler, Monitor:…) – Pflicht bei wartet/blockiert.
     erledigt: Gründe von Hand abhaken; allein (ohne auf) ändert es den Status nicht.
     automatik (A1738, nur die AMW selbst – nie von der Befehlszeile): Besitz zählt nicht, offene Kriterien sperren „fertig“
-    nicht (der Aufrufer meldet sie dem Lead)."""
+    nicht (der Aufrufer meldet sie dem Lead). „pruefpunkt“ (A2096): das Ja zu einem Prüfpunkt bzw. sein Entfernen."""
     from . import wartegrund
     if erledigt and not auf and status in ("wartet", "blockiert"):
         with db.schreiben(con):
@@ -1538,6 +1547,9 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
              else _aufgabe_fuer_aenderung(con, pid, von, aid))
         if not a:
             raise AmwFehler(f"Aufgabe A{aid} gibt es nicht")
+        if automatik != "pruefpunkt" and neu in ("fertig", "verworfen"):
+            from . import zwischenpruefung           # A2096: ein Prüfpunkt geht nur über das Ja des Menschen bzw. „entfernen“ – auch nicht
+            zwischenpruefung.sperre(con, pid, aid, neu)      # mit der Auslieferung oder einem gemergten PR
         from . import planung                       # Regeln der Planung: Vorgänger, Plan-Gate, Kriterien, Zusammenfassung
         planung.pruefe_status(con, a, neu, zusammenfassung, kriterien_sperren=not automatik)
         if erledigt:
@@ -1586,7 +1598,7 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
             from . import versionshinweise
             fehlt_text = not felder.get("hinweis") and not a["hinweis"]
             fehlt_gruppe = not felder.get("hinweis_gruppe") and not a["hinweis_gruppe"]
-            v = versionshinweise.ableiten(con, pid, a, beleg, zusammenfassung, automatik) if (fehlt_text or fehlt_gruppe) else None
+            v = versionshinweise.ableiten(con, pid, a, beleg, zusammenfassung, bool(automatik)) if (fehlt_text or fehlt_gruppe) else None
             if v:
                 if fehlt_gruppe:
                     felder["hinweis_gruppe"] = v["gruppe"]

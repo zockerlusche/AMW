@@ -54,6 +54,7 @@ GESPERRT = (
     ("amw/fertigquelle.py", "fest", "Fertig-Quelle und Prüfquellen – die AMW schließt Aufgaben selbst (A1938)"),
     ("amw/urteil.py", "fest", "bereit zur Abnahme und Ja – den Status setzt die AMW (A1939)"),
     ("amw/reihenfolge.py", "fest", "berechnete Reihenfolge, Handordnung mit Grund, Jetzt starten (A1941)"),
+    ("amw/zwischenpruefung.py", "fest", "Prüfpunkt beim Menschen – wer ihn setzt, entfernt und abnimmt (A2096)"),
     ("amw/paket_schieben.py", "fest", "Paket früher oder später – ändert die berechnete Reihenfolge, Mensch geht vor Lead (A2094)"),
     ("amw/herausnehmen.py", "fest", "Agent herausnehmen und freigeben – wer darf, Mensch geht vor Lead (A2095)"),
     ("amw/anbieter_schluessel.py", "fest", "apiKeyHelper – gibt nur freigegebene Schlüsseldateien aus (A1931)"),

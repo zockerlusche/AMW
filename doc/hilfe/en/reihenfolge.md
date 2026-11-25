@@ -19,4 +19,5 @@ Every agent works through its list from top to bottom and finishes one piece bef
 
 ## Next
 - If the lead proposes to put something first, you get a question with “Yes” and “No”. “Yes” carries it out.
+- If you want to test in between, the lead (or you) sets a checkpoint after a package: `amw aufgabe pruefpunkt <no> --grund …`. An agent packs the build, it appears under “For you”, and the packages after it wait for your yes. Everything else keeps running.
 - You order your own tasks (under “Your tasks”) freely.

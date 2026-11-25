@@ -22,7 +22,7 @@ ROH = 500                        # so viele jüngste Rohzeilen je Quelle
 GRENZE = 120                     # so viele Einträge je Schritt zeigt die Seite
 BUENDEL_S = 10 * 60
 TITEL_MAX = 70                   # gekürzt wird der Titel, nicht der Satz – was geschah, bleibt lesbar; ganz auf Klick
-RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "agent", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
+RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "pruefpunkt", "pruefpunkt_ende", "agent", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
         "auslieferung", "ab_angestossen", "ab_bereit", "ab_ergebnis", "ms_fertig")
 # Art → (ein Paket, mehrere); {m} Meilenstein, {t} Titel, {n} Anzahl, {x} Zusatz
 TEXTE = {
@@ -167,6 +167,29 @@ def _feinplan(con, pid):
     return aus
 
 
+def _pruefpunkte(con, pid):
+    """A2096: Prüfpunkt gesetzt, entfernt, getestet (ja) oder zurück – wer, wo, warum."""
+    from . import urteil, zwischenpruefung
+    zeilen = _neueste(con, "SELECT e.id, e.zeit_utc, e.von, e.art, e.text, e.aufgabe_id, a.titel, b.id AS bogen, b.nr FROM plan_ereignis e JOIN aufgabe a ON a.id = e.aufgabe_id"
+                           " JOIN bogen b ON b.id = a.bogen_id WHERE e.projekt_id = ? AND e.art IN (?, ?, ?, ?) AND EXISTS (SELECT 1 FROM plan_ereignis p"
+                           " WHERE p.aufgabe_id = e.aufgabe_id AND p.art = ?) ORDER BY e.id DESC",
+                      (pid, zwischenpruefung.ART, zwischenpruefung.ENDE, urteil.JA, urteil.ZURUECK, zwischenpruefung.ART))
+    titel = {r["id"]: r["titel"] for r in con.execute("SELECT id, titel FROM aufgabe WHERE projekt_id = ?", (pid,))} if zeilen else {}
+    name, aus, hinter = kern.entwickler_name(con, pid), [], {}
+    for r in reversed(zeilen):
+        d = _json(r["text"])
+        if r["art"] == zwischenpruefung.ART:
+            hinter[r["aufgabe_id"]] = _titel_kurz(titel.get(d.get("nach"), "?"), 40)      # kürzer als sonst: danach steht noch viel, sonst schnitte die Zeile ab, worum es geht
+        wo = f"M{r['nr']}: Prüfpunkt hinter „{hinter.get(r['aufgabe_id'], '?')}“"
+        n = d.get("wartet") or 0
+        text = {zwischenpruefung.ART: f"{wo} – {name} testet, {n} {'Paket wartet' if n == 1 else 'Pakete warten'}" + (f" – {d['grund']}" if d.get("grund") else ""),
+                zwischenpruefung.ENDE: f"{wo} entfernt" + (f" – {d['grund']}" if d.get("grund") else ""),
+                urteil.JA: f"{wo} – getestet, weiter", urteil.ZURUECK: f"{wo} – zurück: {' '.join((r['text'] or '').split())[:160]}"}[r["art"]]
+        aus.append(_eintrag("pruefpunkt" if r["art"] == zwischenpruefung.ART else "pruefpunkt_ende", r["id"], r["zeit_utc"], _rolle(r["von"]), r["von"],
+                            "pruefpunkt", "umsetzung", r["bogen"], None, text=text, aufgabe=r["aufgabe_id"]))
+    return aus
+
+
 def _eingriffe(con, pid):
     """A2094: Paket früher/später – wer, was, warum; ein Handgriff, der endet, ohne erfüllt zu sein (ersetzt: der neue steht da)."""
     from . import paket_schieben
@@ -264,10 +287,13 @@ def _abschluss(con, pid):
 
 # --- Zusammenführen ----------------------------------------------------------------------------------------------------------
 
+def _titel_kurz(titel, grenze=TITEL_MAX):
+    return titel[:grenze].rsplit(" ", 1)[0] + " …" if titel and len(titel) > grenze else titel
+
+
 def _satz(art, ms, titel, zusatz, n):
     einer, viele = TEXTE[art]
-    if titel and len(titel) > TITEL_MAX:
-        titel = titel[:TITEL_MAX].rsplit(" ", 1)[0] + " …"
+    titel = _titel_kurz(titel)
     return (einer if n == 1 else viele).format(m=f"M{ms}" if ms is not None else "?", t=titel, x=zusatz, n=n)
 
 
@@ -306,7 +332,7 @@ def gesamt(con, pid, weg, schritt_von, grenze=GRENZE):
     """Der ganze Verlauf: die Einträge aus verlauf.projektweg (`weg`, schon gebündelt) und die abgeleiteten, älteste zuerst, höchstens
     `grenze` je Schritt. schritt_von(eintrag) → Schritt eines Eintrags aus `weg`."""
     alle = [{**e, "schritt": schritt_von(e), "rang": (0, e["id"]), "zusatz": None, "nummer": None, "titel": None, "ms": None} for e in weg]
-    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe, _agenten):
+    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe, _pruefpunkte, _agenten):
         alle += quelle(con, pid)
     alle.sort(key=lambda x: (x["zeit"], x["rang"]))
     je, aus = {}, zusammenfassen(alle)
