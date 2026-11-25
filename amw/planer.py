@@ -27,7 +27,8 @@ Schema des Planer-Ergebnisses (JSON):
   vorgezogenes Test-Paket als Vorgänger) und engen "bereiche" (Dateien/Ordner, die es ändern darf). "modell"/"effort" weglassen
   heißt: nach der Empfehlung des Projekts. "ausfuehrung": "agent" für so ein Paket nur mit "interaktiv_grund" (Optik, Erkundung,
   gesperrter Bereich, Marcels Auge) – sonst meldet die AMW beim Ja „Achtung“. "lead_liest": true bei Urteils-Arbeit (Konzepttexte,
-  Architektur): dieses Paket nimmt die AMW nie selbst ab, der Lead liest es (A2054, TH167 F4).
+  Architektur): dieses Paket nimmt die AMW nie selbst ab, der Lead liest es (A2054, TH167 F4). Pakete, die gleichzeitig laufen können
+  (ohne "nach" dazwischen, auch mittelbar), ändern nie dieselben Dateien: legt sie hintereinander oder trennt die Bereiche (A2133).
 """
 import difflib
 import functools
@@ -274,6 +275,7 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
     kreis = _kreis({p["schluessel"]: [v for v in p["nach"] if v in p_namen] for p in aus_p})
     if kreis:
         f.append("Abhängigkeiten im Kreis: " + " → ".join(kreis))
+    f += _dateikonflikte(aus_p)
     leer = sorted(m_namen - {p["meilenstein"] for p in aus_p} - {m["schluessel"] for m in aus_m if m.get("bestehend")})
     if leer:
         f.append("neue Meilensteine ohne Pakete: " + ", ".join(leer))
@@ -283,6 +285,34 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
     if delta:
         from . import planer_delta
         aus.update(aendern=aendern, verwerfen=verwerfen, nacharbeit=nacharbeit, delta=planer_delta.kurz(delta))
+    return aus
+
+
+def _dateikonflikte(pakete):
+    """A2133: Pakete ohne Abhängigkeit zueinander (auch mittelbar), deren Bereiche sich überschneiden – je Paar ein Fund mit beiden
+    Schlüsseln und der Datei; was sich überschneidet, entscheidet der Wächter (waechter._ueberschneiden)."""
+    from . import waechter
+    nach = {p["schluessel"]: set(p["nach"]) for p in pakete}
+
+    def davor(k):                                        # alles, was vor k fertig sein muss
+        alle, offen = set(), list(nach.get(k, ()))
+        while offen:
+            v = offen.pop()
+            if v not in alle:
+                alle.add(v)
+                offen += nach.get(v, ())
+        return alle
+    vor = {k: davor(k) for k in nach}
+    mit = [(p["schluessel"], waechter.bereiche(p["bereiche"])) for p in pakete if p["schluessel"] and p["bereiche"]]
+    aus = []
+    for i, (a, ba) in enumerate(mit):
+        for b, bb in mit[i + 1:]:
+            if a == b or a in vor[b] or b in vor[a]:
+                continue
+            dateien = list(dict.fromkeys(max(x, y, key=len) for x in ba for y in bb if waechter._ueberschneiden([x], [y])))
+            if dateien:
+                aus.append(f"Pakete {a} und {b} können gleichzeitig laufen und ändern beide {', '.join(dateien[:3])}"
+                           " – hintereinander legen (nach) oder die Bereiche trennen")
     return aus
 
 
