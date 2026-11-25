@@ -3929,7 +3929,7 @@ def parser():
                                       " mit --auf: alten Grund abhaken und neuen setzen in einem Schritt)")
     x.add_argument("--bemerkung")
     x.add_argument("--alle", action="store_true")
-    x.add_argument("--bogen", type=meilensteine.typ, help="Planung: gehört zu Meilenstein N (neu: Pflicht, solange es einen aktiven oder"
+    x.add_argument("--bogen", type=meilensteine.typ, help="Planung: gehört zu Meilenstein M<nr> (Projektnummer; nackte Zahl = interne Nummer; neu: Pflicht, solange es einen aktiven oder"
                                               " geplanten gibt)")
     x.add_argument("--ohne-bogen", action="store_true", help="neu: Lead – bewusst ohne Meilenstein; steht dann in der Planung"
                                                             " unter „Ohne Meilenstein“")
@@ -4300,7 +4300,8 @@ def parser():
     x.add_argument("aktion", choices=["liste", "neu", "zeigen", "aendern", "status", "abnehmen", "freigeben", "zurueck", "bericht",
                                       "tore", "starten", "reihenfolge", "zeitplan", "feinplanen", "nacharbeit", "laufend", "vorlegen",
                                       "pruefung-starten"])
-    x.add_argument("id", type=meilensteine.typ, nargs="?", help="M<nr> = Projektnummer; eine nackte Zahl ist die interne Nummer (Skripte)")
+    x.add_argument("id", type=meilensteine.typ, nargs="?", help="M<nr> = Projektnummer (M mit einer internen Nummer wird abgelehnt); eine nackte Zahl ist die"
+                                                                   " interne Nummer (Skripte)")
     x.add_argument("wert", nargs="?", help="status: aktiv | fertig | geplant | verworfen; laufend: an | aus")
     x.add_argument("--titel")
     x.add_argument("--ziel")

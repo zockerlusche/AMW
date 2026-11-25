@@ -312,8 +312,9 @@ options:
                         alten Grund abhaken und neuen setzen in einem Schritt)
   --bemerkung BEMERKUNG
   --alle
-  --bogen BOGEN         Planung: gehört zu Meilenstein N (neu: Pflicht,
-                        solange es einen aktiven oder geplanten gibt)
+  --bogen BOGEN         Planung: gehört zu Meilenstein M<nr> (Projektnummer;
+                        nackte Zahl = interne Nummer; neu: Pflicht, solange es
+                        einen aktiven oder geplanten gibt)
   --ohne-bogen          neu: Lead – bewusst ohne Meilenstein; steht dann in
                         der Planung unter „Ohne Meilenstein“
   --kriterium KRITERIUM
@@ -1052,8 +1053,9 @@ usage: amw bogen [-h] [--titel TITEL] [--ziel ZIEL] [--abnahme ABNAHME]
 
 positional arguments:
   {liste,neu,zeigen,aendern,status,abnehmen,freigeben,zurueck,bericht,tore,starten,reihenfolge,zeitplan,feinplanen,nacharbeit,laufend,vorlegen,pruefung-starten}
-  id                    M<nr> = Projektnummer; eine nackte Zahl ist die
-                        interne Nummer (Skripte)
+  id                    M<nr> = Projektnummer (M mit einer internen Nummer
+                        wird abgelehnt); eine nackte Zahl ist die interne
+                        Nummer (Skripte)
   wert                  status: aktiv | fertig | geplant | verworfen; laufend:
                         an | aus
 
