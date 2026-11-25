@@ -129,7 +129,7 @@ def freigeben(con, pid, von, bid, art):
                                  " dann der Abschluss")
         if von != kern.ENTWICKLER and vorbehalte(con, pid, b)["nur_mensch"]:     # A2088
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: {vorbehalte(con, pid, b)['warum']} – damit nimmt nur der Mensch ab. Grund beheben und"
-                                 f" erneut prüfen: amw bogen pruefung-starten {bid}")
+                                 f" erneut prüfen: amw bogen pruefung-starten M{b['nr']}")
         if tore.bericht(con, pid, bid) is None:
             raise kern.AmwFehler(f"Meilenstein {b['nr']}: der Abschlussbericht fehlt noch (die AMW erstellt ihn; sonst amw bogen bericht {bid})")
     elif b["status"] not in ("geplant", "aktiv"):

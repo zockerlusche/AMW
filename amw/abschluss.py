@@ -558,7 +558,7 @@ def _meldung_nicht_pruefbar(con, pid, b, lead, w):
     kern._posten(con, pid, "AMW", lead, "meldung", f"Meilenstein {b['nr']}: nicht prüfbar – {'; '.join(gruende)}"[:140],
                  f"Die Abschlussprüfung von Meilenstein {b['nr']} „{b['titel']}“ kann nicht alles prüfen: {'; '.join(gruende)}.\n" + "\n".join(zeilen)
                  + "\nDie AMW legt dafür keine Nacharbeit an. Ist nur der Beleg falsch, stell ihn richtig (Commit, der ausgeliefert ist) und"
-                 f" starte erneut: amw bogen pruefung-starten {b['id']}. Ist nichts gebaut: amw bogen nacharbeit {b['id']} --hinweis …"
+                 f" starte erneut: amw bogen pruefung-starten M{b['nr']}. Ist nichts gebaut: amw bogen nacharbeit M{b['nr']} --hinweis …"
                  + "\nAbnehmen kann so nur der Mensch."
                  + ("\n\nDer Prüfer schlägt dazu vor (nicht angelegt):" + "".join(f"\n\n{v['titel']}\n{v['auftrag']}" for v in w["vorschlaege"])
                     if w.get("vorschlaege") else ""))
