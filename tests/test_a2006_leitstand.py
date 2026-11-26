@@ -63,23 +63,35 @@ class Abruf(Grund):
 
 
 class AlsNaechstes(Grund):
-    """Lead #34119 (2): „Als Nächstes“ heißt „kommt gleich“ – nur Pakete aus aktiven Meilensteinen; wartet eines auf den Menschen oder
-    einen Monitor, ist es als Freigabe gekennzeichnet."""
-    def test_nur_aktive_meilensteine_und_freigabe(self):
-        from amw import wartegrund
+    """Lead #34119 (2) und A2162: „Als Nächstes“ heißt „kommt gleich“ – nur Pakete aus aktiven Meilensteinen. „wartet auf dich“ nur bei
+    Gründen beim Menschen (Entwickler, offene Frage an ihn); sonst der Grund kurz (Monitor, Prüfung, Agent, Lauf)."""
+    def test_nur_aktive_meilensteine_und_je_art_der_grund(self):
+        from amw import kern, wartegrund
         aktiv, geplant = self.meilenstein("Jetzt"), self.meilenstein("Später", status="geplant")
         frei = self.paket("Kommt gleich", "CC1", bogen=aktiv)
         mensch = self.paket("Wartet auf Marcel", "CC2", bogen=aktiv)
-        monitor = self.paket("Wartet auf Monitor", bogen=aktiv)
+        frage = self.paket("Wartet auf eine Frage", bogen=aktiv)
+        termin = self.paket("Wartet auf einen Termin", bogen=aktiv)
+        pruefung = self.paket("Wartet auf eine Prüfung", bogen=aktiv)
+        agent = self.paket("Wartet auf den Lead", bogen=aktiv)
         spaeter = self.paket("Geplanter Meilenstein", "CC1", bogen=geplant)
         ohne = self.paket("Ohne Meilenstein", "CC2")
+        fid = kern.frage_neu(self.con, self.pid, "TL", "entwickler", "Welche Farbe?", [("A", "rot")], "A", "weil", geprueft="keine Treffer")
         wartegrund.anlegen(self.con, self.pid, "TL", mensch, "Entwickler")
-        wartegrund.anlegen(self.con, self.pid, "TL", monitor, "Monitor: TH1")
+        wartegrund.anlegen(self.con, self.pid, "TL", frage, f"F{fid}")
+        wartegrund.anlegen(self.con, self.pid, "TL", termin, "Monitor: Endbewertung nach dem 28.11.")
+        with db.schreiben(self.con):
+            pid_p = db.einfuegen(self.con, "pruefung", projekt_id=self.pid, zweig="z", sha="abc1234", bauer="CC1", pruefer="TL",
+                                 angefragt_utc=um(-5), aufgabe_id=pruefung)
+        wartegrund.anlegen(self.con, self.pid, "TL", pruefung, f"pruefung:P{pid_p}")
+        wartegrund.anlegen(self.con, self.pid, "TL", agent, "TL")
         je = {p["nummer"]: p for g in self.d()["als_naechstes"] for p in g["pakete"]}
-        self.assertEqual(sorted(je), sorted(f"A{x}" for x in (frei, mensch, monitor)))
+        self.assertEqual(sorted(je), sorted(f"A{x}" for x in (frei, mensch, frage, termin, pruefung, agent)))
         self.assertNotIn(f"A{spaeter}", je)
         self.assertNotIn(f"A{ohne}", je)
-        self.assertEqual({k: v["freigabe"] for k, v in je.items()}, {f"A{frei}": False, f"A{mensch}": True, f"A{monitor}": True})
+        self.assertEqual({k: (v["wartet_mensch"], v["wartet_grund"]) for k, v in je.items()},
+                         {f"A{frei}": (False, None), f"A{mensch}": (True, None), f"A{frage}": (True, None),
+                          f"A{termin}": (False, "Endbewertung nach dem 28.11."), f"A{pruefung}": (False, f"pruefung:P{pid_p}"), f"A{agent}": (False, "TL")})
 
 
 class Obergrenze(_tld.Leistung):

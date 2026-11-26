@@ -86,9 +86,17 @@ function lsJetztKarte(j) {
     el("div", { class: "ls-karte-fuss mono" }, el("span", {}, erw ? `${min} / ≈ ${erw} min` : lsDauer(min)),
       ueber ? el("span", { class: "bernstein-text" }, `+${min - erw} min`) : null));
 }
-function lsZeile(x, unten) {
+function lsZeile(x, unten, warten) {
   return el("button", { type: "button", class: "ls-zeile", "data-ref": x.nummer || "", onclick: () => lsKarteOeffnen(x) },
-    el("div", {}, x.nummer ? el("span", { class: "ref" }, x.nummer + " ") : null, x.titel || ""), el("div", { class: "leise" }, unten));
+    el("div", {}, x.nummer ? el("span", { class: "ref" }, x.nummer + " ") : null, x.titel || ""),
+    el("div", { class: "leise" }, unten, warten ? [" · ", warten] : null));
+}
+/* A2162: „wartet auf dich“ nur bei Gründen beim Menschen (Bernstein – Handlungsbedarf); sonst ruhig „wartet: <Grund kurz>“ */
+function lsWartet(p) {
+  if (p.wartet_mensch) return el("span", { class: "bernstein-text ls-wartet-dich" }, t("lst_wartet_dich"));
+  if (!p.wartet_grund) return null;
+  const m = /^pruefung:(P\d+)$/i.exec(p.wartet_grund);
+  return el("span", { class: "ls-wartet" }, t("lst_wartet_grund", { x: m ? t("lst_pruefung_x", { x: m[1] }) : p.wartet_grund }));
 }
 /* Zuletzt: die jüngsten drei direkt vor „Jetzt“ (älteste oben); die früheren hinter einem leisen Link – wie in der Kleinprobe */
 const LS_ZULETZT = 3;
@@ -110,11 +118,9 @@ function lsAblauf(l) {
     naechst.length ? el("div", {}, el("h2", { class: "ls-lbl" }, t("lst_naechstes")),
       el("div", { class: "ls-linie" }, naechst.map(g => g.pakete.length > 1
         ? el("div", { class: "ls-gleichzeitig" }, el("div", { class: "leise" }, t("lst_gleichzeitig", { x: lsUhr(g.start_utc) })),
-            el("div", { class: "ls-raster" }, g.pakete.map(p => lsZeile(p, [p.wer || t("lst_frei_paket"), lsDauer(p.dauer_min),
-              p.freigabe ? t("lst_wartet_freigabe") : null].filter(Boolean).join(" · ")))))
+            el("div", { class: "ls-raster" }, g.pakete.map(p => lsZeile(p, [p.wer || t("lst_frei_paket"), lsDauer(p.dauer_min)].join(" · "), lsWartet(p)))))
         : lsZeile(g.pakete[0], [g.pakete[0].wer || t("lst_frei_paket"), lsDauer(g.pakete[0].dauer_min), t("lst_ab", { x: lsUhr(g.start_utc) }),
-            g.pakete[0].wartet_auf ? t("lst_nach", { x: g.pakete[0].wartet_auf }) : null,
-            g.pakete[0].freigabe ? t("lst_wartet_freigabe") : null].filter(Boolean).join(" · ")))),
+            g.pakete[0].wartet_auf ? t("lst_nach", { x: g.pakete[0].wartet_auf }) : null].filter(Boolean).join(" · "), lsWartet(g.pakete[0])))),
       el("a", { class: "verweis", href: "#projektweg", onclick: e => { e.preventDefault(); zeige("projektweg"); } }, t("lst_ganze_reihenfolge"))) : null);
 }
 function lsZeitplan(l) {

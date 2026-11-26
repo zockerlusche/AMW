@@ -2639,5 +2639,7 @@
   "lst_schritt": "Current step",
   "lst_themen": "Topics",
   "lst_themen_frei": "{n} of {g} approved",
-  "lst_wartet_freigabe": "waiting for approval"
+  "lst_wartet_dich": "waiting for you",
+  "lst_wartet_grund": "waiting: {x}",
+  "lst_pruefung_x": "review {x}"
 }

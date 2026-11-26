@@ -10,7 +10,8 @@ hat, und je Art genau eine – nie eine je Paket.
 - zuletzt: älteste zuerst; auch Pakete und Versionen ohne Meilenstein.
 - jetzt: der Mensch fehlt (seine Aufgaben bleiben frei). Headless vom Start bis zum Ende der Abnahme; gezählt ab dem letzten Start.
 - als_naechstes: ohne Headless-Pakete, die schon abgegeben oder bereit zum Merge sind (ihre Aufgabe steht dann wieder auf „wartet“);
-  nur Pakete aus aktiven Meilensteinen (A2006, Lead #34119) – wartet eines auf den Menschen oder einen Monitor, steht freigabe: true.
+  nur Pakete aus aktiven Meilensteinen (A2006, Lead #34119); wartet_mensch: ein offener Grund beim Menschen (Entwickler, offene Frage an
+  ihn), sonst wartet_grund: der erste andere offene Grund kurz (Monitor ohne „Monitor:“, Prüfung, Agent, Lauf; A2162).
 - entscheidungen: neueste zuerst, nur das eigene Projekt (A2006, Lead #34119 – über alle Projekte zeigt die Gesamtsicht, A2014).
 - haengt (A2149): Pakete, die seit mehr als 24 h nur mit einem Wartetext von Hand warten, ohne offenen Grund – „hängt ohne Grund“.
 - zeitplan (A2006): je offenem Meilenstein mit Prognose – Ziel gegen voraussichtlich (start, p50, p85 mit Token-Pause), verzug_tage
@@ -182,18 +183,29 @@ def _jetzt(con, pid, plan, headless, mensch, uhr):
 # --- Als Nächstes ------------------------------------------------------------------------------------------------------------
 
 def _bereit(con, pid, plan):
-    """A2006: {Aufgabe: wartet auf Freigabe?} – nur Pakete aus aktiven Meilensteinen (fehlt eines, kommt es nicht gleich); True, wenn ein
-    offener Grund auf den Menschen, einen Monitor oder eine offene Frage an ihn zeigt. Zwei Abfragen, gleich viele bei jeder Menge."""
+    """A2006/A2162: {Aufgabe: (wartet auf den Menschen?, anderer Grund kurz oder None)} – nur Pakete aus aktiven Meilensteinen (fehlt eines,
+    kommt es nicht gleich). Gründe der Art „aufgabe“ zählen nicht (die zeigt „nach A…“). Zwei Abfragen, gleich viele bei jeder Menge."""
     ids = [x["aid"] for x in plan if x["zustand"] != "laeuft"]
     if not ids:
         return {}
     marken = ",".join("?" * len(ids))
     aktiv = {r[0] for r in con.execute(f"SELECT a.id FROM aufgabe a JOIN bogen b ON b.id = a.bogen_id WHERE a.id IN ({marken}) AND b.status = 'aktiv'", ids)}
-    warten = {r[0] for r in con.execute(
-        f"SELECT w.aufgabe_id FROM wartegrund w WHERE w.aufgabe_id IN ({marken}) AND w.erledigt_utc IS NULL AND (w.art IN ('entwickler', 'monitor')"
-        " OR (w.art = 'frage' AND EXISTS (SELECT 1 FROM frage f WHERE 'F' || f.id = w.bezug AND f.an = 'entwickler' AND f.status = 'offen')))",
-        ids)}
-    return {a: a in warten for a in aktiv}
+    mensch, grund = set(), {}
+    for r in con.execute(
+            f"SELECT w.aufgabe_id, w.art, w.bezug, (w.art = 'entwickler' OR (w.art = 'frage' AND EXISTS (SELECT 1 FROM frage f WHERE 'F' || f.id = w.bezug"
+            f" AND f.an = 'entwickler' AND f.status = 'offen'))) AS beim_menschen FROM wartegrund w WHERE w.aufgabe_id IN ({marken})"
+            " AND w.erledigt_utc IS NULL AND w.art != 'aufgabe' ORDER BY w.id", ids):
+        if r["beim_menschen"]:
+            mensch.add(r["aufgabe_id"])
+        elif r["art"] != "frage":                        # eine Frage an einen Agenten nennt der Agent selbst
+            grund.setdefault(r["aufgabe_id"], _grund_kurz(r["bezug"]))
+    return {a: (a in mensch, None if a in mensch else grund.get(a)) for a in aktiv}
+
+
+def _grund_kurz(bezug):
+    t = " ".join((bezug or "").split())
+    t = t[len("Monitor:"):].strip() if t.lower().startswith("monitor:") else t
+    return t if len(t) <= 40 else t[:39] + "…"
 
 
 def _als_naechstes(plan, headless, mensch, bereit):
@@ -203,7 +215,8 @@ def _als_naechstes(plan, headless, mensch, bereit):
             gruppen.setdefault(x["start_utc"][:16], []).append(x)
     return [{"start_utc": min(x["start_utc"] for x in gruppen[g]),
              "pakete": [{"titel": x["titel"], "nummer": f"A{x['aid']}", "wer": HEADLESS if x["art"] == "headless" else _wer(x["agent"], mensch),
-                         "dauer_min": x["dauer_min"], "wartet_auf": x["wartet_auf"], "freigabe": bereit[x["aid"]]} for x in gruppen[g]]}
+                         "dauer_min": x["dauer_min"], "wartet_auf": x["wartet_auf"],
+                         "wartet_mensch": bereit[x["aid"]][0], "wartet_grund": bereit[x["aid"]][1]} for x in gruppen[g]]}
             for g in sorted(gruppen)[:GRUPPEN]]
 
 

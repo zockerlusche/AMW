@@ -2639,5 +2639,7 @@
   "lst_schritt": "Schritt jetzt",
   "lst_themen": "Themen",
   "lst_themen_frei": "{n} von {g} freigegeben",
-  "lst_wartet_freigabe": "wartet auf Freigabe"
+  "lst_wartet_dich": "wartet auf dich",
+  "lst_wartet_grund": "wartet: {x}",
+  "lst_pruefung_x": "Prüfung {x}"
 }

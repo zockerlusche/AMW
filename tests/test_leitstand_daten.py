@@ -244,7 +244,7 @@ class AlsNaechstes(Grund):
                          [(um(0), sorted([f"A{c}", f"A{e}"])), (um(30), [f"A{b}"]), (um(60), [f"A{f}"])])
         je = {p["titel"]: p for x in g for p in x["pakete"]}
         self.assertEqual(je["Headless jetzt"], {"titel": "Headless jetzt", "nummer": f"A{c}", "wer": "Headless", "dauer_min": 60, "wartet_auf": None,
-                                             "freigabe": False})
+                                             "wartet_mensch": False, "wartet_grund": None})
         self.assertEqual((je["CC2 jetzt"]["wer"], je["Frei"]["wer"]), ("CC2", None))
 
     def test_hoechstens_acht_gruppen(self):
