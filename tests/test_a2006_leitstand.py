@@ -44,7 +44,7 @@ class Abruf(Grund):
     def test_eigener_weg_und_json(self):
         self.paket("Anmeldung", "CC1", bogen=self.meilenstein("Laden"))
         d = workbench.daten_leitstand(self.con, self.pid)
-        self.assertEqual(set(d), {"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "zeitplan"})
+        self.assertEqual(set(d), {"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "haengt", "zeitplan"})   # haengt: A2149 (1.200.0)
         json.dumps(d)
         self.assertNotIn("leitstand", workbench.daten_start(self.con, self.pid))                  # nicht im 15-s-Takt
 
