@@ -285,12 +285,16 @@ class Paketzeile(Basis):
 
     def test_kopie_und_geschriebenes_sofort_sichtbar(self):
         con, pid, ids = self.bestand(20)
+        def zeile(aid):
+            z = arbeitspaket._zeile(con, aid)
+            assert z is not None
+            return z
         with einmal.merken(con):
-            arbeitspaket._zeile(con, ids[1])["ressourcen"].append("bildschirm")
-            self.assertEqual(arbeitspaket._zeile(con, ids[1])["ressourcen"], ["gpu"])
+            zeile(ids[1])["ressourcen"].append("bildschirm")
+            self.assertEqual(zeile(ids[1])["ressourcen"], ["gpu"])
             self.assertIsNone(arbeitspaket._zeile(con, ids[0]))
             arbeitspaket.setzen(con, pid, "TL", ids[0], modell="sonnet")
-            self.assertEqual(arbeitspaket._zeile(con, ids[0])["modell"], "sonnet")
+            self.assertEqual(zeile(ids[0])["modell"], "sonnet")
             arbeitspaket.setzen(con, pid, "TL", ids[1], modell="haiku")
             self.assertEqual(arbeitspaket.lesen(con, ids[1])["modell"], "haiku")
 
