@@ -114,7 +114,26 @@ def teile(text):
 
 
 def offene(con, aid):
+    k = _offene_alle(con)
+    if k is not None:
+        return list(k.get(aid, ()))
     return con.execute("SELECT * FROM wartegrund WHERE aufgabe_id = ? AND erledigt_utc IS NULL ORDER BY id", (aid,)).fetchall()
+
+
+def _offene_alle(con):
+    """A2006: alle offenen Gründe {Aufgabe: [Zeilen]} – in einer Anfrage oder Runde (einmal.merken) nur einmal gelesen statt je Aufgabe
+    (Reihenfolge, Arbeitsliste). None außerhalb davon und in einer Schreib-Transaktion: dann einzeln wie bisher; jede Änderung macht den
+    Merker leer, Geschriebenes ist sofort sichtbar (Muster A2145)."""
+    if getattr(con, "merker", None) is None or (con.in_transaction and not getattr(con, "schnappschuss", False)):
+        return None
+    from . import einmal
+
+    def lesen():
+        k = {}
+        for r in con.execute("SELECT * FROM wartegrund WHERE erledigt_utc IS NULL ORDER BY id"):
+            k.setdefault(r["aufgabe_id"], []).append(r)
+        return k
+    return einmal.einmal(con, ("wartegrund_offen",), lesen)
 
 
 def anlegen(con, pid, von, aid, auf, art=None):

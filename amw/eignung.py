@@ -33,9 +33,27 @@ def kurz(modell):
     return m or "?"
 
 
+def _entscheidungen_alle(con):
+    """A2006: die Texte aller Paket-Entscheidungen {Aufgabe: [Text]} – je Anfrage einmal statt je Paket (Muster A2145); None ohne
+    Merker und in einer Schreib-Transaktion."""
+    if getattr(con, "merker", None) is None or (con.in_transaction and not getattr(con, "schnappschuss", False)):
+        return None
+    from . import einmal
+
+    def lesen():
+        k = {}
+        for r in con.execute("SELECT aufgabe_id, text FROM plan_ereignis WHERE art = 'paket_entscheidung' ORDER BY id"):
+            k.setdefault(r[0], []).append(r[1])
+        return k
+    return einmal.einmal(con, ("paket_entscheidung",), lesen)
+
+
 def _entscheidungen(con, aid):
     aus = []
-    for (t,) in con.execute("SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung' ORDER BY id", (aid,)):
+    k = _entscheidungen_alle(con)
+    texte = k.get(aid, ()) if k is not None else [r[0] for r in con.execute(
+        "SELECT text FROM plan_ereignis WHERE aufgabe_id = ? AND art = 'paket_entscheidung' ORDER BY id", (aid,))]
+    for t in texte:
         try:
             d = json.loads(t or "{}")
         except ValueError:

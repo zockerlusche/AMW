@@ -3,8 +3,11 @@ online nur die Entscheidungen des eigenen Projekts."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import json
 
-from amw import abgleich, db, workbench
+from amw import abgleich, db, einmal, workbench
+from tests import test_leitstand_daten as _tld
 from tests.test_leitstand_daten import Grund, um
+
+OBERGRENZE = 60                 # Abfragen je Abruf am festen Bestand der Leistungsprobe (gemessen 46–47, mit Luft)
 
 
 class Zeitplan(Grund):
@@ -56,6 +59,59 @@ class Abruf(Grund):
         online = abgleich.ansichten(self.con, self.pid)["/api/leitstand"]["entscheidungen"]
         self.assertEqual({e["projekt"] for e in online}, {"Laden"})
         self.assertNotIn("Geheim", json.dumps(abgleich.ansichten(self.con, self.pid)["/api/leitstand"], ensure_ascii=False))
+
+
+class Obergrenze(_tld.Leistung):
+    """Lead #34060 (3): /api/leitstand fragt die Datenbank gleich oft bei 20 und bei 400 Paketen, mit fester Obergrenze."""
+    def test_hoechstens_zwoelf_und_gleich_viele_bei_20_und_400(self):
+        self.skipTest("geerbt – läuft in test_leitstand_daten")
+
+    def alle(self):
+        n = []
+        self.con.set_trace_callback(n.append)
+        try:
+            with einmal.merken(self.con, schnappschuss=True):              # wie der Dienst je Anfrage (workbench._get, A2081)
+                workbench.daten_leitstand(self.con, self.pid)
+        finally:
+            self.con.set_trace_callback(None)
+        return len(n)
+
+    def test_gleich_viele_bei_20_und_400(self):
+        """Die Pakete zählen nicht mit (vor der Bündelung: 69 → 542). fuellen legt je Aufruf einen Meilenstein an; je Meilenstein liest
+        die Prognose ihr Zieldatum (planung.prognose – die fasst A2006 nicht an), das ist höchstens eine Abfrage mehr."""
+        boegen = lambda: self.con.execute("SELECT count(*) FROM bogen").fetchone()[0]
+        self.fuellen(20)
+        klein, m_klein = self.alle(), boegen()
+        self.fuellen(380)
+        gross, m_gross = self.alle(), boegen()
+        self.assertLessEqual(gross, klein + (m_gross - m_klein))                   # wächst nicht mit den Paketen (das Wochenlimit
+        self.assertGreaterEqual(gross, klein - 2)                                  # merkt sich zwischen zwei Abrufen eine Abfrage)
+        self.assertLessEqual(gross, OBERGRENZE)
+
+
+class Gebuendelt(Grund):
+    """Die zwei Einzelabfragen hinter /api/leitstand (Reihenfolge des Zeitplans): offene Wartegründe je Aufgabe und Paket-Entscheidungen
+    je Paket – mit Merker einmal je Anfrage, Ergebnis gleich, Geschriebenes sofort sichtbar."""
+    def test_wartegruende_gleich_und_sofort_sichtbar(self):
+        from amw import wartegrund
+        a, b = self.paket("Eins"), self.paket("Zwei")
+        wartegrund.anlegen(self.con, self.pid, "TL", a, "TL")
+        ohne = [list(map(dict, wartegrund.offene(self.con, x))) for x in (a, b)]
+        with einmal.merken(self.con):
+            self.assertEqual([list(map(dict, wartegrund.offene(self.con, x))) for x in (a, b)], ohne)
+            wartegrund.anlegen(self.con, self.pid, "TL", b, "CC1")                 # in derselben Anfrage geschrieben
+            self.assertEqual([g["bezug"] for g in wartegrund.offene(self.con, b)], ["CC1"])
+
+    def test_entscheidungen_gleich_und_sofort_sichtbar(self):
+        from amw import eignung
+        a = self.paket("Eins", p=True)
+        zeile = lambda text: self.ereignis("paket_entscheidung", um(-1), {"zeile": text, "code": "E7"}, aufgabe=a)
+        zeile("angenommen")
+        ohne = eignung._entscheidungen(self.con, a)
+        with einmal.merken(self.con):
+            self.assertEqual(eignung._entscheidungen(self.con, a), ohne)
+            zeile("noch einmal")
+            self.assertEqual(eignung._entscheidungen(self.con, a), ohne + [("noch einmal", "E7")])
 
 
 if __name__ == "__main__":
