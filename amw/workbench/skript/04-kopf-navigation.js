@@ -74,6 +74,7 @@ const wissenExtern = () => [["nachrichten", "n_nachrichten"], ["dokumente", "n_d
   el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
 function zeige(sicht, still = false) {
   if (sicht === "steuerung") return zurSteuerung();                     /* A2018: Adresse #steuerung */
+  if (PW_ADRESSEN[sicht]) return pwAdresse(sicht);                      /* A2011: #reihenfolge, #zeitplan, #gesamtplan → Reiter im Projektweg */
   if (!still) { wechselNr++; seitenNr++; }                              /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
   ruhig = still;
   const pos = [$("#inhalt").scrollTop, window.scrollY];

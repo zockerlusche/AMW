@@ -566,7 +566,7 @@ async function sichtProjektweg() {
       el("span", { class: "pjw-name" }, el("span", { class: "pjw-zeichen" }, s.zeichen), `${i + 1} · ${t("pjw_s_" + s.schritt)}`),
       el("span", { class: "pjw-wert" + (s.bei_dir ? " dran" : "") }, pwWert(d, i) + (s.bei_dir ? " · " + t("pjw_wartet_dich") : ""))); }));
   pwHaupt = null;
-  const inhalt = [pwKonzept, pwGrob, pwFein, pwUmsetzung, pwAbschluss][v](d).filter(Boolean);
+  const inhalt = pwMitReitern(v, d).filter(Boolean);                     /* A2011: Feinplanung und Umsetzung mit Reitern */
   const nochNicht = d.schritte[v].zustand === "offen" && !inhalt.some(x => !x.classList?.contains("leer"));
   const wie = el("div", { class: "pjw-wie" }, el("span", { class: "pjw-lbl" }, t("pjw_wie")), el("ol", {}, t("pjw_wie_" + v).split("|").map(x => el("li", {}, x))));
   const ansicht = el("div", { class: "pjw-ansicht" },

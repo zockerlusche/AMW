@@ -364,6 +364,7 @@ def ansichten(con, pid, speicher=None, fehler=None):
              "/api/planung": lambda: workbench.daten_planung(con, pid),
              "/api/projektweg": lambda: workbench.daten_projektweg(con, pid),   # A2033: online nur lesen
              "/api/leitstand": lambda: _leitstand_online(workbench.daten_leitstand(con, pid), con, pid),   # A2006
+             "/api/zeitplan": lambda: workbench.daten_zeitplan(con, pid),     # A2011: Reihenfolge und Zeitplan im Projektweg, online nur lesen
              "/api/pakete": lambda: paketliste.daten(con, pid, am_pc=False),   # A1850: online nur lesen – ohne Platz-Abfrage, ohne Mitlesen
              "/api/verlauf": lambda: workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
              "/api/seit": lambda: verlauf.seit_daten(con, pid),
@@ -512,6 +513,11 @@ def _ruhig(inhalt):
     if not isinstance(inhalt, dict):
         return inhalt
     d = {k: v for k, v in inhalt.items() if k not in ("zeit", "speicher")}
+    if isinstance(d.get("pakete"), list) and "plaetze" in d:          # A2011: Zeitplan – Zeiten wandern mit der Uhr, die Reihenfolge zählt
+        d = {**d, "jetzt": None, "pakete": [{k: v for k, v in x.items() if k not in ("start_utc", "ende_utc", "plus_min")}
+                                            for x in d["pakete"] if isinstance(x, dict)]}
+    if isinstance(d.get("als_naechstes"), list):                      # A2006/A2011: Leitstand – Startzeiten „als Nächstes“ ebenso
+        d = {**d, "als_naechstes": [{**g, "start_utc": None} for g in d["als_naechstes"] if isinstance(g, dict)]}
     namen = lambda liste: [x.get("name") for x in liste or [] if isinstance(x, dict)]
     stufen = lambda liste: [(x.get("laufwerk"), x.get("stufe")) for x in liste or [] if isinstance(x, dict)]
     r = d.get("rechner")
