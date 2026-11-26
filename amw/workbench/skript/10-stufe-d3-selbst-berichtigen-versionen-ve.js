@@ -313,18 +313,20 @@ document.addEventListener("paste", e => {
 });
 /* Markdown sicher als DOM (nie innerHTML): Überschriften, Absätze, Listen, Code, Zitate, Tabellen, Links (nur http/https/mailto) */
 function markdown(text) {
-  const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*|__[^_]+__)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(!?\[[^\]]*\]\([^)\s]+\))/g;
+  /* A2163: _kursiv_ und __fett__ mit Unterstrichen nur am Wortrand (wie CommonMark) – nie_gleichzeitig, feinplanung._anlegen,
+     __init__.py bleiben, wie sie sind. Ohne Lookbehind (ältere iPads): das Zeichen davor gehört zum Treffer (Gruppe 5). */
+  const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*\s][^*]*\*)|(!?\[[^\]]*\]\([^)\s]+\))|(^|[^\p{L}\p{N}_])(__[^_]+__|_[^_\s][^_]*_)(?![\p{L}\p{N}_])/gu;
     let pos = 0, m;
     while ((m = re.exec(s))) {
-      if (m.index > pos) teile.push(...mitRefs(s.slice(pos, m.index)));       /* A2115: Nummern im Text öffnen das Ding */
-      const x = m[0];
+      const start = m.index + (m[5] || "").length, x = m[6] || m[0];
+      if (start > pos) teile.push(...mitRefs(s.slice(pos, start)));           /* A2115: Nummern im Text öffnen das Ding */
       if (m[1]) teile.push(el("code", {}, x.slice(1, -1)));
-      else if (m[2]) teile.push(el("strong", {}, ...inline(x.slice(2, -2))));
-      else if (m[3]) teile.push(el("em", {}, ...inline(x.slice(1, -1))));
+      else if (m[2] || (m[6] && x.startsWith("__"))) teile.push(el("strong", {}, ...inline(x.slice(2, -2))));
+      else if (m[3] || m[6]) teile.push(el("em", {}, ...inline(x.slice(1, -1))));
       else { const l = /^(!?)\[([^\]]*)\]\(([^)\s]+)\)$/.exec(x); const ok = /^(https?:|mailto:)/i.test(l[3]);
         teile.push(l[1] ? el("span", { class: "sehrleise" }, `[${t("dk_bild")}: ${l[2] || l[3]}]`)
           : ok ? el("a", { href: l[3], target: "_blank", rel: "noopener noreferrer" }, l[2] || l[3]) : l[2]); }
-      pos = m.index + x.length;
+      pos = start + x.length;
     }
     if (pos < s.length) teile.push(...mitRefs(s.slice(pos)));
     return teile; };
