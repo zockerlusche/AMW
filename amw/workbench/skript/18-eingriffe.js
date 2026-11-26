@@ -49,7 +49,7 @@ async function herausnehmenDialog(d, neu) {
   let art = "zu_ende", laufend = false;
   const wahl = el("div", { class: "eg-wahl", hidden: true, style: "display:grid;gap:8px;min-width:0;margin-bottom:10px" },   /* am Handy umbrechen, nie seitwärts */
     ["zu_ende", "zurueck"].map(x => el("label", { class: "eg-wahl-zeile", style: "display:flex;gap:8px;align-items:flex-start;min-width:0;overflow-wrap:anywhere" },
-      el("input", { type: "radio", name: "eg-laufend", value: x, checked: x === art, style: "flex:none;margin-top:3px", onchange: () => { art = x; zeigen(); } }),
+      el("input", { type: "radio", name: "eg-laufend", value: x, checked: x === art, style: "flex:none;width:18px;height:18px;padding:0;margin:2px 0 0;accent-color:var(--bernstein)", onchange: () => { art = x; zeigen(); } }),
       el("span", { style: "min-width:0" }, t("egr_ag_l_" + x)))));
   async function zeigen() {
     let f; try { f = await schicken("/api/plan/agent", { was: "folgen", kennung: d.kennung, laufendes: art }); }
