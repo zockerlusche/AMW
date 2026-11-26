@@ -11,16 +11,17 @@ async function kopfLaden() {
       spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht, true); }   /* A1907: neu zeichnen, kein Wechsel */
     const wv = d.online?.web_version;
     $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
-    const sollen = d.agenten.filter(a => a.soll === "an" && !a.chat), lebend = sollen.filter(a => a.zustand === "aktiv").length;
     const extra = d.agenten.filter(a => a.soll !== "an" && a.zustand === "aktiv").length;     /* laufen, ohne zu sollen */
     const sp = d.speicher.frei;
     $("#signale").replaceChildren(...[
-      d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
-        t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
-        : (() => { const [f, x] = dienstLage(d); return el("span", { class: "signal" + (f === "gruen" ? " unwichtig" : ""), title: pcHinweis() },
+      d.online ? (d.online.pc_frisch && !d.online.briefkasten ? null : el("span", { class: "signal" }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
+        t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : "")))
+        : (() => { const [f, x] = dienstLage(d); return f === "gruen" ? null : el("span", { class: "signal", title: pcHinweis() },
             el("span", { class: "punkt " + f }), t({ gruen: "s_dienst", bernstein: "s_dienst", rot: "s_dienst_stoerung", "": "s_dienst_aus" }[f])); })(),
-      el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
-      el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: Math.round(sp) })),
+      /* A2014 (Kleinprobe A2010, D1429): keine zweite Statusleiste – Agenten und Speicher stehen im Leitstand (Ressourcen); hier nur,
+         was vom Normalfall abweicht */
+      extra ? el("span", { class: "signal" }, el("span", { class: "punkt bernstein" }), t("s_extra", { n: extra })) : null,
+      sp != null && sp < 8 ? el("span", { class: "signal", title: pcHinweis() }, el("span", { class: "punkt bernstein" }), t("s_speicher", { n: Math.round(sp) })) : null,
       /* Steuern geschieht in der Steuerung (Leitstand, unter den Agenten); hier steht nur, was vom Normalfall abweicht – Klick führt hin */
       d.halt.length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zurSteuerung }, el("span", { class: "punkt rot" }), t("halt_an")) : null,
       d.schirm?.frei ? el("span", { class: "signal knopflich", title: [d.schirm.grund, t("ls_hin")].filter(Boolean).join(" · "), onclick: zurSteuerung },
@@ -88,7 +89,8 @@ function zeige(sicht, still = false) {
   $("#mehr")?.classList.toggle("an", !!document.querySelector(`nav a.im-mehr[data-sicht="${bereich}"]`));
   try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
-  const fertig = ({ start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  kzKnopf();                                                            /* A2014: „Alle Projekte“ im Kopf nur in der Gesamtsicht */
+  const fertig = ({ projekte: sichtProjekte, start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return fertig; }
   return Promise.resolve(fertig).then(() => {
     if (offen?.size) for (const s of $("#inhalt").querySelectorAll("details > summary")) if (offen.has(s.textContent)) s.parentElement.open = true;

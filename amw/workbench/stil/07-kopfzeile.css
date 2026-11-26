@@ -1,0 +1,41 @@
+/* A2014 (Kleinprobe A2010, D1904): Kopfzeile – Projektknopf neben der Marke, Projektliste mit „für dich“, Gesamtsicht als Karten,
+   Treffer der Suche unter dem Feld. Farbe nur am Zähler „für dich“. */
+#projektwahl { display: none; }
+.projekt-chip { display: inline-flex; align-items: center; gap: 9px; margin-left: 18px; min-height: 36px; padding: 4px 12px; border: 1px solid var(--linie2);
+  border-radius: 4px; background: var(--flaeche); color: var(--tinte); font: 600 15px var(--titel); letter-spacing: .02em; cursor: pointer; flex: none; max-width: 46vw; }
+.projekt-chip[hidden] { display: none; }
+.projekt-chip .pk-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projekt-chip .pw-farbe { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.kz-zahl { border: 1px solid var(--bernstein); color: var(--bernstein); border-radius: 11px; padding: 1px 9px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pw-eintrag .kz-zahl { justify-self: end; }
+.pw-eintrag.kz-alle { border-bottom: 1px solid var(--linie); border-radius: 3px 3px 0 0; }
+.kz-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 12px; margin-bottom: 8px; }
+.kz-karte { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); padding: 14px 16px;
+  text-align: left; color: var(--tinte); font: inherit; cursor: pointer; min-width: 0; }
+.kz-karte:hover { background: var(--flaeche2); }
+.kz-oben { display: flex; gap: 10px; align-items: center; }
+.kz-oben b { font: 600 19px var(--titel); flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.kz-oben i { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.kz-zl { color: var(--leise); font-size: 13.5px; }
+.kz-balken { height: 6px; background: var(--flaeche2); border-radius: 3px; overflow: hidden; }
+.kz-balken i { display: block; height: 100%; background: var(--leise); }
+.kz-treffer { position: fixed; z-index: 40; width: min(560px, calc(100vw - 24px)); max-height: 70vh; overflow-y: auto; background: var(--flaeche2);
+  border: 1px solid var(--linie2); border-radius: 6px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.5); padding: 4px 0; }
+.kz-gr { font: 600 12px var(--titel); letter-spacing: .08em; text-transform: uppercase; color: var(--sehrleise); padding: 10px 14px 4px; }
+.kz-tr { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 10px; width: 100%; text-align: left; border: 0; background: none; color: var(--tinte);
+  font: inherit; font-size: 14px; padding: 8px 14px; min-height: 40px; align-items: center; cursor: pointer; }
+.kz-tr:hover, .kz-tr.an { background: var(--flaeche); }
+.kz-tr .ref { font: 600 13px var(--titel); color: var(--leise); }
+.kz-tr .kz-titel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kz-tr .kz-wo { color: var(--sehrleise); font-size: 12.5px; white-space: nowrap; }
+.kz-tr mark { background: none; color: inherit; font-weight: 700; }
+.kz-leer { color: var(--sehrleise); padding: 18px 16px; }
+@media (max-width: 760px) {
+  .projekt-chip { margin-left: 0; font-size: 14px; }
+  .kz-tr { grid-template-columns: 50px minmax(0, 1fr); }
+  .kz-tr .kz-titel { white-space: normal; }
+  .kz-tr .kz-wo { grid-column: 2; }
+}
+/* die Liste ist ein Dialog: auch am PC Überschrift und ✕ (wie am Handy), schließt außerdem mit Klick daneben */
+.pw-liste h3 { display: block; font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin: 6px 10px 8px; }
+.pw-liste .dialog-zu { display: block; position: absolute; top: 4px; right: 6px; margin: 0; }

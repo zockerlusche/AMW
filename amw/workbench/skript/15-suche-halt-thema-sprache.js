@@ -163,7 +163,7 @@ async function weiterGeben() {
 }
 if (API) { const b = $("#abmelden"); b.hidden = false; b.addEventListener("click", async () => {
   await fetch("index.php?abmelden=1", { method: "POST", headers: { "X-AMW-Token": TOKEN } }).catch(() => {}); location.reload(); }); }
-$("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });
+$("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && kzAuswahl < 0 && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });   /* A2014: ein gewählter Treffer öffnet sich selbst */
 for (const a of document.querySelectorAll("nav a[data-sicht]")) a.addEventListener("click", () => zeige(a.dataset.sicht));
 /* Handy: unten Start, Fragen, Plan, Arbeit und „Mehr“ (48-px-Ziele statt neun schmaler). „Mehr“ öffnet ein Blatt von unten mit
    den übrigen Bereichen, Hell/Dunkel und Sprache – so ist am Handy alles erreichbar, auch der Verlauf. */

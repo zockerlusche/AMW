@@ -119,8 +119,8 @@ class Seite(Wiederholt, Grund):
         from amw import assistent
         repo = os.path.join(self.ordner.name, "laden")
         os.makedirs(repo)
-        self.oeffnen("start", "document.querySelector('#projektwahl .pw')")
-        self.tab.js("document.querySelector('#projektwahl .pw').click()")
+        self.oeffnen("start", "document.querySelector('#projekt-chip:not([hidden])')")
+        self.tab.js("document.querySelector('#projekt-chip').click()")
         self.warten("[...document.querySelectorAll('.pw-liste button')].some(b => b.textContent.includes('Neues Projekt'))")
         self.tab.js("[...document.querySelectorAll('.pw-liste button')].find(b => b.textContent.includes('Neues Projekt')).click()")
         self.warten("document.querySelector('.dialog-hg .einst input')")

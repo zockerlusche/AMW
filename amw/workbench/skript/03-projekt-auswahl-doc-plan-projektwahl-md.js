@@ -27,27 +27,38 @@ function projektwahlZeigen(p) {
     el("span", { class: "pw-pfeil" }, "▾"));
   $("#projektwahl").replaceChildren(knopf);
   const chip = $("#projekt-chip"); chip.hidden = false;
-  chip.replaceChildren(el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }), el("span", {}, p.name + " ▾"));
+  const alle = zustand.sicht === "projekte";                              /* A2014: Gesamtsicht – der Knopf sagt „Alle Projekte“ */
+  chip.replaceChildren(el("span", { class: "pw-farbe", style: `background:${alle ? "var(--leise)" : farbe(p)}` }),
+    el("span", { class: "pk-name" }, alle ? t("kz_alle") : p.name), el("span", { class: "pw-pfeil" }, "▾"));
   chip.onclick = e => projektListe(e.currentTarget);
-  chip.setAttribute("aria-label", `${t("pw_projekt")}: ${p.name}`);
+  chip.setAttribute("aria-label", `${t("pw_projekt")}: ${alle ? t("kz_alle") : p.name}`);
 }
 function projektListe(anker) {
   const r = anker.getBoundingClientRect();
   const mehrRechner = new Set(projekte.map(x => x.rechner).filter(Boolean)).size > 1;
   /* fremd = Projekt eines anderen Rechners: am PC über die Online-Seite (dort auch dirigierbar), online wie jedes andere */
-  const oeffnen = p => { hg.remove(); if (p.uid === projekt) return;
+  const oeffnen = p => { hg.remove(); if (p.uid === projekt) { if (zustand.sicht === "projekte") zeige("start"); return; }
     if (!p.fern) projektWechseln(p.uid);
     else if (p.online) window.open(p.online, "_blank", "noopener");
     else toast(t("pw_fern_ohne_link"), true); };
-  const eintrag = p => el("button", { class: "pw-eintrag" + (p.uid === projekt ? " an" : ""), type: "button", onclick: () => oeffnen(p) },
+  /* A2014 (Kleinprobe A2010, D1904): je Projekt Name und „für dich“ – Farbe nur bei einer Zahl; Rechner/Halt/nicht erreichbar nur,
+     wenn es zutrifft */
+  const zahl = n => n ? el("span", { class: "kz-zahl", title: t("kz_fuer_dich", { n }) }, String(n)) : el("span");
+  const fuer = p => p.fuer_dich ?? p.fragen ?? 0;                           /* online aus dem Verzeichnis: die offenen Fragen */
+  const eintrag = p => el("button", { class: "pw-eintrag" + (p.uid === projekt && zustand.sicht !== "projekte" ? " an" : ""), type: "button",
+      "data-uid": p.uid, onclick: () => oeffnen(p) },
     el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }),
-    el("span", {}, el("b", {}, p.name, p.fern ? " ↗" : ""), el("small", {}, [mehrRechner ? p.rechner : null,
-      t(p.agenten === 1 ? "pw_agent1" : "pw_agenten", { n: p.agenten }), p.halt ? t("pw_halt") : null,
-      p.erreichbar === false ? t("pw_weg") : null].filter(Boolean).join(" · "))),
-    p.fragen ? el("span", { class: "pw-zahl", title: t("pw_fragen", { n: p.fragen }) }, `${p.fragen} ?`) : el("span"));
+    el("span", {}, el("b", {}, p.name, p.fern ? " ↗" : ""), [mehrRechner ? p.rechner : null, p.halt ? t("pw_halt") : null,
+      p.erreichbar === false ? t("pw_weg") : null].some(Boolean) ? el("small", {}, [mehrRechner ? p.rechner : null, p.halt ? t("pw_halt") : null,
+      p.erreichbar === false ? t("pw_weg") : null].filter(Boolean).join(" · ")) : null),
+    zahl(fuer(p)));
+  const alleZeile = projekte.length > 1 ? el("button", { class: "pw-eintrag kz-alle" + (zustand.sicht === "projekte" ? " an" : ""), type: "button",
+      onclick: () => { hg.remove(); zeige("projekte"); } },
+    el("span", { class: "pw-farbe", style: "background:var(--leise)" }), el("span", {}, el("b", {}, t("kz_alle"))),
+    zahl(projekte.reduce((s, p) => s + (fuer(p) || 0), 0))) : null;
   const liste = el("div", { class: "pw-liste karte", style: `left:${Math.round(r.left)}px;top:${Math.round(r.bottom + 6)}px`, role: "dialog",
       "aria-label": t("pw_waehlen") },
-    el("h3", {}, t("pw_waehlen")), ...projekte.map(eintrag),
+    el("h3", {}, t("pw_waehlen")), alleZeile, ...projekte.map(eintrag),
     el("div", { class: "pw-fuss" }, el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_nur_ansicht")),
       el("span", { style: "display:flex;gap:6px;align-items:center;flex-wrap:wrap" },
         API ? el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_neu_pc"))

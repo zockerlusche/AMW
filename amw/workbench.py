@@ -1276,6 +1276,16 @@ def daten_wissen(con, pid, q):
 
 
 def daten_suche(con, pid, q):
+    """Suche über alles im Projekt; mit alle=1 (A2014, Kopfzeile) danach die anderen Projekte dieser AMW, je Treffer mit
+    „projekt“ (uid) und „projekt_name“ – das eigene Projekt bleibt vorn."""
+    aus = _suche_projekt(con, pid, q)
+    if q.get("alle", ["0"])[0] == "1" and len(q.get("q", [""])[0].strip()) >= 2:
+        for p in con.execute("SELECT id, uid, name FROM projekt WHERE id != ? ORDER BY id", (pid,)).fetchall():
+            aus += [{**x, "projekt": p["uid"], "projekt_name": p["name"]} for x in _suche_projekt(con, p["id"], q)]
+    return aus
+
+
+def _suche_projekt(con, pid, q):
     such = q.get("q", [""])[0].strip()
     if len(such) < 2:
         return []
@@ -1360,6 +1370,31 @@ def daten_dokument(con, pid, q, gespraech=None):
     return d
 
 
+def _fuer_dich_zahl(con, pid):
+    """A2014: wie viel im Projekt auf den Menschen wartet – dieselbe Zahl wie „Für dich“ im Leitstand (fuer_dich, A2142)."""
+    from . import fuer_dich
+    try:
+        return fuer_dich.sammeln(con, pid)["zahl"]
+    except Exception:                                     # noqa: BLE001 – ein Zähler darf die Projektwahl nie verhindern
+        import logging
+        logging.getLogger("amw.workbench").exception("für dich in Projekt %s", pid)
+        return None
+
+
+def daten_gesamtsicht(con, pid):
+    """A2014 (Kleinprobe A2010, D1904): alle Projekte dieser AMW als Karten – für dich, Fortschritt der aktiven Meilensteine,
+    Prognose mit Verzug, wie viele Agenten gerade arbeiten. Eigener Abruf (die Prognose ist teuer), erst beim Öffnen geholt."""
+    from . import leitstand_daten
+    aus = []
+    for p in con.execute("SELECT id, uid, name FROM projekt ORDER BY id").fetchall():
+        d = leitstand_daten.daten(con, p["id"])
+        ms = [r["nr"] for r in con.execute("SELECT nr FROM bogen WHERE projekt_id = ? AND status = 'aktiv' ORDER BY nr", (p["id"],))]
+        aus.append({"uid": p["uid"], "name": p["name"], "farbe": kern.projekt_wahl(con, p["id"], "farbe"), "aktiv": p["id"] == pid,
+                    "fuer_dich": _fuer_dich_zahl(con, p["id"]), "fortschritt": d["fortschritt"], "meilensteine": ms,
+                    "arbeiten": len(d["jetzt"])})
+    return {"projekte": aus}
+
+
 def daten_projekte(con, pid):
     """Projekt-Auswahl: alle Projekte dieser AMW mit dem, was man ohne Wechsel sehen will (offene Fragen an den
     Entwickler, Halt). Umschalten ändert nur die Ansicht (doc/plan-projektwahl.md)."""
@@ -1372,7 +1407,8 @@ def daten_projekte(con, pid):
             " (SELECT count(*) FROM agent WHERE projekt_id = :p AND entfernt_utc IS NULL) AS agenten", {"p": p["id"]}).fetchone()
         aus.append({"uid": p["uid"], "name": p["name"], "farbe": kern.projekt_wahl(con, p["id"], "farbe"),
                     "fragen": z["fragen"], "agenten": z["agenten"], "seit": p["angelegt_utc"], "aktiv": p["id"] == pid,
-                    "halt": bool(kern.aktive_sperren(con, p["id"], art="halt"))})
+                    "halt": bool(kern.aktive_sperren(con, p["id"], art="halt")),
+                    "fuer_dich": _fuer_dich_zahl(con, p["id"])})          # A2014: Zähler im Projektwechsel wie die Zahl im Leitstand
     rechner = einstellungen.wert("rechner")
     for e in aus:
         e["rechner"] = rechner
@@ -1641,6 +1677,7 @@ def baue_handler(port, token, netz=None):
                     "/api/lauf/ausgabe": lambda c, p: daten_lauf_ausgabe(c, p, q),
                     "/api/zeitplan": lambda c, p: daten_zeitplan(c, p),
                     "/api/leitstand": lambda c, p: daten_leitstand(c, p),
+                    "/api/gesamtsicht": lambda c, p: daten_gesamtsicht(c, p),
                     "/api/projektweg": lambda c, p: daten_projektweg(c, p),
                     "/api/agent/ende-stand": lambda c, p: daten_ende_stand(c, p),
                     "/api/kosten": lambda c, p: daten_kosten(c, p),

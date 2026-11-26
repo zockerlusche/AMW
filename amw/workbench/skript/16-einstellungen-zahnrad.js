@@ -481,5 +481,5 @@ projekteLaden().then(() => {
   let startSicht = gemerkt("amw-sicht") || "start";
   if (location.hash.length > 1) startSicht = location.hash.slice(1);
   const s = seitenNr;                                    /* A1907: nur einem echten Wechsel weichen – nicht dem Takt, der still „start“ zeichnet */
-  return kopfLaden().then(() => { if (s === seitenNr) zeige(startSicht); });
+  return kopfLaden().then(() => { if (s === seitenNr) return Promise.resolve(zeige(startSicht)).then(kzNachWechsel); });   /* A2014: Treffer aus einem anderen Projekt */
 });
