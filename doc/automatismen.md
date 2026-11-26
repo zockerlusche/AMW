@@ -385,7 +385,8 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
   Pool zurück. Übergabe-Notiz: letzter Commit zur Aufgabe, letzte Tätigkeit, offene Kriterien und Wartegründe – an den Lead
   und als Ereignis `uebergabe`. Der Mensch bekommt die Frage „Sitzung von … neu starten?“; die AMW startet nie selbst.
 - **Still trotz Weckruf (A2147, TH157):** Hat ein Agent (nicht Lead) mit lebender Sitzung eine Aufgabe in „läuft“, ist zu
-  einer Nachricht geweckt worden, hat sie nach 10 min nicht gelesen, seitdem nichts gesendet und arbeitet nicht gerade,
+  einer Nachricht geweckt worden und hat nach 10 min nicht reagiert – nicht selbst gelesen (was ganz im Weckruf stand, zählt
+  nicht), nichts gesendet, kein Hook-Ereignis seiner Sitzung – und arbeitet nicht gerade,
   weckt der Dienst ihn einmal erneut („Nachgeweckt – …“, Ereignis `nachgeweckt`, wie beim Lead). Bleibt er danach
   `ausfall_min` still (dieselbe Einstellung wie beim Ausfall), geht seine Aufgabe wie beim Ausfall mit Übergabe-Notiz in den
   Pool: Meldung „Still: … zurück in den Pool“ an den Lead, Frage an den Menschen, Ereignisse `ausfall` und `uebergabe`. Wer

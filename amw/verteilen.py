@@ -26,6 +26,14 @@ import time
 from . import db, kern, wartegrund
 
 AUSFALL_MIN = 30
+# A2147: eine Nachricht, die ganz im Weckruf stand, gilt beim Wecken als gelesen (gelesen_utc = geweckt_utc) – das ist keine
+# Reaktion des Agenten. Reagiert hat er erst, wenn er selbst liest, etwas sendet oder seine Sitzung ein Hook-Ereignis meldet.
+UNGELESEN_SQL = "(e.status = 'offen' OR e.gelesen_utc <= e.geweckt_utc)"
+
+
+def reagiert(s, geweckt_utc):
+    """Hat die Sitzung seit dem Weckruf ein Hook-Ereignis (Prompt angenommen, Halt …) gemeldet?"""
+    return bool(s["ereignis_utc"] and geweckt_utc and s["ereignis_utc"] > geweckt_utc)
 # Vorgabe Art → Fachgebiete (Teilwort, Groß/klein egal); je Projekt überschreibbar (verteilen_fach). Leere Liste = jedes.
 FACH_VORGABE = {"text": ["text", "doku", "code"], "mechanisch": ["code"], "fehlersuche": ["code"], "oberflaeche": ["code", "grafik"],
                 "sicherheit": ["code"], "konzept": ["konzept"]}
@@ -362,10 +370,10 @@ def still(con, pid, jetzt=None):
         n = con.execute(
             "SELECT n.id, n.kurz, e.geweckt_utc, p.zeit_utc AS nachgeweckt FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
             " JOIN plan_ereignis p ON p.projekt_id = n.projekt_id AND p.art = 'nachgeweckt' AND p.text = CAST(n.id AS TEXT)"
-            " WHERE e.agent = ? AND n.projekt_id = ? AND e.status = 'offen' AND e.geweckt_utc >= ? AND p.zeit_utc <= ?"
+            " WHERE e.agent = ? AND n.projekt_id = ? AND " + UNGELESEN_SQL + " AND e.geweckt_utc >= ? AND p.zeit_utc <= ?"
             " AND NOT EXISTS (SELECT 1 FROM nachricht x WHERE x.projekt_id = n.projekt_id AND x.von = e.agent AND x.zeit_utc > e.geweckt_utc)"
             " ORDER BY p.zeit_utc LIMIT 1", (k, pid, s["gestartet_utc"], grenze)).fetchone()
-        if not n:
+        if not n or reagiert(s, n["geweckt_utc"]):
             continue
         zeichen = f"still:{k}:{s['id']}:{a['id']}"
         if _schon(con, pid, "ausfall", zeichen):

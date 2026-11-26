@@ -326,15 +326,16 @@ class Dienst:
         for pr in self.con.execute("SELECT id FROM projekt").fetchall():
             pid, lead = pr["id"], kern.lead(self.con, pr["id"])
             if lead:
-                wer.append((pid, lead))
+                wer.append((pid, lead, True))
             if not pause._letzte(self.con, pid):
-                wer += [(pid, k) for k in sorted({a["agent"] for a in verteilen._laufende(self.con, pid)} - {lead, kern.ENTWICKLER})
+                wer += [(pid, k, False) for k in sorted({a["agent"] for a in verteilen._laufende(self.con, pid)} - {lead, kern.ENTWICKLER})
                         if not kern.halt_gilt(self.con, pid, k)]
-        for pid, lead in wer:                                 # lead: hier der, der geweckt wurde
+        for pid, lead, ist_lead in wer:                       # lead: hier der, der geweckt wurde
             zeilen = self.con.execute(
                 "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz, n.text, n.aufgabe_id, e.geweckt_utc FROM empfang e"
                 " JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
-                " WHERE e.agent = ? AND n.projekt_id = ? AND e.status = 'offen' AND e.geweckt_utc IS NOT NULL AND e.geweckt_utc <= ?"
+                " WHERE e.agent = ? AND n.projekt_id = ? AND " + ("e.status = 'offen'" if ist_lead else verteilen.UNGELESEN_SQL) +
+                " AND e.geweckt_utc IS NOT NULL AND e.geweckt_utc <= ?"
                 " AND " + kern.WECKT_SQL +
                 " AND NOT EXISTS (SELECT 1 FROM nachricht x WHERE x.projekt_id = n.projekt_id AND x.von = e.agent AND x.zeit_utc > e.geweckt_utc)"
                 " AND NOT EXISTS (SELECT 1 FROM plan_ereignis p WHERE p.projekt_id = n.projekt_id AND p.art = 'nachgeweckt'"
@@ -345,6 +346,8 @@ class Dienst:
             if halt:
                 zeilen = [z for z in zeilen if z["art"] in NUR_IM_HALT]
             s = aktive_sitzung(self.con, pid, lead)
+            if s and not ist_lead:                            # A2147: hat er seit dem Weckruf reagiert, ist er nicht still
+                zeilen = [z for z in zeilen if not verteilen.reagiert(s, z["geweckt_utc"])]
             if not zeilen or not s or arbeitet_gerade(s, jetzt):
                 continue
             try:

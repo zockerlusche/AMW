@@ -80,7 +80,7 @@ class Still(unittest.TestCase):
         self.vorbereiten()
         self.nachgeweckt()
         with db.schreiben(self.con):
-            self.con.execute("UPDATE empfang SET status = 'gelesen' WHERE agent = 'CC1'")
+            self.con.execute("UPDATE empfang SET status = 'gelesen', gelesen_utc = ? WHERE agent = 'CC1'", (iso(self.uhr(15)),))   # selbst gelesen
         self.assertEqual(verteilen.still(self.con, self.pid, self.uhr(42)), [])
         self.assertEqual(tuple(self.aufgabe()), ("CC1", "laeuft"))
 
@@ -99,6 +99,15 @@ class Still(unittest.TestCase):
         """Als hätte ihn eine frühere Runde nachgeweckt (zwischendurch stand er)."""
         with db.schreiben(self.con):
             db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=iso(self.uhr(11)), von="AMW", art="nachgeweckt", text=str(self.n))
+
+    def test_hook_ereignis_nach_dem_weckruf_ist_eine_reaktion(self):
+        self.vorbereiten()
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE sitzung SET ereignis = 'halt', ereignis_utc = ?", (iso(self.uhr(2)),))   # Prompt angenommen, wieder still
+        self.assertEqual(self.d.nachwecken(self.uhr(11)), [])
+        self.nachgeweckt_trotzdem()
+        self.assertEqual(verteilen.still(self.con, self.pid, self.uhr(42)), [])
+        self.assertEqual(tuple(self.aufgabe()), ("CC1", "laeuft"))
 
     def test_nicht_im_halt(self):
         self.vorbereiten()
@@ -141,6 +150,8 @@ class Still(unittest.TestCase):
         kern.aufgabe_status(self.con, self.pid, "TL", self.aid, "start")
         n, _ = kern.posten(self.con, self.pid, "CC1", "TL", "frage", "Merge-OK?")
         self.d.zustellen()
+        with db.schreiben(self.con):                                                              # beim Lead zählt wie bisher „offen“
+            self.con.execute("UPDATE empfang SET status = 'offen' WHERE agent = 'TL'")
         self.assertEqual(self.d.nachwecken(self.uhr(11)), [f"TL: #{n}"])                         # der Lead wird nachgeweckt wie bisher
         self.assertEqual(verteilen.still(self.con, self.pid, self.uhr(80)), [])
         self.assertEqual(tuple(self.aufgabe()), ("TL", "laeuft"))
