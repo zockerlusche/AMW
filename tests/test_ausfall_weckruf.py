@@ -59,7 +59,8 @@ class Still(unittest.TestCase):
         notiz = json.loads(self.con.execute("SELECT text FROM plan_ereignis WHERE art = 'uebergabe' AND aufgabe_id = ?", (self.aid,)).fetchone()[0])
         self.assertEqual(notiz["agent"], "CC1")
         self.assertIn("letzter Commit", notiz["notiz"])
-        m = self.con.execute("SELECT kurz, text FROM nachricht WHERE an = 'TL' AND von = 'AMW' AND kurz LIKE 'Still:%'").fetchone()
+        m = self.con.execute("SELECT n.kurz, n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id"
+                             " WHERE e.agent = 'TL' AND n.von = 'AMW' AND n.kurz LIKE 'Still:%'").fetchone()
         self.assertEqual(m["kurz"], f"Still: CC1 – A{self.aid} zurück in den Pool")
         self.assertIn(f"#{self.n}", m["text"])
         self.assertIn("die AMW startet nie selbst", m["text"])
