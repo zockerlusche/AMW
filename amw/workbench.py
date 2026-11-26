@@ -1395,7 +1395,7 @@ def daten_gesamtsicht(con, pid):
     return {"projekte": aus}
 
 
-def daten_projekte(con, pid):
+def daten_projekte(con, pid, fuer_dich=True):
     """Projekt-Auswahl: alle Projekte dieser AMW mit dem, was man ohne Wechsel sehen will (offene Fragen an den
     Entwickler, Halt). Umschalten ändert nur die Ansicht (doc/plan-projektwahl.md)."""
     from . import einstellungen
@@ -1408,7 +1408,7 @@ def daten_projekte(con, pid):
         aus.append({"uid": p["uid"], "name": p["name"], "farbe": kern.projekt_wahl(con, p["id"], "farbe"),
                     "fragen": z["fragen"], "agenten": z["agenten"], "seit": p["angelegt_utc"], "aktiv": p["id"] == pid,
                     "halt": bool(kern.aktive_sperren(con, p["id"], art="halt")),
-                    "fuer_dich": _fuer_dich_zahl(con, p["id"])})          # A2014: Zähler im Projektwechsel wie die Zahl im Leitstand
+                    **({"fuer_dich": _fuer_dich_zahl(con, p["id"])} if fuer_dich else {})})   # A2014: Zähler wie im Leitstand; nicht beim Abgleich
     rechner = einstellungen.wert("rechner")
     for e in aus:
         e["rechner"] = rechner

@@ -358,7 +358,7 @@ def ansichten(con, pid, speicher=None, fehler=None):
              "/api/betrieb": lambda: _betrieb_ohne_namen(workbench.daten_betrieb(con, pid)),
              "/api/releases": lambda: workbench.daten_releases(con, pid),
              "/api/versionshinweise": lambda: workbench.daten_versionshinweise(con, pid),
-             "/api/projekte": lambda: workbench.daten_projekte(con, pid),
+             "/api/projekte": lambda: workbench.daten_projekte(con, pid, fuer_dich=False),   # A2014: „für dich“ aller Projekte nicht je Runde (online: Fragen)
              "/api/einstellungen": lambda: workbench.daten_einstellungen(con, pid, speicher),
              "/api/agenten": lambda: workbench.daten_agenten_alle(con, pid),
              "/api/planung": lambda: workbench.daten_planung(con, pid),
@@ -688,7 +688,7 @@ class Abgleich:
                 p = _pruef(inhalt)
                 if alle or self.bekannt.get(f"{uid}:{weg}") != p:
                     neu.append((f"{uid}:{weg}", json.dumps(inhalt, ensure_ascii=False), p))
-            e = next(x for x in workbench.daten_projekte(self.con, pid)["projekte"] if x["uid"] == uid)
+            e = next(x for x in workbench.daten_projekte(self.con, pid, fuer_dich=False)["projekte"] if x["uid"] == uid)   # A2014: Verzeichnis ohne „für dich“
             verzeichnis.append(("INSERT INTO projekt (uid, name, farbe, rechner, gesehen_utc, fragen, agenten, halt) VALUES"
                                 " (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET name = excluded.name, farbe = excluded.farbe,"
                                 " rechner = excluded.rechner, gesehen_utc = excluded.gesehen_utc, fragen = excluded.fragen,"
