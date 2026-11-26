@@ -90,12 +90,21 @@ function lsZeile(x, unten) {
   return el("button", { type: "button", class: "ls-zeile", "data-ref": x.nummer || "", onclick: () => lsKarteOeffnen(x) },
     el("div", {}, x.nummer ? el("span", { class: "ref" }, x.nummer + " ") : null, x.titel || ""), el("div", { class: "leise" }, unten));
 }
+/* Zuletzt: die jüngsten drei direkt vor „Jetzt“ (älteste oben); die früheren hinter einem leisen Link – wie in der Kleinprobe */
+const LS_ZULETZT = 3;
+function lsZuletzt(zuletzt) {
+  const zeile = z => lsZeile(z, [z.wer, seit(z.zeit_utc)].filter(Boolean).join(" · "));
+  const frueher = zuletzt.slice(0, Math.max(0, zuletzt.length - LS_ZULETZT)), linie = el("div", { class: "ls-linie" });
+  const mehr = frueher.length ? el("button", { type: "button", class: "verweis ls-frueher", onclick: () => { mehr.remove(); linie.prepend(...frueher.map(zeile)); } },
+    t("lst_frueher_n", { n: frueher.length })) : null;
+  linie.append(...[mehr, ...zuletzt.slice(-LS_ZULETZT).map(zeile)].filter(Boolean));
+  return linie;
+}
 function lsAblauf(l) {
   if (!l) return el("section", { class: "ls-block ls-platz" }, el("div", { class: "leise" }, t("lst_laedt")));
   const zuletzt = l.zuletzt || [], jetzt = l.jetzt || [], naechst = l.als_naechstes || [];
   return el("section", { class: "ls-ablauf" },
-    zuletzt.length ? el("div", {}, el("h2", { class: "ls-lbl" }, t("lst_zuletzt")),
-      el("div", { class: "ls-linie" }, zuletzt.map(z => lsZeile(z, [z.wer, seit(z.zeit_utc)].filter(Boolean).join(" · "))))) : null,
+    zuletzt.length ? el("div", {}, el("h2", { class: "ls-lbl" }, t("lst_zuletzt")), lsZuletzt(zuletzt)) : null,
     el("h2", { class: "ls-lbl ls-jetzt" }, t("lst_jetzt", { x: lsUhr(new Date().toISOString()), n: jetzt.length })),
     jetzt.length ? el("div", { class: "ls-raster" }, jetzt.map(lsJetztKarte)) : el("p", { class: "leise" }, t("lst_nichts_laeuft")),
     naechst.length ? el("div", {}, el("h2", { class: "ls-lbl" }, t("lst_naechstes")),
@@ -129,11 +138,12 @@ function lsEntscheidungen(l) {
       onclick: () => x.projekt === (projekte.find(p => p.uid === projekt) || {}).name ? lsKarteOeffnen(x) : lsFenster(x.projekt, [[t("lst_wann"), zeit(x.zeit_utc)]], el("p", {}, x.text)) },
       el("span", { class: "mono leise" }, lsUhr(x.zeit_utc)), el("span", { class: "leise" }, x.projekt), el("span", {}, x.text)))));
 }
-function lsLeer(l) {                                /* neues Projekt ohne Pakete · alles fertig */
+function lsLeer(l, pw) {                            /* neues Projekt ohne Pakete (Themen aus dem Projektweg) · alles fertig */
   const f = l?.fortschritt;
   if (!f || f.gesamt) return null;
-  const fertig = (l.zeitplan || []).length === 0 && (l.zuletzt || []).length > 0;
-  return el("div", { class: "ls-leer" }, el("b", {}, t(fertig ? "lst_leer_fertig" : "lst_leer_neu")),
+  const fertig = (l.zeitplan || []).length === 0 && (l.zuletzt || []).length > 0, k = pw?.konzept;
+  return el("div", { class: "ls-leer" }, el("b", {}, t(fertig ? "lst_leer_fertig" : "lst_leer_neu")
+      + (!fertig && k?.g ? " " + t("lst_themen_n", { n: k.n, g: k.g }) : "")),
     fertig ? null : el("a", { class: "verweis", href: "#projektweg", onclick: e => { e.preventDefault(); zeige("projektweg"); } }, t("lst_zum_konzept")));
 }
 async function lsProjektdetails(d) {
@@ -141,6 +151,9 @@ async function lsProjektdetails(d) {
   const felder = [[t("lst_erledigt"), f ? t("lst_von_paketen", { f: f.fertig, g: f.gesamt }) : null],
     [t("lst_voraus"), f?.p50 ? `${datumKurz(f.p50)} – ${datumKurz(f.p85)}` : null], [t("lst_ziel_k"), f?.ziel ? datumKurz(f.ziel) : null],
     [t("lst_fragen_offen"), String(d.fragen_anzahl ?? 0)], u.kosten_heute != null ? [t("lst_kosten_heute"), dollar(u.kosten_heute)] : null];
+  let pw = null; try { pw = await holen("/api/projektweg"); } catch (e) {}   /* nur beim Öffnen – kostet die Startseite nichts */
+  const schritt = pw?.schritte?.find(s => s.schritt === pw.dran), k = pw?.konzept;
+  felder.push(schritt ? [t("lst_schritt"), t("pjw_s_" + schritt.schritt)] : null, k?.g ? [t("lst_themen"), t("lst_themen_frei", { n: k.n, g: k.g })] : null);
   const termine = (l?.zeitplan || []).map(m => [`M${m.nr} ${m.titel}`, (m.ziel ? t("lst_ziel", { x: datumKurz(m.ziel) }) + " · " : "") + t("lst_fertig_vor", { x: datumKurz(m.p50) })]);
   lsFenster(t("lst_details"), felder, termine.length ? el("div", {}, el("h4", {}, t("lst_termine")),
     el("div", { class: "pjw-felder" }, termine.flatMap(([k, v]) => [el("span", {}, k), el("span", {}, v)]))) : null,
@@ -154,8 +167,11 @@ async function sichtLeitstand(d, m) {
   let l = null;
   try { l = await lsDaten(d); } catch (e) { ablauf.replaceChildren(el("p", { class: "leise" }, t("fehler", { x: e.message || e }))); return; }
   if (zustand.sicht !== "start") return;
-  fort.replaceChildren(lsFortschritt(l.fortschritt));
-  leer.replaceChildren(...[lsLeer(l)].filter(Boolean));
+  let pw = null;                                    /* nur ohne Pakete: der Projektweg nennt die Themen (x von y) */
+  if (!l.fortschritt?.gesamt) { try { pw = await holen("/api/projektweg"); } catch (e) {} }
+  if (zustand.sicht !== "start") return;
+  fort.replaceChildren(...(l.fortschritt?.gesamt ? [lsFortschritt(l.fortschritt)] : []));
+  leer.replaceChildren(...[lsLeer(l, pw)].filter(Boolean));
   ress.replaceChildren(lsRessourcen(d, l));
   ablauf.replaceChildren(lsAblauf(l));
   rest.replaceChildren(...[lsZeitplan(l), lsEntscheidungen(l)].filter(Boolean));

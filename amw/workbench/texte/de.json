@@ -2633,5 +2633,10 @@
   "lst_min": "{n} min",
   "lst_h": "{n} h",
   "lst_laeuft1": "1 läuft",
-  "lst_dich": "dich"
+  "lst_dich": "dich",
+  "lst_frueher_n": "{n} frühere zeigen",
+  "lst_themen_n": "({n} von {g} Themen freigegeben)",
+  "lst_schritt": "Schritt jetzt",
+  "lst_themen": "Themen",
+  "lst_themen_frei": "{n} von {g} freigegeben"
 }

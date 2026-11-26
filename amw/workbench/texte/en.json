@@ -2633,5 +2633,10 @@
   "lst_min": "{n} min",
   "lst_h": "{n} h",
   "lst_laeuft1": "1 running",
-  "lst_dich": "you"
+  "lst_dich": "you",
+  "lst_frueher_n": "show {n} earlier",
+  "lst_themen_n": "({n} of {g} topics approved)",
+  "lst_schritt": "Current step",
+  "lst_themen": "Topics",
+  "lst_themen_frei": "{n} of {g} approved"
 }

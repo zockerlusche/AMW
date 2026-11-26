@@ -35,6 +35,7 @@
 .ls-gleichzeitig { display: flex; flex-direction: column; gap: 6px; }
 .ls-ablauf > div { margin-bottom: 6px; }
 .ls-ablauf .verweis { display: inline-block; margin-top: 8px; font-size: 13.5px; }
+.ls-frueher { align-self: flex-start; background: none; border: 0; padding: 0; margin: 0 0 2px !important; color: var(--leise); cursor: pointer; }
 .ls-zeitplan { display: flex; flex-direction: column; gap: 8px; }
 .ls-zp-zeile { display: grid; grid-template-columns: minmax(120px, 220px) 1fr minmax(120px, 200px); gap: 14px; align-items: center; font-size: 13.5px; }
 .ls-zp-zeile > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
