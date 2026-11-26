@@ -674,10 +674,17 @@ class Abgleich:
         rechner = einstellungen.wert("rechner")
         verzeichnis = []
         fehler_runde = {}                             # A2001: (pid, weg) → Fehlertext dieser Runde
+        runde, zahl = [], {}
         for pid, uid in self.projekte():
             fehler = []
             with einmal.merken(self.con, schnappschuss=True):              # A2081: alle Ansichten eines Projekts rechnen dasselbe nur einmal
                 alle_ansichten = ansichten(self.con, pid, self.sp, fehler)
+                zahl[uid] = workbench._fuer_dich_zahl(self.con, pid)      # A2181: einmal je Runde und Projekt, im selben Merker wie die Startdaten
+            runde.append((pid, uid, alle_ansichten, fehler))
+        for pid, uid, alle_ansichten, fehler in runde:
+            for p in (alle_ansichten.get("/api/projekte") or {}).get("projekte", []):
+                if p.get("uid") in zahl:                                   # A2181: online dieselbe Zahl „für dich“ wie am PC
+                    p["fuer_dich"] = zahl[p["uid"]]
             if index:
                 x = _sicher(fehler, "/api/suchindex", suchindex, self.con, pid)
                 if x is not None:
