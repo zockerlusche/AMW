@@ -1394,6 +1394,8 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
             stil.gruen_pruefen(con, pid, prid, bemerkung)
         con.execute("UPDATE pruefung SET ergebnis = ?, bemerkung = ?, ergebnis_utc = ? WHERE id = ?",
                     (ergebnis, bemerkung, db.jetzt(), prid))
+        if ergebnis == "gruen":                      # A2169: ältere offene Prüfbitten derselben Aufgabe sind damit überholt
+            pruefungen_veraltet(con, pid, p["aufgabe_id"], f"ersetzt durch P{prid} (grün)", neu=prid)
         an = [p["bauer"]]
         if p["aufgabe_id"]:                          # der Federführende nimmt ab (ohne Federführung: der Lead)
             z = kern.zustaendig(con, pid, p["aufgabe_id"])
@@ -1424,6 +1426,71 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
         except Exception:                            # noqa: BLE001 – das Grün gilt trotzdem
             pass
     return rueck
+
+
+VERALTET_ART = "pruefung_veraltet"            # A2169: {"pruefung", "grund", "neu"} – die AMW schloss eine Prüfbitte, deren Stand überholt ist
+ALT_ART = "pruefung_alt"                      # A2169: Text = P-Nummer – einmal dem Lead gemeldet, dass sie länger als ALT_H offen ist
+ALT_H = 24
+
+
+def pruefungen_veraltet(con, pid, aid, grund, neu=None):
+    """A2169 (Marcel über TL #34255): Die übrigen offenen Prüfbitten der Aufgabe `aid` schließen – sie sind überholt, weil die Aufgabe
+    fertig oder verworfen ist (neu=None: alle offenen) oder weil eine neuere Prüfbitte `neu` grün wurde (nur die älteren, id < neu).
+    Ohne Weckruf: Ergebnis rot mit Bemerkung „veraltet – <grund>“, ihr Wartegrund still erledigt, ein Eintrag im Protokoll.
+    Läuft im Schreibvorgang des Aufrufers. Rückgabe: die geschlossenen Nummern."""
+    if not aid:
+        return []
+    sql, par = "SELECT id FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND ergebnis = 'offen'", [pid, aid]
+    if neu is not None:
+        sql += " AND id < ?"
+        par.append(neu)
+    ids = [r[0] for r in con.execute(sql + " ORDER BY id", par)]
+    if not ids:
+        return []
+    from . import wartegrund
+    jetzt = db.jetzt()
+    for prid in ids:
+        con.execute("UPDATE pruefung SET ergebnis = 'rot', ergebnis_utc = ?, bemerkung = ? WHERE id = ? AND ergebnis = 'offen'",
+                    (jetzt, f"veraltet – {grund}"[:500], prid))
+        wartegrund.erledige(con, pid, *wartegrund.stichwort("wartet_pruefung", f"P{prid}"), f"P{prid} veraltet", leise=True)
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=jetzt, von="AMW", art=VERALTET_ART, aufgabe_id=aid,
+                     text=json.dumps({"pruefung": prid, "grund": grund[:300], "neu": neu}, ensure_ascii=False))
+    return ids
+
+
+def abschluss_grund(con, pid, aid, neu):
+    """Grund für pruefungen_veraltet beim Abschluss: „ausgeliefert über P…“ (die jüngste grüne), sonst „Paket fertig“ bzw. „Paket verworfen“."""
+    if neu == "verworfen":
+        return "Paket verworfen"
+    r = con.execute("SELECT max(id) FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND ergebnis = 'gruen'", (pid, aid)).fetchone()
+    return f"ausgeliefert über P{r[0]}" if r and r[0] else "Paket fertig"
+
+
+def pruefungen_alt(con, pid, jetzt=None):
+    """A2169 (4): Prüfbitten, die länger als ALT_H Stunden offen sind, meldet die AMW dem Lead einmal je Prüfbitte (eine Meldung je Runde
+    mit allen neuen). Rückgabe: Texte."""
+    import time
+    jetzt = jetzt or time.time()
+    lead = kern.lead(con, pid)
+    if not lead:
+        return []
+    grenze = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - ALT_H * 3600))
+    neu = [r for r in con.execute("SELECT p.id, p.zweig, p.sha, p.bauer, p.pruefer, p.aufgabe_id, p.angefragt_utc FROM pruefung p"
+                                  " WHERE p.projekt_id = ? AND p.ergebnis = 'offen' AND p.angefragt_utc <= ? AND NOT EXISTS (SELECT 1 FROM"
+                                  " plan_ereignis e WHERE e.projekt_id = p.projekt_id AND e.art = ? AND e.text = 'P' || p.id) ORDER BY p.id",
+                                  (pid, grenze, ALT_ART))]
+    if not neu:
+        return []
+    with db.schreiben(con):
+        for r in neu:
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=ALT_ART, aufgabe_id=r["aufgabe_id"],
+                         text=f"P{r['id']}")
+        zeilen = [f"P{r['id']} · {'A' + str(r['aufgabe_id']) if r['aufgabe_id'] else '–'} · {r['zweig']}@{(r['sha'] or '')[:8]} · {r['bauer']} → {r['pruefer']}"
+                  f" · seit {r['angefragt_utc'][:16].replace('T', ' ')} UTC" for r in neu]
+        kern._posten(con, pid, "AMW", lead, "meldung", f"{len(neu)} Prüfbitte{'n' if len(neu) != 1 else ''} seit über {ALT_H} h offen",
+                     "\n".join(zeilen) + "\n\nNoch gültig? Urteil: amw pruefung gruen|rot <P>. Ist das Paket über einen anderen Stand gegangen,"
+                     " schließt die AMW die Prüfbitte von selbst, sobald die Aufgabe fertig ist oder eine neuere grün wird.")
+    return [f"P{r['id']} seit über {ALT_H} h offen" for r in neu]
 
 
 ZURUECK_ART = "pruefung_zurueckgenommen"      # A1917: {"pruefung", "zweig", "sha", "grund", "quelle"} – das GRÜN davor bleibt im Verlauf

@@ -289,6 +289,14 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
 - **Neu aufgesetzter Stapel (A1982):** Wird ein Stapel auf einer neueren main neu aufgesetzt (anderer Basis-Commit), belegt
   der alte Stand die Nummer nicht mehr, wenn alle seine Inhalts-Commits patch-id-gleich im neuen Stand stecken – Versions-Commits
   (nur CHANGELOG, `amw/__init__.py`, `web/inc/VERSION`) zählen dabei nicht. Fehlt im neuen Stand Inhalt des alten, belegt er weiter.
+- **Prüfbitte schließt mit ihrem Paket (A2169):** Wird eine neuere Prüfbitte derselben Aufgabe grün – Urteil des Prüfers, GRÜN
+  der AMW nach Prüfung C, Übernahme bei gleichem Inhalt (A1814), Bündel ohne Agent (A2123) oder Prüfung C mit Freigabe –, schließt
+  die AMW die älteren offenen dieser Aufgabe: Ergebnis rot mit „veraltet – ersetzt durch P…“. Wird die Aufgabe fertig (auch über
+  die Release-Kette) oder verworfen, schließt sie alle übrigen offenen: „veraltet – ausgeliefert über P…“ (die jüngste grüne),
+  „Paket fertig“ bzw. „Paket verworfen“. Ohne Weckruf: ihr Wartegrund geht still, ein Ereignis `pruefung_veraltet` steht im
+  Protokoll. Ist eine Prüfbitte länger als 24 h offen, meldet die AMW das dem Lead einmal je Prüfbitte (eine Meldung je
+  Dienst-Runde mit allen neuen, Ereignis `pruefung_alt`). Die Sammel-Prüfung eines Bündels (A1876, am ersten Paket) schließt
+  nichts – dessen Prüfbitten gehen spätestens mit „fertig“.
 
 ## Wartegründe (seit 1.8.0)
 

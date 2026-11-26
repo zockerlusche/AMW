@@ -1647,6 +1647,9 @@ def aufgabe_status(con, pid, von, aid, status, beleg=None, wartet_auf=None, beme
             taetigkeit.merken(con, pid, a["agent"] or von, "sonstiges", None)
         if neu in ("laeuft", "fertig", "verworfen"):
             wartegrund.schliessen(con, aid, f"A{aid} {neu}")
+        if neu in ("fertig", "verworfen"):            # A2169: übrige offene Prüfbitten sind überholt – die AMW schließt sie mit Grund
+            from . import betrieb
+            betrieb.pruefungen_veraltet(con, pid, aid, betrieb.abschluss_grund(con, pid, aid, neu))
         if neu == "laeuft":                          # „alle Gründe erledigt – weiter“ ist damit abgearbeitet
             con.execute("UPDATE empfang SET status = 'erledigt', erledigt_utc = ? WHERE agent = ? AND status != 'erledigt'"
                         " AND nachricht_id IN (SELECT id FROM nachricht WHERE projekt_id = ? AND von = 'AMW'"

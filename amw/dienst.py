@@ -571,6 +571,12 @@ class Dienst:
                             log.info("Konzeptänderung: %s", e)
                     except Exception as e:
                         log.warning("Konzeptänderung P%s: %s: %s", p["id"], type(e).__name__, e)
+                    try:                                                     # A2169: Prüfbitten länger als 24 h offen → einmal an den Lead
+                        from . import betrieb as _betrieb
+                        for e in _betrieb.pruefungen_alt(self.con, p["id"]):
+                            log.info("Prüfbitte alt: %s", e)
+                    except Exception as e:
+                        log.warning("Prüfbitte alt: %s: %s", type(e).__name__, e)
                     try:                                                     # A2123: Bündel ohne Agent (nur mit buendel_ausliefern = an)
                         from . import buendel_auslieferung
                         if p["id"] == self.con.execute("SELECT min(id) FROM projekt").fetchone()[0]:

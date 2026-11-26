@@ -327,14 +327,16 @@ class Lauf:
     # Grün: Freigabe und Kette
     def freigeben(self, stand, lid):
         """GRÜN und Merge-OK der AMW je Paket auf den Bündel-Stand, dazu die Marke. Nur hier – kein Befehl, keine Seite."""
+        from . import betrieb
         jetzt = db.jetzt()
         text = (f"Bündel {stand['version']} ohne Agent (A2123): abgenommen ({', '.join(stand['abnahme'])}), Gesamtlauf L{lid} grün auf genau"
                 f" {stand['sha'][:8]}")
         with db.schreiben(self.con):
             for aid in stand["aufgaben"]:
-                db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=aid, zweig=self.zweig, sha=stand["sha"], bauer="AMW",
-                             pruefer="AMW", punkte=text, ergebnis="gruen", bemerkung="von der AMW (Bündel ohne Agent, A2123)",
-                             angefragt_utc=jetzt, ergebnis_utc=jetzt)
+                prid = db.einfuegen(self.con, "pruefung", projekt_id=self.pid, aufgabe_id=aid, zweig=self.zweig, sha=stand["sha"], bauer="AMW",
+                                    pruefer="AMW", punkte=text, ergebnis="gruen", bemerkung="von der AMW (Bündel ohne Agent, A2123)",
+                                    angefragt_utc=jetzt, ergebnis_utc=jetzt)
+                betrieb.pruefungen_veraltet(self.con, self.pid, aid, f"ersetzt durch P{prid} (Bündel {stand['version']})", neu=prid)   # A2169
                 db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=jetzt, von="AMW", art="merge_ok", aufgabe_id=aid,
                              text=self.zweig)
             db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=jetzt, von="AMW", art=ART,

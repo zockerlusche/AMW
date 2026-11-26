@@ -284,8 +284,9 @@ def freigeben(con, pid, von, aids=None, blick=()):
         text = f"Prüfung C (AMW) + Freigabe {von}" + (" mit Blick in den Diff" if aid in blick else "")
         jetzt = db.jetzt()
         with db.schreiben(con):
-            db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=aid, zweig=e["zweig"], sha=e["kopf"], bauer="AMW", pruefer=von,
-                         punkte=text, ergebnis="gruen", bemerkung=text, angefragt_utc=jetzt, ergebnis_utc=jetzt)
+            prid = db.einfuegen(con, "pruefung", projekt_id=pid, aufgabe_id=aid, zweig=e["zweig"], sha=e["kopf"], bauer="AMW", pruefer=von,
+                                punkte=text, ergebnis="gruen", bemerkung=text, angefragt_utc=jetzt, ergebnis_utc=jetzt)
+            betrieb.pruefungen_veraltet(con, pid, aid, f"ersetzt durch P{prid} (Prüfung C + Freigabe)", neu=prid)   # A2169
             db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=jetzt, von=von, art="merge_freigabe", aufgabe_id=aid,
                          text=json.dumps({"zweig": e["zweig"], "kopf": e["kopf"], "blick": aid in blick, "server": e["server"][:10],
                                           "aussen": e["aussen"][:8]}, ensure_ascii=False))

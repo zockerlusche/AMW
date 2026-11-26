@@ -221,6 +221,8 @@ class Kette:
                                         punkte=f"Übernommen aus P{p['id']} ({p['zweig']}@{p['sha'][:8]}) – gleicher Inhalt (git patch-id),"
                                                " nur neu aufgesetzt", bemerkung=f"automatisch von der AMW (A1814), Quelle P{p['id']}")
                     text = f"P{prid} ← P{p['id']}: {p['sha'][:8]} → {ziel[:8]} gleicher Inhalt"
+                    betrieb.pruefungen_veraltet(          # A2169: ältere offene Prüfbitten der Aufgabe sind damit überholt
+                        self.con, self.pid, p["aufgabe_id"], f"ersetzt durch P{prid} (grün, übernommen)", neu=prid)
                 if ok_mit:
                     db.einfuegen(self.con, "plan_ereignis", projekt_id=self.pid, zeit_utc=jetzt, von="AMW", art="merge_ok",
                                  aufgabe_id=p["aufgabe_id"], text=zweig)
