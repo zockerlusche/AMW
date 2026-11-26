@@ -97,7 +97,8 @@ class EchterWeg(Grund):
             self.assertIn(satz, self.zeilen("abschluss"))
         with db.schreiben(self.con):
             self.con.execute("UPDATE bogen SET status = 'aktiv' WHERE id = ?", (self.m,))
-        self.ereignis("bogen_status", z(12, tag=26), von="TL", bogen=self.m, text="aktiv → fertig")
+        # A2164: sicher nach jetzt – eintragen() davor schreibt mit der echten Uhr (fest 26.11. 12:00 war ab Mittag älter)
+        self.ereignis("bogen_status", "2099-01-01T00:00:00Z", von="TL", bogen=self.m, text="aktiv → fertig")
         self.assertEqual(self.zeilen("abschluss")[-1], "M1: abgeschlossen")
 
     def test_befehl_verlauf_protokoll(self):
