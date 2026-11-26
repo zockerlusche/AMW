@@ -199,12 +199,12 @@ function pwStufen(pakete, mitStatus) {
 }
 function pwKonzept(d) {
   const k = d.konzept;
-  if (!k.themen.length) return [el("div", { class: "leer" }, t("pjw_k_leer"), " ", el("a", { href: "#themen", onclick: e => { e.preventDefault(); zeige("themen"); } }, t("pjw_zu_themen")))];
+  if (!k.themen.length) return [el("div", { class: "leer" }, t("pjw_k_leer"), " ", el("a", { class: "verweis", href: "#themen", onclick: e => { e.preventDefault(); zeige("themen"); } }, t("pjw_zu_themen")))];
   const teile = [el("div", { class: "pjw-liste" }, k.themen.map(x => el("div", { class: "pjw-zeile", "data-th": x.id, onclick: () => pwOeffne({ art: "thema", id: x.id }) },
     el("span", { class: "pjw-nr" }, `TH${x.id}`), el("span", {}, x.name),
     pwStatus(x.markiert ? t("th2_markiert") : t("th2_" + (x.status || "arbeit")), x.status === "dich" ? "dran" : x.status === "frei" ? "frei" : ""))))];
   if (!k.zu) teile.push(el("div", { class: "leise" }, t("pjw_k_erst", { n: k.n, g: k.g }), " ",
-    el("a", { href: "#themen", onclick: e => { e.preventDefault(); zeige("themen"); } }, t("pjw_zu_themen"))));
+    el("a", { class: "verweis", href: "#themen", onclick: e => { e.preventDefault(); zeige("themen"); } }, t("pjw_zu_themen"))));
   else if (k.bestand) teile.push(el("div", { class: "leise" }, pwN("pjw_k_bestand", k.bestand)));   /* A2061: A2030 kennt keine Übernahme */
   else if (!API && !k.abgeschlossen && !k.grob_angenommen && !k.grob_laeuft)
     pwHaupt = pwKnopf(t("pjw_k_abschliessen"), () => pwTun("/api/projektweg/konzept-abschliessen", {}, t("pjw_ok_abgeschlossen")), true);
@@ -514,7 +514,7 @@ function pwFensterZeichnen() {
   const zu = () => { zustand.pwFenster = null; document.getElementById("pjw-fenster")?.remove(); };
   const teile = [el("div", { class: "pjw-kopf" }, el("h3", {}, titel), el("button", { class: "knopf still pjw-zu", type: "button", onclick: zu, "aria-label": t("pjw_schliessen") }, "✕")),
     el("div", { class: "pjw-felder" }, felder.flatMap(([k, v]) => [el("span", {}, k), el("span", {}, v)]))];
-  if (w.art === "thema") teile.push(el("a", { href: "#themen", onclick: e => { e.preventDefault(); zustand.themaOffen = w.id; zu(); zeige("themen"); } }, t("pjw_thema_oeffnen")));
+  if (w.art === "thema") teile.push(el("a", { class: "verweis", href: "#themen", onclick: e => { e.preventDefault(); zustand.themaOffen = w.id; zu(); zeige("themen"); } }, t("pjw_thema_oeffnen")));
   if (hinweis) {
     teile.push(el("div", {}, el("label", { class: "pjw-lbl", for: "pjw-erg" }, t("pjw_ergaenzen")), el("textarea", { id: "pjw-erg", class: "pjw-hinweis", placeholder: t("pjw_ergaenzen_ph") })));
     teile.push(pwHandlungen(hinweis.bogen
