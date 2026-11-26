@@ -955,6 +955,12 @@ main.geteilt-seite { padding-bottom: 16px; }
 .agent-dialog .eintrag-zusatz { font-size: 12px; margin-top: 3px; }
 .agent-dialog .eintrag-text.gross { font-size: 15px; font-weight: 600; }
 .agent-dialog .leer-klein { font-size: 13px; padding: 2px 0; }
+/* A2146: Rückfrage der Seite statt confirm/prompt */
+.rueckfrage-text { white-space: pre-line; margin: 0 0 14px; line-height: 1.5; }
+.dialog-zu + .rueckfrage-text { padding-right: 40px; }   /* das ✕ der Seite (11-planung.js) steht nicht über dem Text */
+.rueckfrage input[type=text] { width: 100%; padding: 8px; margin: 0 0 14px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; color: var(--tinte); font: inherit; }
+.rueckfrage-knoepfe { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+@media (max-width: 760px) { .dialog-hg.rueckfrage-hg { padding: 8px; } .rueckfrage { width: 100%; } .rueckfrage-knoepfe .knopf { flex: 1 1 0; } }
 /* --- Gespräch je Agent ------------------------------------------------------------------------- */
 .gs-tabs { display: flex; gap: 2px; margin-top: 12px; border-bottom: 1px solid var(--linie); }
 .gs-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 7px 14px 6px; cursor: pointer;
@@ -1864,7 +1870,17 @@ const TEXTE = {
     tor_dich_ms: "{n} Meilensteine", tor_dich_ms1: "1 Meilenstein", pm_ab_kopf: "Abschluss", pm_ab_bericht: "Abschlussbericht gegen die Erfolgskriterien, mit Resten und Lehren", pm_ab_kommt: "Die AMW erstellt den Abschlussbericht in wenigen Minuten.", pm_ab_ja: "Ja – Bericht bestätigen",
     pm_ab_ok: "Abschluss bestätigt", pm_ab_frei: "bestätigt von {x}", pm_ab_wartet: "Abschluss wartet auf dich", pm_bereit: "bereit zur Abnahme", sa_dokument: "Dokument", sa_aufgabe: "Aufgabe",
     sa_frage: "Frage", sa_meilenstein: "Meilenstein", sa_beschluss: "Beschluss", sa_wortlaut: "dein Wort", sa_thema: "Thema", sa_lauf: "Lauf",
-    sa_pruefung: "Prüfung", sa_nachricht: "Nachricht", rf_nicht_da: "{x} lässt sich hier nicht öffnen: nicht vorhanden oder zu weit zurück.",
+    sa_pruefung: "Prüfung", sa_nachricht: "Nachricht", rf_nicht_da: "{x} lässt sich hier nicht öffnen: nicht vorhanden oder zu weit zurück.", egr_titel: "Eingreifen", egr_frueher: "Früher", egr_spaeter: "Später",
+    egr_frueher_h: "Mit dem Paket davor tauschen", egr_spaeter_h: "Mit dem Paket danach tauschen", egr_frueher_ok: "A{a} steht jetzt vor „{x}“", egr_spaeter_ok: "A{a} steht jetzt hinter „{x}“", egr_sp_vorn: "steht schon vorn", egr_sp_hinten: "steht schon hinten",
+    egr_sp_laeuft: "„{x}“ läuft schon", egr_sp_braucht: "braucht „{x}“", egr_sp_braucht_es: "„{x}“ braucht es", egr_sp_mensch: "von {x} so gesetzt", egr_sp_zu: "lässt sich nicht mehr schieben", egr_sp_laeuft_selbst: "läuft schon",
+    egr_sp_zurueckgestellt: "ist zurückgestellt", egr_sp_ohne: "gehört zu keinem Meilenstein", egr_pp: "Prüfpunkt dahinter", egr_pp_h: "Nach diesem Paket hält die AMW an: Stand packen, du testest, dann geht es weiter.", egr_pp_frage: "Prüfpunkt hinter „{x}“: Was willst du dann testen?", egr_pp_ph: "z. B. Anmeldung am Handy",
+    egr_pp_setzen: "Prüfpunkt setzen", egr_pp_ok: "Prüfpunkt A{a} gesetzt – {n} Pakete warten darauf", egr_pp_weg: "Prüfpunkt wegnehmen", egr_pp_weg_frage: "Prüfpunkt A{a} wegnehmen? Die Pakete dahinter warten dann nicht mehr.", egr_pp_weg_ok: "Prüfpunkt A{a} weggenommen", egr_grund_ph: "Grund (steht im Verlauf)",
+    egr_grund_fehlt: "Bitte einen Grund angeben", egr_neu_h: "Danach rechnet die AMW Reihenfolge und Zeitplan neu; der Verlauf nennt dich und den Grund.", egr_ag_titel: "Zuteilung", egr_ag_raus: "Herausnehmen", egr_ag_h: "Bekommt nichts Neues; die wartenden Pakete gehen an die anderen. Was mit dem laufenden geschieht, wählst du.", egr_ag_frage: "{x} herausnehmen?",
+    egr_ag_l_zu_ende: "Das laufende Paket läuft zu Ende", egr_ag_l_zurueck: "Das laufende Paket kommt mit Übergabe-Notiz zurück in den Pool", egr_ag_laufend_zu_ende: "A{a} „{x}“ läuft zu Ende", egr_ag_laufend_zurueck: "A{a} „{x}“ kommt mit Übergabe-Notiz zurück in den Pool", egr_ag_nichts_laeuft: "Gerade läuft nichts", egr_ag_pool: "{n} wartende Pakete gehen an die anderen: {x}",
+    egr_ag_kein_pool: "Keine wartenden Pakete", egr_ag_bleibt: "Bleiben, weil schon gebaut: {x}", egr_ag_raus_ok: "{x} ist herausgenommen", egr_ag_ist: "Herausgenommen seit {x}", egr_ag_frei: "Wieder freigeben", egr_ag_frei_frage: "{x} wieder freigeben? Die AMW teilt dann wieder Pakete zu.",
+    egr_ag_frei_ok: "{x} ist wieder frei", egr_pa: "Pause für alles", egr_pa_an: "Pausiert · weiter", egr_pa_bis: "Pausiert bis {x} · weiter", egr_pa_aus_ok: "Pause aufgehoben – es geht weiter", egr_pa_titel: "Pause für alles",
+    egr_pa_erkl: "Niemand beginnt etwas Neues, kein Headless-Paket startet. Was läuft, läuft zu Ende. Zeitplan und Prognose rechnen die Pause ein.", egr_pa_grund: "Grund", egr_pa_ende: "Ende (optional)", egr_pa_bis_ph: "HH:MM, 2h oder 90min", egr_pa_ende_h: "Ohne Ende gilt die Pause, bis du sie aufhebst.", egr_pa_setzen: "Pause setzen",
+    egr_pa_ok: "Pause gesetzt", egr_pa_ok_bis: "Pause bis {x}", egr_pp_keiner: "dahinter wartet kein Paket – am Ende des Meilensteins testest du bei der Abnahme", egr_pp_wartet: "Danach warten {n} Pakete auf dein Ja.",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search tasks, decisions, questions, your words, messages", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
@@ -2286,7 +2302,17 @@ const TEXTE = {
     tor_dich_ms: "{n} milestones", tor_dich_ms1: "1 milestone", pm_ab_kopf: "Closing", pm_ab_bericht: "Closing report against the success criteria, with leftovers and lessons", pm_ab_kommt: "AMW will create the closing report within a few minutes.", pm_ab_ja: "Yes – confirm report",
     pm_ab_ok: "Closing confirmed", pm_ab_frei: "confirmed by {x}", pm_ab_wartet: "Closing waits for you", pm_bereit: "ready for acceptance", sa_dokument: "Document", sa_aufgabe: "Task",
     sa_frage: "Question", sa_meilenstein: "Milestone", sa_beschluss: "Decision", sa_wortlaut: "Your words", sa_thema: "Topic", sa_lauf: "Run",
-    sa_pruefung: "Review", sa_nachricht: "Message", rf_nicht_da: "{x} can’t be opened here: it doesn’t exist or is too far back.",
+    sa_pruefung: "Review", sa_nachricht: "Message", rf_nicht_da: "{x} can’t be opened here: it doesn’t exist or is too far back.", egr_titel: "Intervene", egr_frueher: "Earlier", egr_spaeter: "Later",
+    egr_frueher_h: "Swap with the package before it", egr_spaeter_h: "Swap with the package after it", egr_frueher_ok: "A{a} now comes before “{x}”", egr_spaeter_ok: "A{a} now comes after “{x}”", egr_sp_vorn: "already first", egr_sp_hinten: "already last",
+    egr_sp_laeuft: "“{x}” is already running", egr_sp_braucht: "needs “{x}”", egr_sp_braucht_es: "“{x}” needs it", egr_sp_mensch: "set this way by {x}", egr_sp_zu: "can no longer be moved", egr_sp_laeuft_selbst: "already running",
+    egr_sp_zurueckgestellt: "is on hold", egr_sp_ohne: "belongs to no milestone", egr_pp: "Checkpoint after it", egr_pp_h: "After this package AMW stops: pack the state, you test, then it goes on.", egr_pp_frage: "Checkpoint after “{x}”: what do you want to test then?", egr_pp_ph: "e.g. sign-in on the phone",
+    egr_pp_setzen: "Set checkpoint", egr_pp_ok: "Checkpoint A{a} set – {n} packages wait for it", egr_pp_weg: "Remove checkpoint", egr_pp_weg_frage: "Remove checkpoint A{a}? The packages after it will no longer wait.", egr_pp_weg_ok: "Checkpoint A{a} removed", egr_grund_ph: "Reason (shown in the history)",
+    egr_grund_fehlt: "Please give a reason", egr_neu_h: "AMW then recalculates the order and the schedule; the history names you and the reason.", egr_ag_titel: "Assignment", egr_ag_raus: "Take out", egr_ag_h: "Gets nothing new; the waiting packages go to the others. You choose what happens to the running one.", egr_ag_frage: "Take out {x}?",
+    egr_ag_l_zu_ende: "The running package runs to the end", egr_ag_l_zurueck: "The running package goes back to the pool with a handover note", egr_ag_laufend_zu_ende: "A{a} “{x}” runs to the end", egr_ag_laufend_zurueck: "A{a} “{x}” goes back to the pool with a handover note", egr_ag_nichts_laeuft: "Nothing is running right now", egr_ag_pool: "{n} waiting packages go to the others: {x}",
+    egr_ag_kein_pool: "No waiting packages", egr_ag_bleibt: "Stay, already built: {x}", egr_ag_raus_ok: "{x} is taken out", egr_ag_ist: "Taken out since {x}", egr_ag_frei: "Release again", egr_ag_frei_frage: "Release {x} again? AMW will assign packages again.",
+    egr_ag_frei_ok: "{x} is free again", egr_pa: "Pause everything", egr_pa_an: "Paused · resume", egr_pa_bis: "Paused until {x} · resume", egr_pa_aus_ok: "Pause lifted – work goes on", egr_pa_titel: "Pause everything",
+    egr_pa_erkl: "Nobody starts anything new, no headless package starts. What is running runs to the end. Schedule and forecast include the pause.", egr_pa_grund: "Reason", egr_pa_ende: "End (optional)", egr_pa_bis_ph: "HH:MM, 2h or 90min", egr_pa_ende_h: "Without an end the pause lasts until you lift it.", egr_pa_setzen: "Set pause",
+    egr_pa_ok: "Pause set", egr_pa_ok_bis: "Paused until {x}", egr_pp_keiner: "no package waits after it – you test at the end of the milestone, at the acceptance", egr_pp_wartet: "Then {n} packages wait for your yes.",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -2398,9 +2424,31 @@ async function einmalTun(schluessel, tun) {
   if (einmalLaeuft.has(schluessel)) return null;
   einmalLaeuft.add(schluessel);
   const knopf = letzterKnopf; if (knopf) knopf.disabled = true;
-  const frei = () => { einmalLaeuft.delete(schluessel); if (knopf) knopf.disabled = false; };
+  const frei = () => { einmalLaeuft.delete(schluessel); if (knopf && !knopf.dataset.bleibtAus) knopf.disabled = false; };   /* A2146: bleibtAus – die Karte hat ihn danach selbst gesperrt */
   try { const r = await tun(); setTimeout(frei, 1500); return r === undefined ? true : r; }       /* meist ist dann schon neu gezeichnet */
   catch (e) { frei(); toast(fehlerSatz(e), true); return null; }
+}
+/* A2146: Rückfrage als Dialog der Seite statt confirm/prompt (Browser können confirm unterdrücken). Esc, ✕ und Klick daneben
+   brechen ab; die Haupthandlung hat den Fokus, mit `eingabe` das Feld (Enter schickt). Rückgabe: true, der Text (mit eingabe) oder
+   null. Danach gilt wieder der Knopf, der gefragt hat – so sperrt einmalTun ihn und nicht den Knopf im Dialog. Ist schon eine
+   Rückfrage offen (Doppelklick), bleibt es bei dieser einen. */
+function rueckfrage(text, { ja = t("ua_ja"), eingabe = null } = {}) {
+  if (document.querySelector(".rueckfrage-hg")) return Promise.resolve(null);
+  const ausloeser = letzterKnopf;
+  return new Promise(fertig => {
+    const feld = eingabe !== null ? el("input", { type: "text", maxlength: 500, placeholder: eingabe, "aria-label": text }) : null;
+    const ende = wert => { hg.remove(); letzterKnopf = ausloeser; ausloeser?.isConnected && ausloeser.focus({ preventScroll: true }); fertig(wert); };
+    const haupt = el("button", { class: "knopf haupt", type: "button", onclick: () => {
+      if (!feld) return ende(true);
+      if (feld.value.trim()) ende(feld.value.trim()); else feld.focus(); } }, ja);
+    const hg = el("div", { class: "dialog-hg rueckfrage-hg", onclick: e => { if (e.target === hg) ende(null); } },
+      el("div", { class: "karte dialog einst rueckfrage", role: "dialog", "aria-modal": "true", "aria-label": text.split("\n")[0] },
+        el("p", { class: "rueckfrage-text" }, text), feld,
+        el("div", { class: "rueckfrage-knoepfe" }, el("button", { class: "knopf still", type: "button", onclick: () => ende(null) }, t("abbrechen")), haupt)));
+    if (feld) { const an = () => { haupt.disabled = !feld.value.trim(); }; feld.addEventListener("input", an); an(); }
+    document.body.append(hg);
+    (feld || haupt).focus();
+  });
 }
 /* A2117: ein Satz ohne Technik: kein „Failed to fetch“, keine nackte Zahl */
 const fehlerSatz = e => e instanceof TypeError && /fetch|network|load failed/i.test(e.message) ? t("ohne_verbindung") : /^\d*$/.test(String(e.message)) ? t("ging_nicht") : t("fehler", { x: e.message });
@@ -2917,7 +2965,7 @@ function startvorschlagZeile(v) {
 }
 /* A1928 (TH158): ein fertiger Meilenstein wartet auf deine Abnahme – danach veröffentlicht die AMW (Push, GitHub-Release) */
 function abnahmeZeile(b) {
-  const tun = async () => { if (!confirm(t("ab_frage", { m: b.nr, x: b.titel }))) return;
+  const tun = async () => { if (!await rueckfrage(t("ab_frage", { m: b.nr, x: b.titel }), { ja: t("ab_knopf") })) return;   /* A2146 */
     await einmalTun("abnehmen/" + b.id, async () => { const r = await schicken("/api/bogen/abnehmen", { bogen: b.id }); toast(r.text); zeige("start", true); }); };
   return el("div", { class: "ue-zeile ab-zeile", "data-bogen": b.id }, el("span", { class: "ref" }, `M${b.nr}`),
     el("span", { class: "ue-text" }, el("b", {}, t("ab_fertig", { x: b.titel })), " ", el("span", { class: "leise" }, t("ab_grund"))),
@@ -2926,8 +2974,8 @@ function abnahmeZeile(b) {
 /* A1939 (K3): eine Aufgabe hängt an einem Urteil und ist bereit – ein Ja genügt, den Status setzt die AMW */
 function urteilZeile(x) {
   const tun = async ja => { let grund = null;
-    if (ja) { if (!confirm(t("ua_frage", { a: x.id, x: x.titel }))) return; }
-    else { grund = prompt(t("ua_zurueck_frage", { a: x.id })); if (!grund || !grund.trim()) return; }
+    if (ja) { if (!await rueckfrage(t("ua_frage", { a: x.id, x: x.titel }), { ja: t("ua_ja") })) return; }   /* A2146 */
+    else { grund = await rueckfrage(t("ua_zurueck_frage", { a: x.id }), { ja: t("ua_zurueck"), eingabe: "" }); if (!grund) return; }
     await einmalTun("urteil/" + x.id, async () => { const r = await schicken("/api/aufgabe/abnehmen", { aufgabe: x.id, ja, grund }); toast(t(r.text === "fertig" ? "ua_ok" : "ua_ok_zurueck", { a: x.id }));
       zeige("start", true); }); };
   const g = t("ua_" + x.grund_art, { r: x.grund_ref }) + (x.offen.length ? " · " + t(x.offen.length === 1 ? "ua_offen1" : "ua_offen", { n: x.offen.length }) : "");
@@ -3673,7 +3721,7 @@ async function agentDialog(kennung, reiter) {
     abschnitt(t("k_meldungen"), d.meldungen, x => eintrag(x.art, `#${x.id}`, t("art_" + x.art) || x.art, seit(x.zeit_utc), x.kurz)),
   ];
   /* zwei Reiter: Übersicht (was macht er, was kommt) und Gespräch (das Protokoll, erst beim Öffnen geladen) */
-  const uebersicht = el("div", { role: "tabpanel" }, macht, zustandAbschnitt(d), aufwandAbschnitt(d),
+  const uebersicht = el("div", { role: "tabpanel" }, macht, zustandAbschnitt(d), eingriffeAgent(d, () => { hg.remove(); agentDialog(d.kennung); }), aufwandAbschnitt(d),   /* A2159 */
     el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
     d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:12px" }, t("k_alt", { n: d.offen_alt })) : null);
   const gespraech = el("div", { role: "tabpanel", hidden: true });
@@ -4082,19 +4130,18 @@ function frageKarte(f) {
   const notiz = el("textarea", { placeholder: echteOptionen.length ? t("anmerkung_ph") : t("antwort_ph") });
   const meldung = el("span", { class: "rueckmeldung leise" });
   const karte = el("div", { class: "karte frage" });
-  const sperren = text => { for (const b of karte.querySelectorAll("button")) b.disabled = true; notiz.disabled = true; meldung.textContent = text; };
-  async function antworten(art, wert, anmerkung) {
-    try { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
+  const sperren = text => { for (const b of karte.querySelectorAll("button")) { b.disabled = true; b.dataset.bleibtAus = "1"; } notiz.disabled = true; meldung.textContent = text; };
+  /* A2146: je Frage geht eine Antwort zur Zeit hinaus – ein Doppelklick antwortet einmal; bei einem Fehler ein Satz ohne Technik */
+  function antworten(art, wert, anmerkung) {
+    return einmalTun("frage/" + f.id, async () => { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
       const offen = r.status === "offen" || art === "rueckfrage";
       sperren(offen ? t("rueckfrage_gesendet") : t("beantwortet"));
-      if (!offen) { toast(t("beantwortet")); karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); }
-    } catch (e) { toast(t("fehler", { x: e.message }), true); }
+      if (!offen) { toast(t("beantwortet")); karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); } });
   }
-  async function parken(ja) {
-    try { await schicken(`/api/frage/${f.id}/${ja ? "parken" : "aufnehmen"}`, { grund: notiz.value.trim() });
+  function parken(ja) {
+    return einmalTun("frage/" + f.id, async () => { await schicken(`/api/frage/${f.id}/${ja ? "parken" : "aufnehmen"}`, { grund: notiz.value.trim() });
       sperren(t(ja ? "f_geparkt_ok" : "f_aufgenommen")); toast(t(ja ? "f_geparkt_ok" : "f_aufgenommen"));
-      karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); }
-    catch (e) { toast(t("fehler", { x: e.message }), true); }
+      karte.classList.add("weg"); setTimeout(() => karte.remove(), 320); });
   }
   karte.append(...[                                                        // DOM-append schriebe null als Text
     el("div", { class: "meta" }, el("span", { class: "ref" }, `F${f.id}`), t("von", { x: f.von }), el("span", { class: "sehrleise" }, `${zeit(f.zeit_utc)} · ${seit(f.zeit_utc)}`),
@@ -4421,9 +4468,9 @@ async function sichtThemen() {
     let s; try { s = await holen(`/api/thema?id=${offen}`); } catch (e) { rechts.replaceChildren(el("div", { class: "leer" }, String(e.message || e))); return; }
     const z = s.zustand, text = s.zusammenfassung?.text || "", kasten = el("div", { class: "th-kasten" });
     const schliesst = h => (s.tor?.schliesst || []).includes(h);              /* A1913: diese Handlung schlösse den Schritt Konzept ab */
-    const tun = async (was, daten, ok) => { if (schliesst(was) && !confirm(t("th2_tor_frage"))) return;   /* W2449: Hinweis vorher, kein eigener Knopf */
-      try { const r = await schicken(`/api/thema/${was}`, { thema: s.id, ...daten }) || {}; toast(schliesst(was) ? t("th2_ok_tor") : typeof ok === "function" ? ok(r) : ok); zustand.themaOffen = s.id; zeige("themen", true); }
-      catch (e) { toast(t("fehler", { x: e.message }), true); } };
+    const tun = async (was, daten, ok) => { if (schliesst(was) && !await rueckfrage(t("th2_tor_frage"), { ja: t("th2_h_" + was) })) return;   /* W2449: Hinweis vorher, kein eigener Knopf; A2146: als Dialog */
+      return einmalTun(`thema/${s.id}/${was}`, async () => {                   /* A2146: ein Klick, ein Ja – auch beim Doppelklick */
+        const r = await schicken(`/api/thema/${was}`, { thema: s.id, ...daten }) || {}; toast(schliesst(was) ? t("th2_ok_tor") : typeof ok === "function" ? ok(r) : ok); zustand.themaOffen = s.id; zeige("themen", true); }); };
     const eingabe = h => {
       const feld = el("textarea", { class: "th-feld", placeholder: h === "zurueck" ? t("th2_notiz_ph") : "" });
       if (h === "bearbeiten") feld.value = text;
@@ -4670,7 +4717,7 @@ const pwDeltaOk = ja => t(ja.startet ? "pjw_ok_delta_start" : "pjw_ok_delta");
 /* A2118: ein zurückgestellter Entwurf zeigt den Grund statt des Knopfs; der Mensch darf ihn hinter einem Klick, mit Rückfrage, doch freigeben. */
 const pwZurueckgestellt = (w, tun) => el("details", { class: "pjw-wartet" }, el("summary", {}, t("pjw_wartet_grund", { x: w.grund })),
   API ? el("div", { class: "leise" }, t("pm_nur_pc")) : el("button", { class: "klein-knopf", type: "button", "data-h": "trotzdem",
-    onclick: () => { if (confirm(t("pjw_wartet_frage", { x: w.grund }))) tun(); } }, t("pjw_trotzdem_frei")));
+    onclick: async () => { if (await rueckfrage(t("pjw_wartet_frage", { x: w.grund }), { ja: t("pjw_trotzdem_frei") })) tun(); } }, t("pjw_trotzdem_frei")));   /* A2146 */
 const pwDeltaOffen = f => f.delta.filter(x => !x.wartet);
 function pwDeltaKarte(x, einzig, haupt) {
   /* A2065 (Marcel 24.11.): die Änderung als Karten in Stufen wie der Feinplan; was der Knopf freigibt, steht auf dem Knopf. */
@@ -4726,7 +4773,7 @@ function pwUmsetzung(d) {
 }
 /* A2088: Vorbehalte und Gründe {art, n} bzw. {art: "pruefer", text} in Worten – auch für Planung › Meilensteine */
 const pwVorbehalt = v => v.art === "pruefer" ? v.text : t("pjw_vb_" + v.art + (v.n === 1 ? "1" : ""), { n: v.n, z: v.zweig || "main" });
-const pwTrotzdem = (liste, tun) => () => { if (confirm(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"))) tun(); };
+const pwTrotzdem = (liste, tun) => async () => { if (await rueckfrage(t("pjw_trotzdem_frage") + "\n\n" + liste.map(x => "– " + x).join("\n"), { ja: t("pjw_trotzdem") })) tun(); };   /* A2146 */
 /* A2088 (Lead #32824): was beim Abnehmen dagegen spricht – auf Projektweg und Planung gleich. null: gerade geht es nicht. */
 const pwDagegen = (lage, zaehlt, vorbehalte, alt) => ["laeuft", "bericht", "auslieferung"].includes(lage) ? null
   : [...(zaehlt ? [t("pjw_l_" + lage)] : []), ...(alt ? [t("pjw_a_alt_" + alt)] : []), ...(vorbehalte || []).map(pwVorbehalt)];
@@ -5765,7 +5812,8 @@ function pmAnsicht(pa, art) {
   m.append(pmStand(pa));
   if (art === "plan" && pa.starten && !API) m.append(el("div", { class: "pm-start" },   /* „Jetzt starten“ nur, wenn alles freigegeben ist */
     el("span", {}, t("pm_start_text", { n: pa.meilensteine.filter(x => x.status === "geplant" && x.pakete.length).length })),
-    el("button", { class: "knopf pm-start-knopf", type: "button", onclick: async () => { if (!confirm(t("pm_start_frage"))) return;
+    el("button", { class: "knopf pm-start-knopf", type: "button", onclick: async () => { if (!await rueckfrage(t("pm_start_frage"), { ja: t("pm_start") })) return;   /* A2146 */
+     
       await einmalTun("ms/starten", async () => { const r = await schicken("/api/meilenstein/starten", {}); toast(t("pm_ok_start", { x: r.gestartet.join(", ") })); zeige("planung", true); }); } }, t("pm_start"))));
   if (art === "grob" && (pa.aenderungen || []).length) m.append(el("div", { class: "pm-entwuerfe pm-aenderungen" },   /* A1957 */
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_aenderungen", { n: pa.aenderungen.length })),
@@ -5874,12 +5922,14 @@ function pmAnsicht(pa, art) {
 async function sichtPlanung() {
   if (!zustand.start) { try { await kopfAktualisieren(); } catch (e) {} }        /* A2089: bogenNr liest die Startdaten */
   let d; try { d = await holen("/api/planung"); } catch (e) { rahmen(t("n_planung")).append(el("div", { class: "leer" }, String(e))); return; }
+  let pa = null; try { pa = await holen("/api/pause"); } catch (e) { /* ohne Pause-Stand kein Knopf */ }           /* A2159 */
   const r = zustand.planReiter || (d.planansicht?.hat_themen ? "meilensteine" : "zeitleiste");   /* A1950: mit Themen zuerst die Meilensteine */
   const chip = (name, wert, grund) => el("span", { class: "signal", title: grund || "" }, el("span", { class: "punkt " + ampelKlasse(wert) }),
     `${t("pl_" + name)}: ${wert ? t("ampel_" + wert) : "–"}`);
   const m = rahmen(t("n_planung"), el("span", { style: "display:flex;gap:8px;flex-wrap:wrap" },
     chip("termin", d.status.termin, d.status.begruendung.termin), chip("risiko", d.status.risiko, d.status.begruendung.risiko),
     chip("qualitaet", d.status.qualitaet, d.status.begruendung.qualitaet)),
+    pauseKnopf(pa),                                                                                                  /* A2159: Pause für alles */
     el("button", { class: "knopf haupt kopf-aktion", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu")));   /* Hauptaktion oben, wie überall */
   /* was auf dich wartet, zuerst */
   const w = d.wartet, offen = w.spezifikationen.length + w.plaene.length;
@@ -6634,6 +6684,7 @@ async function aufgabeDialog(id) {
       fragenStand(nOffen, a.fragen.length))) : null,
     a.auftrag ? el("div", { class: "au-auftrag" }, markdown(a.auftrag)) : null,
     a.wartet_auf && offen ? el("p", { class: "bernstein-text" }, "⇢ " + a.wartet_auf) : null,
+    eingriffePaket(a, () => { hg.remove(); aufgabeDialog(a.id); }),                                               /* A2159 */
     block(t("au_wartegruende"), a.wartegruende.length, a.wartegruende.map(w => el("div", { class: "au-zeile" + (w.erledigt_utc ? " sehrleise" : "") },
       (w.erledigt_utc ? "✓ " : "⇢ ") + grundText(w.bezug) + ` · ${w.angelegt_von} ${zeit(w.angelegt_utc)}` + (w.erledigt_utc ? ` · ${w.erledigt_durch || ""}` : "")))),
     block(t("au_fragen", { n: a.fragen.length }), a.fragen.length, fr),
@@ -7663,6 +7714,105 @@ projekteLaden().then(() => {
   const s = seitenNr;                                    /* A1907: nur einem echten Wechsel weichen – nicht dem Takt, der still „start“ zeichnet */
   return kopfLaden().then(() => { if (s === seitenNr) zeige(startSicht); });
 });
+/* A2159 (Abschlussprüfung M16, D1994; Probe D1481 v4): die vorhandenen Eingriffe als Knöpfe – ohne neue Logik, die Grenzen rechnet
+   die AMW (paket_schieben, herausnehmen, zwischenpruefung, pause). Paket: Früher/Später mit der gesperrten Stelle und ihrem Grund,
+   Prüfpunkt „Marcel testet“ dahinter bzw. wegnehmen (in aufgabeDialog). Agent: herausnehmen mit Vorschau der Folgen, wieder freigeben
+   (in agentDialog). Pause für alles mit optionalem Ende (Projektweg › Planung, der Leitstand nimmt denselben Knopf). Nach jedem
+   Eingriff rechnet die AMW neu; die Seite zeichnet neu, der Verlauf nennt Person und Grund. */
+const egSperre = s => { if (!s || s.geht) return ""; const k = "egr_sp_" + s.art, w = t(k, { x: s.x || "" }); return w === k ? (s.grund || "") : w; };   /* unbekannte Art: der Satz der AMW */
+async function egTun(weg, daten, ok, danach) {
+  return einmalTun(weg + JSON.stringify(daten), async () => { const r = await schicken(weg, daten); toast(ok(r)); danach && danach(r); zeige(zustand.sicht, true); return r; });
+}
+/* Paket: Früher/Später (gesperrt mit Grund) und Prüfpunkt dahinter – im Fenster der Aufgabe */
+function eingriffePaket(a, neu) {
+  const e = a.eingriffe; if (!e) return null;
+  const s = e.schieben, knopf = r => {
+    const x = s && s[r];
+    return el("button", { class: "klein-knopf", type: "button", "data-eg": r, disabled: x && x.geht ? null : "disabled", title: x && !x.geht ? egSperre(x) : t("egr_" + r + "_h"),
+      onclick: () => egTun("/api/plan/schieben", { aufgabe: a.id, richtung: r }, () => t("egr_" + r + "_ok", { a: a.id, x: x.x || "" }), neu) }, t("egr_" + r)); };
+  const sperren = s ? ["frueher", "spaeter"].filter(r => s[r] && !s[r].geht).map(r => `${t("egr_" + r)}: ${egSperre(s[r])}`) : [];
+  const einmalig = s && !s.frueher.geht && !s.spaeter.geht && s.frueher.grund === s.spaeter.grund;   /* gar nicht schiebbar: ein Grund */
+  const pp = e.ist_pruefpunkt ? a.id : e.pruefpunkt;
+  const ppSperre = pp ? null : !a.bogen_id ? t("egr_sp_ohne") : !(e.pruefpunkt_wartet || []).length ? t("egr_pp_keiner") : null;   /* nur zeigen, was geht */
+  const pruefKnopf = pp
+    ? el("button", { class: "klein-knopf", type: "button", "data-eg": "pruefpunkt-weg", onclick: async () => {
+        const grund = await rueckfrage(t("egr_pp_weg_frage", { a: pp }), { ja: t("egr_pp_weg"), eingabe: t("egr_grund_ph") }); if (!grund) return;
+        egTun("/api/plan/pruefpunkt", { aufgabe: pp, entfernen: true, grund }, () => t("egr_pp_weg_ok", { a: pp }), neu); } }, t("egr_pp_weg"))
+    : el("button", { class: "klein-knopf", type: "button", "data-eg": "pruefpunkt", disabled: ppSperre ? "disabled" : null,
+        title: ppSperre || t("egr_pp_h"), onclick: async () => {
+          const hinweis = await rueckfrage(t("egr_pp_frage", { x: a.titel }) + "\n" + t("egr_pp_wartet", { n: e.pruefpunkt_wartet.length }),
+            { ja: t("egr_pp_setzen"), eingabe: t("egr_pp_ph") }); if (!hinweis) return;
+          egTun("/api/plan/pruefpunkt", { aufgabe: a.id, grund: hinweis, hinweis }, r => t("egr_pp_ok", { a: r.paket, n: (r.wartet || []).length }), neu); } }, t("egr_pp"));
+  return el("div", { class: "au-block eg-block" }, el("h4", {}, t("egr_titel")),
+    el("div", { class: "dk-aktionen" }, knopf("frueher"), knopf("spaeter"), pruefKnopf),
+    sperren.length || ppSperre ? el("p", { class: "sehrleise eg-sperre", style: "margin:6px 0 0" },
+      [sperren.length ? (einmalig ? egSperre(s.frueher) : sperren.join(" · ")) : null, ppSperre ? `${t("egr_pp")}: ${ppSperre}` : null].filter(Boolean).join(" · ")) : null,
+    el("p", { class: "sehrleise", style: "margin:4px 0 0" }, t("egr_neu_h")));
+}
+/* Agent: herausnehmen (mit Vorschau, was mit seinen Paketen geschieht) oder wieder freigeben – im Fenster des Agenten */
+function eingriffeAgent(d, neu) {
+  if (!d || d.kennung === "Entwickler") return null;
+  const h = d.heraus;
+  if (h) return el("section", { class: "abschnitt eg-block" }, el("h4", {}, t("egr_ag_titel")),
+    el("p", { class: "bernstein-text", style: "margin:0 0 6px" }, t("egr_ag_ist", { x: zeit(h.seit_utc) }) + (h.grund ? ` · ${h.grund}` : "")),
+    el("button", { class: "klein-knopf", type: "button", "data-eg": "freigeben", onclick: async () => {
+      const grund = await rueckfrage(t("egr_ag_frei_frage", { x: d.kennung }), { ja: t("egr_ag_frei"), eingabe: t("egr_grund_ph") }); if (!grund) return;
+      egTun("/api/plan/agent", { was: "freigeben", kennung: d.kennung, grund }, () => t("egr_ag_frei_ok", { x: d.kennung }), neu); } }, t("egr_ag_frei")));
+  return el("section", { class: "abschnitt eg-block" }, el("h4", {}, t("egr_ag_titel")),
+    el("button", { class: "klein-knopf", type: "button", "data-eg": "herausnehmen", onclick: () => herausnehmenDialog(d, neu) }, t("egr_ag_raus")),
+    el("p", { class: "sehrleise", style: "margin:6px 0 0" }, t("egr_ag_h")));
+}
+/* TH164: was mit dem laufenden Paket geschieht, wählt Marcel – zu Ende oder mit Übergabe-Notiz zurück; die Vorschau rechnet die AMW je Wahl */
+async function herausnehmenDialog(d, neu) {
+  const vorschau = el("div", { class: "eg-folgen" }), grund = el("input", { placeholder: t("egr_grund_ph"), maxlength: 300 });
+  let art = "zu_ende", laufend = false;
+  const wahl = el("div", { class: "eg-wahl", hidden: true, style: "display:grid;gap:8px;min-width:0;margin-bottom:10px" },   /* am Handy umbrechen, nie seitwärts */
+    ["zu_ende", "zurueck"].map(x => el("label", { class: "eg-wahl-zeile", style: "display:flex;gap:8px;align-items:flex-start;min-width:0;overflow-wrap:anywhere" },
+      el("input", { type: "radio", name: "eg-laufend", value: x, checked: x === art, style: "flex:none;width:18px;height:18px;padding:0;margin:2px 0 0;accent-color:var(--bernstein)", onchange: () => { art = x; zeigen(); } }),
+      el("span", { style: "min-width:0" }, t("egr_ag_l_" + x)))));
+  async function zeigen() {
+    let f; try { f = await schicken("/api/plan/agent", { was: "folgen", kennung: d.kennung, laufendes: art }); }
+    catch (e) { toast(fehlerSatz(e), true); return; }
+    laufend = !!f.laufend; wahl.hidden = !laufend;
+    const zeilen = [f.laufend ? t("egr_ag_laufend_" + art, { a: f.laufend.id, x: f.laufend.titel }) : t("egr_ag_nichts_laeuft"),
+      f.wartend.length ? t("egr_ag_pool", { n: f.wartend.length, x: f.wartend.slice(0, 4).map(w => "A" + w.id).join(", ") + (f.wartend.length > 4 ? " …" : "") }) : t("egr_ag_kein_pool"),
+      f.bleibt.length ? t("egr_ag_bleibt", { x: f.bleibt.map(x => "A" + x).join(", ") }) : null, ...(f.hinweise || [])].filter(Boolean);
+    vorschau.replaceChildren(...zeilen.map(z => el("div", { class: "au-zeile" }, "• " + z)));
+  }
+  await zeigen();
+  const hg = dialog(t("egr_ag_frage", { x: d.kennung }), wahl, vorschau,
+    el("div", { class: "feld" }, el("label", {}, t("egr_pa_grund")), el("div", {}, grund)),
+    el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", "data-eg": "herausnehmen-ja", onclick: () => {
+        if (!grund.value.trim()) { toast(t("egr_grund_fehlt"), true); grund.focus(); return; }
+        egTun("/api/plan/agent", { was: "herausnehmen", kennung: d.kennung, laufendes: art, grund: grund.value.trim() },
+          () => t("egr_ag_raus_ok", { x: d.kennung }), () => { hg.remove(); neu && neu(); }); } }, t("egr_ag_raus")),
+      el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
+  grund.focus();
+  return hg;
+}
+/* Pause für alles: an mit Grund und optionalem Ende, aus mit einem Klick */
+function pauseKnopf(p) {
+  if (!p) return null;
+  return p.an
+    ? el("button", { class: "knopf eg-pause an", type: "button", "data-eg": "pause-aus", title: p.grund || "",
+        onclick: () => egTun("/api/pause", { an: false }, () => t("egr_pa_aus_ok")) }, p.bis ? t("egr_pa_bis", { x: zeit(p.bis) }) : t("egr_pa_an"))
+    : el("button", { class: "knopf eg-pause", type: "button", "data-eg": "pause", onclick: () => pauseDialog() }, t("egr_pa"));
+}
+function pauseDialog() {
+  const grund = el("input", { placeholder: t("egr_grund_ph"), maxlength: 300 }), bis = el("input", { placeholder: t("egr_pa_bis_ph"), maxlength: 10 });
+  const schnell = w => el("button", { class: "klein-knopf", type: "button", onclick: () => { bis.value = w; } }, w);
+  const hg = dialog(t("egr_pa_titel"), el("p", { class: "leise", style: "margin-top:0" }, t("egr_pa_erkl")),
+    el("div", { class: "feld" }, el("label", {}, t("egr_pa_grund")), el("div", {}, grund)),
+    el("div", { class: "feld" }, el("label", {}, t("egr_pa_ende")), el("div", {}, bis, el("div", { class: "zeile", style: "margin-top:6px;gap:6px;display:flex;flex-wrap:wrap" },
+      schnell("30min"), schnell("1h"), schnell("2h")))),
+    el("p", { class: "sehrleise" }, t("egr_pa_ende_h")),
+    el("div", { class: "aktionen" }, el("button", { class: "knopf haupt", type: "button", "data-eg": "pause-an", onclick: () => {
+        if (!grund.value.trim()) { toast(t("egr_grund_fehlt"), true); grund.focus(); return; }
+        egTun("/api/pause", { an: true, grund: grund.value.trim(), bis: bis.value.trim() || null }, r => r.bis ? t("egr_pa_ok_bis", { x: zeit(r.bis) }) : t("egr_pa_ok"), () => hg.remove()); } }, t("egr_pa_setzen")),
+      el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
+  grund.focus();
+  return hg;
+}
 </script>
 </body>
 </html>
