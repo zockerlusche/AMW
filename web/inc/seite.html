@@ -1096,6 +1096,7 @@ details.vor summary::before { content: "▸ "; } details.vor[open] summary::befo
 .aufgabe .w { font-size: 12px; color: var(--bernstein); overflow-wrap: anywhere; }
 .liste .zeile { display: grid; grid-template-columns: 78px 70px 1fr 110px; gap: 12px; padding: 8px 4px; border-bottom: 1px solid var(--linie); align-items: baseline; }
 .liste .zeile > :nth-child(3) { overflow-wrap: anywhere; }
+.suche-genau { margin-bottom: 18px; padding-left: 10px; border-left: 2px solid var(--linie2); }   /* A2115: genaue Treffer, ruhig abgesetzt */
 
 .wissen-eintrag { padding: 12px 14px; margin-bottom: 8px; }
 .wissen-eintrag .kopfzeile { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
@@ -1861,7 +1862,9 @@ const TEXTE = {
     pm_feld_bogen_id: "Meilenstein", pm_aenderungen: "Deine Änderungen ({n})", pm_ae_prueft: "wird geprüft · seit {z}", pm_ae_wartet: "berührt {x} – gilt erst mit deinem Ja", pm_ae_fehler: "Prüfung fehlgeschlagen – Ja übernimmt trotzdem", pm_ae_ja: "Ja – übernehmen",
     pm_ae_verwerfen: "Verwerfen", pm_ae_ok_ja: "Änderung gilt", pm_ae_ok_weg: "Änderung verworfen", tor_dich: "Wartet auf dich:", tor_dich_th: "{n} Themen", tor_dich_th1: "1 Thema",
     tor_dich_ms: "{n} Meilensteine", tor_dich_ms1: "1 Meilenstein", pm_ab_kopf: "Abschluss", pm_ab_bericht: "Abschlussbericht gegen die Erfolgskriterien, mit Resten und Lehren", pm_ab_kommt: "Die AMW erstellt den Abschlussbericht in wenigen Minuten.", pm_ab_ja: "Ja – Bericht bestätigen",
-    pm_ab_ok: "Abschluss bestätigt", pm_ab_frei: "bestätigt von {x}", pm_ab_wartet: "Abschluss wartet auf dich", pm_bereit: "bereit zur Abnahme",
+    pm_ab_ok: "Abschluss bestätigt", pm_ab_frei: "bestätigt von {x}", pm_ab_wartet: "Abschluss wartet auf dich", pm_bereit: "bereit zur Abnahme", sa_dokument: "Dokument", sa_aufgabe: "Aufgabe",
+    sa_frage: "Frage", sa_meilenstein: "Meilenstein", sa_beschluss: "Beschluss", sa_wortlaut: "dein Wort", sa_thema: "Thema", sa_lauf: "Lauf",
+    sa_pruefung: "Prüfung", sa_nachricht: "Nachricht", rf_nicht_da: "{x} lässt sich hier nicht öffnen: nicht vorhanden oder zu weit zurück.",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search tasks, decisions, questions, your words, messages", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
@@ -2281,7 +2284,9 @@ const TEXTE = {
     pm_feld_bogen_id: "Milestone", pm_aenderungen: "Your changes ({n})", pm_ae_prueft: "being checked · since {z}", pm_ae_wartet: "affects {x} – applies only with your yes", pm_ae_fehler: "Check failed – yes applies it anyway", pm_ae_ja: "Yes – apply",
     pm_ae_verwerfen: "Discard", pm_ae_ok_ja: "Change applied", pm_ae_ok_weg: "Change discarded", tor_dich: "Waiting for you:", tor_dich_th: "{n} topics", tor_dich_th1: "1 topic",
     tor_dich_ms: "{n} milestones", tor_dich_ms1: "1 milestone", pm_ab_kopf: "Closing", pm_ab_bericht: "Closing report against the success criteria, with leftovers and lessons", pm_ab_kommt: "AMW will create the closing report within a few minutes.", pm_ab_ja: "Yes – confirm report",
-    pm_ab_ok: "Closing confirmed", pm_ab_frei: "confirmed by {x}", pm_ab_wartet: "Closing waits for you", pm_bereit: "ready for acceptance",
+    pm_ab_ok: "Closing confirmed", pm_ab_frei: "confirmed by {x}", pm_ab_wartet: "Closing waits for you", pm_bereit: "ready for acceptance", sa_dokument: "Document", sa_aufgabe: "Task",
+    sa_frage: "Question", sa_meilenstein: "Milestone", sa_beschluss: "Decision", sa_wortlaut: "Your words", sa_thema: "Topic", sa_lauf: "Run",
+    sa_pruefung: "Review", sa_nachricht: "Message", rf_nicht_da: "{x} can’t be opened here: it doesn’t exist or is too far back.",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -3768,6 +3773,7 @@ async function sichtNachrichten() {
   const merken = () => { nrMerk = { ...nrMerk, reiter, gewaehlt, projektWahl, nurOffen: { ...nurOffen }, gesehen: [...gesehen], links: liste.scrollTop, rechtsOben: rechts.scrollTop }; };
   const STUFEN = ["gesendet", "benachrichtigt", "gelesen", "erledigt"];
   const schl = x => `${x.projekt || ""}:${x.id}`;
+  const refsHier = (x, s) => (x.projekt || projekt) === projekt ? mitRefs(s) : s;   /* A2115: Nummern gelten im eigenen Projekt */
   const chip = (b, x) => b ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: e => { e.stopPropagation();
     if (x?.projekt && x.projekt !== projekt) { try { localStorage.setItem(`amw-sicht:${x.projekt}`, "nachrichten"); } catch (_) {} projektWechseln(x.projekt); return; }
     bezugOeffnen(b); } }, b.text) : null;
@@ -3821,8 +3827,8 @@ async function sichtNachrichten() {
       ganz.length > blasen.length ? el("button", { class: "verweis nr-aelter", type: "button", onclick: () => { nrMerk = { ...nrMerk, fadenGanz: schl(x) }; gespraech(x); } },
         t("nr_aelter", { n: ganz.length - blasen.length })) : null,
       ...blasen.map(b => el("div", { class: "nr-blase" + (b.von === E ? " ich" : "") + (b.id === x.id ? " diese" : ""), "data-id": b.id },
-        el("div", { class: "wer" }, `${person(b.von)} → ${b.an.map(person).join(", ") || "–"} · ${zeit(b.zeit_utc)}`), el("div", {}, b.kurz),
-        b.text ? el("div", { class: "leise", style: "white-space:pre-wrap;margin-top:4px" }, b.text) : null)),
+        el("div", { class: "wer" }, `${person(b.von)} → ${b.an.map(person).join(", ") || "–"} · ${zeit(b.zeit_utc)}`), el("div", {}, refsHier(x, b.kurz)),
+        b.text ? el("div", { class: "leise", style: "white-space:pre-wrap;margin-top:4px" }, refsHier(x, b.text)) : null)),
       ich ? el("div", { class: "nr-ketten" }, x.empfaenger.map(kette)) : null,
       el("div", { class: "aktionen" },
         x.zurueckgezogen || x.unterwegs ? null : el("button", { class: "knopf", type: "button", onclick: () => nachrichtDialog(an, { antwort_auf: ich ? null : x.id,
@@ -3947,14 +3953,15 @@ async function sichtTeamchat() {
     chips.replaceChildren(...(c ? [c] : []));
     const l = d.nachrichten.filter(x => (!projektWahl || x.projekt === projektWahl) && (!agent || x.von === agent || x.an.includes(agent))
       && (!such || `${x.kurz} ${x.text || ""}`.toLowerCase().includes(such)));
-    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "tc-eintrag" },
+    const refs = (x, s) => x.projekt === projekt ? mitRefs(s) : s;   /* A2115 */
+    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "tc-eintrag", "data-ref": "#" + x.id },
       el("div", { class: "nr-kopf" }, mehrere ? projektMarke(x.projekt) : null, el("span", { class: "etikett" }, t("art_" + x.art) || x.art), el("b", {}, x.von), " → ", el("b", {}, x.an.join(", ") || "–"),
         x.bezug ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: () => {
           if (x.projekt && x.projekt !== projekt) { try { localStorage.setItem(`amw-sicht:${x.projekt}`, "teamchat"); } catch (_) {} projektWechseln(x.projekt); return; }   /* Bezug aus einem anderen Projekt: dorthin */
           bezugOeffnen(x.bezug); } }, x.bezug.text) : null,
         el("span", { class: "nr-zeit" }, zeit(x.zeit_utc))),
-      el("div", { class: "nr-kurz" }, x.kurz),
-      x.text ? el("details", { class: "tc-text" }, el("summary", {}, t("tc_mehr")), el("div", { style: "white-space:pre-wrap" }, x.text)) : null))
+      el("div", { class: "nr-kurz" }, refs(x, x.kurz)),
+      x.text ? el("details", { class: "tc-text" }, el("summary", {}, t("tc_mehr")), el("div", { style: "white-space:pre-wrap" }, refs(x, x.text))) : null))
       : [el("div", { class: "leer" }, t("tc_leer"))]));
   }
   zeichnen();
@@ -3973,7 +3980,7 @@ function gespraechZu(bezug, text, vorschlag) {
     const alle = [...d.gesendet.map(x => ({ ...x, ich: 1 })), ...d.eingang].filter(x => x.bezug?.kuerzel === bezug).sort((a, b) => a.id - b.id);
     kopf.textContent = t("nr_zu_titel", { n: alle.length });
     liste.replaceChildren(...(alle.length ? alle.map(x => el("div", { class: "nr-blase" + (x.ich ? " ich" : "") },
-      el("div", { class: "wer" }, `${x.ich ? t("du") + " → " + x.empfaenger.map(e => e.agent).join(", ") : wer(x.von)} · ${zeit(x.zeit_utc)}`), el("div", {}, x.kurz)))
+      el("div", { class: "wer" }, `${x.ich ? t("du") + " → " + x.empfaenger.map(e => e.agent).join(", ") : wer(x.von)} · ${zeit(x.zeit_utc)}`), el("div", {}, mitRefs(x.kurz))))
       : [el("div", { class: "sehrleise" }, t("nr_zu_leer"))]));
   }).catch(() => liste.replaceChildren(el("div", { class: "sehrleise" }, t("nr_zu_leer"))));
   return el("div", { class: "au-block nr-zu" }, kopf, liste,
@@ -5608,7 +5615,7 @@ function markdown(text) {
   const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*|__[^_]+__)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(!?\[[^\]]*\]\([^)\s]+\))/g;
     let pos = 0, m;
     while ((m = re.exec(s))) {
-      if (m.index > pos) teile.push(s.slice(pos, m.index));
+      if (m.index > pos) teile.push(...mitRefs(s.slice(pos, m.index)));       /* A2115: Nummern im Text öffnen das Ding */
       const x = m[0];
       if (m[1]) teile.push(el("code", {}, x.slice(1, -1)));
       else if (m[2]) teile.push(el("strong", {}, ...inline(x.slice(2, -2))));
@@ -5618,7 +5625,7 @@ function markdown(text) {
           : ok ? el("a", { href: l[3], target: "_blank", rel: "noopener noreferrer" }, l[2] || l[3]) : l[2]); }
       pos = m.index + x.length;
     }
-    if (pos < s.length) teile.push(s.slice(pos));
+    if (pos < s.length) teile.push(...mitRefs(s.slice(pos)));
     return teile; };
   const zeilen = text.replace(/\r\n?/g, "\n").split("\n"), aus = el("div", { class: "md" });
   let i = 0;
@@ -6985,9 +6992,93 @@ async function suchen(q) {
   const m = rahmen(t("suche_titel"), el("span", { class: "leise" }, t("zitat", { x: q }))); let l; try { l = await holen("/api/suche?q=" + encodeURIComponent(q)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   for (const a of document.querySelectorAll("nav a")) a.classList.remove("an");
   if (!l.length) { m.append(el("div", { class: "leer" }, t("nichts_gefunden"))); return; }
-  m.append(el("div", { class: "liste" }, l.map(x => el("div", { class: "zeile", ...(x.art === "dokument" ? { style: "cursor:pointer", onclick: () => dokumentDialog(+x.ref.slice(1)) } : {}) },
-    el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, x.art),
-    el("span", {}, x.titel || ""), el("span", { class: "sehrleise mono" }, zeit(x.zeit))))));
+  const liste = (k, xs) => xs.length ? el("div", { class: k }, xs.map(x => { const auf = () => refOeffnen(x.ref, x.aufgabe);
+    return el("div", { class: "zeile klickbar", role: "button", tabindex: "0", "data-ref": x.ref, onclick: auf,
+        onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); auf(); } } },
+      el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, t("sa_" + x.art)),
+      el("span", {}, x.titel || ""), el("span", { class: "sehrleise mono" }, x.zeit ? zeit(x.zeit) : "")); })) : null;
+  m.append(...[liste("liste suche-genau", l.filter(x => x.genau)), liste("liste", l.filter(x => !x.genau))].filter(Boolean));
+}
+/* --- A2115: jede Nummer öffnet das Ding selbst (Suche, Verweise im Text) – mit den Dialogen und Ansichten, die es dafür gibt --- */
+/* Eine Seite statt eines Dialogs: offene Dialoge gehen zu; steht darin schon Text, fragt die Seite vorher */
+function dialogeZu() {
+  const offen = [...document.querySelectorAll(".dialog-hg, .vb")];
+  const text = offen.some(d => [...d.querySelectorAll("textarea, input:not([type=checkbox]):not([type=radio])")].some(x => x.value !== x.defaultValue));
+  if (text && !confirm(t("dk_verwerfen"))) return false;
+  offen.forEach(d => d.remove());
+  return true;
+}
+/* Den Eintrag mit dieser Nummer auf der gezeigten Seite ins Bild holen; false = er steht nicht dort */
+function refInsBild(ref) {
+  const z = [...document.querySelectorAll("#inhalt .karte .ref")].find(e => e.textContent === ref)?.closest(".karte")
+    || document.querySelector(`#inhalt .tc-eintrag[data-ref="${ref}"]`);
+  if (!z) return false;
+  z.scrollIntoView({ block: "center" });
+  z.classList.remove("blink"); void z.offsetWidth; z.classList.add("blink");
+  return true;
+}
+const refFehlt = ref => toast(t("rf_nicht_da", { x: ref }), true);
+async function refOeffnen(ref, aufgabe) {
+  const m = /^(TH|[DAFBWMLP#])(\d+)$/.exec(ref); if (!m) return;
+  const [, art, zahl] = m, nr = +zahl;
+  try {
+    if (art === "D") return await dokumentDialog(nr);
+    if (art === "A") return await aufgabeDialog(nr);
+    if (art === "L") { if (!API) return await laufAusgabeDialog(nr); if (dialogeZu()) await zeige("betrieb"); return; }   /* die Ausgabe gibt es nur am PC */
+    if (art === "P") {                                   /* eine Prüfung steht auf der Karte ihrer Aufgabe */
+      const a = aufgabe === undefined ? (await abrufen("/api/suche?q=" + ref)).find(x => x.ref === ref)?.aufgabe : aufgabe;
+      return a ? await aufgabeDialog(a) : refFehlt(ref);
+    }
+    if (art === "M") {
+      const id = Object.entries(zustand.start?.bogen_nr || {}).find(([, n]) => n === nr)?.[0];
+      if (!id) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.planReiter = "zeitleiste"; await zeige("planung"); return await zuSchritt(null, +id);
+    }
+    if (art === "TH") {
+      if (!(await abrufen("/api/themen")).some(x => x.id === nr)) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.themaOffen = nr; return await zeige("themen");
+    }
+    if (art === "F") {
+      const alle = await abrufen("/api/fragen?alle=1"), f = alle.find(x => x.id === nr);
+      if (!f && !(await abrufen("/api/fragen?erledigt=1")).some(x => x.id === nr)) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.fragenSicht = f ? (f.geparkt_utc ? "geparkt" : "offen") : "erledigt"; await zeige("fragen");
+      return refInsBild(ref);
+    }
+    if (art === "B" || art === "W") {
+      const r = art === "B" ? "beschluesse" : "wortlaut";
+      if (!(await abrufen("/api/wissen?q=" + ref))[r].some(x => x.id === nr)) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.wissenReiter = r; zustand.wissenQ = ref; await zeige("wissen");
+      return refInsBild(ref);
+    }
+    const d = await abrufen("/api/nachrichten");         /* „#“: an dich oder von dir – sonst zwischen Agenten (Team-Chat) */
+    const reiter = ["eingang", "gesendet"].find(k => d[k].some(x => x.id === nr));
+    const x = reiter && d[reiter].find(y => y.id === nr);
+    if (!x && !(await abrufen("/api/teamchat")).nachrichten.some(y => y.id === nr)) return refFehlt(ref);
+    if (!dialogeZu()) return;
+    if (!x) { await zeige("teamchat"); return refInsBild(ref) || refFehlt(ref); }
+    nrMerk = { reiter, gewaehlt: `${x.projekt || projekt}:${nr}`, projektWahl: "", nurOffen: { eingang: true, gesendet: false }, gesehen: [], links: 0, rechtsOben: 0, detail: true };
+    await zeige("nachrichten");
+  } catch (e) { toast(t("fehler", { x: e.message || e }), true); }
+}
+/* Nummern in einem Text als Verweise: [Text, Verweis, Text …]. Ab zwei Ziffern (F5, A4, M2 sind meist etwas anderes), nie
+   mitten in Wörtern, Pfaden und Versionsnummern; ein „/“ davor nur zwischen zwei Nummern („TH163/TH164“). Ohne Lookbehind (ältere iPads). */
+function mitRefs(s) {
+  if (typeof s !== "string") return [s];
+  const aus = [], re = /(^|[^\p{L}\d_#&.-])((?:TH|[DAFBWMLP]|#)[1-9]\d{1,6})(?![\p{L}\d_]|[.,]\d)/gu;
+  let pos = 0, m;
+  while ((m = re.exec(s))) {
+    const von = m.index + m[1].length, ref = m[2];
+    if (m[1] === "/" && !/\d/.test(s[m.index - 1] || "")) continue;      /* /A1234 in einem Pfad */
+    if (von > pos) aus.push(s.slice(pos, von));
+    aus.push(el("a", { href: "#", class: "verweis", "data-ref": ref, onclick: e => { e.preventDefault(); e.stopPropagation(); refOeffnen(ref); } }, ref));
+    pos = von + ref.length;
+  }
+  if (pos < s.length) aus.push(s.slice(pos));
+  return aus;
 }
 function haltDialog() {
   const agenten = (zustand.start?.agenten || []).filter(a => a.soll !== "aus").map(a => a.kennung);

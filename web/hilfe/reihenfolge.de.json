@@ -27,7 +27,7 @@
   },
   {
    "titel": "Freie Agenten bekommen Arbeit",
-   "text": "Ist ein Agent frei, sucht die AMW die nächste passende startklare Aufgabe ohne Bearbeiter in einem aktiven Meilenstein – nach Rang, bei gleichem Rang die mit mehr wartenden Nachfolgern zuerst – und schlägt sie dem Lead vor. Stellen du oder der Lead `amw projekt einstellen verteilen=an`, teilt sie selbst zu und nennt den Grund (Fachgebiet und Größe passen). Passt das Modell eines Agenten nicht zur Größe, bleibt es beim Vorschlag. Fällt ein Agent aus, geht seine laufende Aufgabe mit einer Übergabe-Notiz zurück, und du bekommst die Frage, ob seine Sitzung neu starten soll – starten tut nur du.",
+   "text": "Ist ein Agent frei, sucht die AMW die nächste passende startklare Aufgabe ohne Bearbeiter in einem aktiven Meilenstein – nach Rang, bei gleichem Rang die mit mehr wartenden Nachfolgern zuerst – und teilt sie in neuen Projekten selbst zu und nennt den Grund (Fachgebiet und Größe passen). In älteren Projekten schlägt sie sie dem Lead vor, bis du oder der Lead `amw projekt einstellen verteilen=an` stellen. Passt das Modell eines Agenten nicht zur Größe, bleibt es beim Vorschlag. Fällt ein Agent aus, geht seine laufende Aufgabe mit einer Übergabe-Notiz zurück, und du bekommst die Frage, ob seine Sitzung neu starten soll – starten tut nur du.",
    "bilder": []
   }
  ],
