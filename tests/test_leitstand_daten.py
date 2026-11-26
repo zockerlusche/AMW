@@ -359,11 +359,15 @@ class Leistung(Grund):
 
     def zaehlen(self):
         """(SQL-Befehle, die leitstand_daten selbst absetzt; alle) – wer den Befehl absetzt, steht im Aufruf darüber."""
-        eigene, alle, datei = [], [], os.path.normcase(os.path.abspath(str(leitstand_daten.__file__)))
+        eigene, alle = [], []
+        datei, dbdatei = (os.path.normcase(os.path.abspath(str(m.__file__))) for m in (leitstand_daten, db))
 
         def spur(sql):
             alle.append(sql)
-            if os.path.normcase(os.path.abspath(sys._getframe(1).f_code.co_filename)) == datei:
+            f = sys._getframe(1)
+            while f is not None and os.path.normcase(os.path.abspath(f.f_code.co_filename)) == dbdatei:
+                f = f.f_back                                   # A2144: execute() der Verbindung steht in db.py, gemeint ist sein Aufrufer
+            if f is not None and os.path.normcase(os.path.abspath(f.f_code.co_filename)) == datei:
                 eigene.append(sql)
         self.con.set_trace_callback(spur)
         try:
