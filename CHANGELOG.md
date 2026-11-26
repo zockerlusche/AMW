@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.201.0 – 26.11.2026 · Leitstand als Startseite; neue Kopfzeile
+- **Neu:** Die Startseite ist jetzt der Leitstand: Fortschritt, Für dich, Agenten, was zuletzt geschah, was jetzt läuft und was als Nächstes kommt, Zeitplan und Entscheidungen der AMW auf einen Blick.
+- **Neu:** Die Kopfzeile wechselt das Projekt mit der Zahl dessen, was dort auf dich wartet, zeigt alle Projekte auf einen Blick und sucht schon beim Tippen.
+- **Verbessert:** Reihenfolge, Zeitplan und Gesamtplan stehen als Reiter im Projektweg.
+- **Verbessert:** „Als Nächstes“ sagt „wartet auf dich“ nur, wenn es wirklich an dir liegt; sonst steht kurz da, worauf das Paket wartet.
+- **Verbessert:** Der Verlauf zeigt, wenn ein Agent ausfällt oder still ist und sein Paket in den Pool zurückgeht.
+
 ## 1.200.0 – 26.11.2026 · Eingriffe als Knöpfe; Rückfragen als Dialog der Seite
 - **Neu:** Eingriffe als Knöpfe: ein Paket früher oder später schieben (mit der gesperrten Stelle und ihrem Grund), einen Agenten herausnehmen oder freigeben, einen Prüfpunkt „Marcel testet“ hinter ein Paket setzen und alles pausieren, auf Wunsch mit Ende.
 - **Verbessert:** Rückfragen beim Freigeben, Abnehmen und Zurückgeben erscheinen als Dialog der Seite statt als Fenster des Browsers. Ein Doppelklick auf „Ja“ bei einem Thema oder auf eine Antwort zählt nur einmal.
