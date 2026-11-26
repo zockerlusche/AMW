@@ -73,7 +73,8 @@ class Seite(Daten, Rundgang):
         self.warten("zustand.sicht === 'planung' && document.querySelector('.bereich-reihe .an')?.dataset.s === 'planung'")
         self.oeffnen("betrieb", "document.querySelector('.bereich-reihe')")
         self.tab.js("document.querySelector('.bereich-reihe [data-s=termine]').click()")
-        self.warten("zustand.sicht === 'termine' && document.querySelector('#inhalt .kf, #inhalt .leer, #inhalt .tm-tag')")
+        self.warten("zustand.sicht === 'termine' && ([...document.querySelectorAll('#inhalt .leer')].some(x => x.textContent === t('tm_leer'))"
+                    " || document.querySelector('#inhalt .tm-tag'))")                               # die Termine selbst, nicht Reste der Seite davor
         self.oeffnen("planung", "document.querySelector('#inhalt .bereich-reiter')")
         self.assertFalse(self.tab.js("[...document.querySelectorAll('#inhalt .bereich-reiter button')].some(b => b.textContent === 'Termine')"))   # ein Ort
 
