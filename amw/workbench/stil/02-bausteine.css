@@ -62,7 +62,7 @@
 .schritt.mensch { border-left-color: var(--bernstein); background: var(--bernstein-weich); }
 .schritt-titel { overflow-wrap: anywhere; } .schritt-meta { grid-column: 2 / 4; font-size: 12px; }
 .spec-text { white-space: pre-wrap; font: 13.5px/1.5 var(--mono); background: var(--grund); border: 1px solid var(--linie); border-radius: 4px; padding: 12px; max-height: 50vh; overflow: auto; }
-.verweis { cursor: pointer; color: var(--bernstein); border-bottom: 1px dotted currentColor; }
+.verweis { cursor: pointer; color: var(--bernstein); border-bottom: 1px dotted currentColor; text-decoration: none; }   /* A2018: auch mit href nur gepunktet */
 :where(#inhalt a:not([class])) { color: var(--bernstein); }   /* A2018: nie Browser-Blau – ein Link ohne eigenen Stil hat den Akzent (P755) */
 :where(button).verweis { background: none; border: 0; border-bottom: 1px dotted currentColor; border-radius: 0; padding: 0; font: inherit; text-align: left; }   /* A2111: ein Verweis als Knopf sieht aus wie ein Verweis */
 .check { display: grid; gap: 6px; } .check > div { padding: 6px 0; border-bottom: 1px solid var(--linie); font-size: 14px; }
