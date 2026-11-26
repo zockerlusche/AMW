@@ -2547,7 +2547,7 @@
   "egr_neu_h": "Danach rechnet die AMW Reihenfolge und Zeitplan neu; der Verlauf nennt dich und den Grund.",
   "egr_ag_titel": "Zuteilung",
   "egr_ag_raus": "Herausnehmen",
-  "egr_ag_h": "Bekommt nichts Neues; was läuft, läuft zu Ende. Die wartenden Pakete gehen an die anderen.",
+  "egr_ag_h": "Bekommt nichts Neues; die wartenden Pakete gehen an die anderen. Was mit dem laufenden geschieht, wählst du.",
   "egr_ag_frage": "{x} herausnehmen?",
   "egr_ag_l_zu_ende": "Das laufende Paket läuft zu Ende",
   "egr_ag_l_zurueck": "Das laufende Paket kommt mit Übergabe-Notiz zurück in den Pool",

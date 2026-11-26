@@ -2547,7 +2547,7 @@
   "egr_neu_h": "AMW then recalculates the order and the schedule; the history names you and the reason.",
   "egr_ag_titel": "Assignment",
   "egr_ag_raus": "Take out",
-  "egr_ag_h": "Gets nothing new; what is running runs to the end. The waiting packages go to the others.",
+  "egr_ag_h": "Gets nothing new; the waiting packages go to the others. You choose what happens to the running one.",
   "egr_ag_frage": "Take out {x}?",
   "egr_ag_l_zu_ende": "The running package runs to the end",
   "egr_ag_l_zurueck": "The running package goes back to the pool with a handover note",
