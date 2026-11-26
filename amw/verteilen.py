@@ -271,18 +271,49 @@ def uebergabe(con, pid, a, s=None):
     return " · ".join(teile)
 
 
+def _frist_min(con, pid):
+    try:
+        return int(_einst(con, pid, "ausfall_min") or AUSFALL_MIN)
+    except (TypeError, ValueError):
+        return AUSFALL_MIN
+
+
+def _laufende(con, pid):
+    """Aufgaben in „läuft“ bei Agenten im Terminal, die nicht Lead sind."""
+    return con.execute("SELECT a.* FROM aufgabe a JOIN agent g ON g.projekt_id = a.projekt_id AND g.kennung = a.agent WHERE a.projekt_id = ?"
+                       " AND a.status = 'laeuft' AND coalesce(g.rolle, '') != 'lead' AND coalesce(g.arbeitsweise, 'terminal') = 'terminal'",
+                       (pid,)).fetchall()
+
+
+def _in_pool(con, pid, a, k, s, zeichen, lead, kurz, warum, frage, grund):
+    """Aufgabe `a` von Agent `k` ohne Bearbeiter zurück in den Pool: Ereignisse `ausfall` (zeichen) und `uebergabe` (Notiz),
+    Meldung an den Lead (`kurz`, `warum`), Frage an den Menschen (`frage`, `grund`). Kein Prozess wird beendet, nichts gestartet."""
+    notiz = uebergabe(con, pid, a, s)
+    with db.schreiben(con):
+        con.execute("UPDATE aufgabe SET agent = NULL, status = 'wartet' WHERE id = ?", (a["id"],))
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="ausfall", aufgabe_id=a["id"], text=zeichen)
+        db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="uebergabe", aufgabe_id=a["id"],
+                     text=json.dumps({"aufgabe": a["id"], "agent": k, "notiz": notiz}, ensure_ascii=False))
+        if lead:
+            kern._posten(con, pid, "AMW", lead, "meldung", kurz,
+                         f"{warum} A{a['id']} „{a['titel'][:90]}“ lief bei {k} und steht jetzt ohne Bearbeiter im Pool.\nÜbergabe: {notiz}\n"
+                         f"Neu zuteilen: amw aufgabe aendern {a['id']} --agent <Agent>. {kern.entwickler_name(con, pid)} hat die"
+                         " Frage, ob die Sitzung neu starten soll – die AMW startet nie selbst.", aufgabe_id=a["id"])
+    try:
+        kern.frage_neu(con, pid, "AMW", "entwickler", frage,
+                       [("A", f"Ja – {k} in der Workbench › Agenten neu starten"), ("B", "Nein – die Aufgabe bekommt ein anderer")],
+                       empfehlung="A", grund=grund, aufgabe_id=a["id"], pruefen=False)
+    except kern.AmwFehler:
+        pass
+
+
 def ausfall(con, pid, jetzt=None):
     """Agenten mit Aufgabe in „läuft“, deren Sitzung seit ausfall_min beendet ist → Aufgabe zurück in den Pool. Rückgabe: Texte."""
     jetzt = jetzt or time.time()
-    try:
-        grenze_min = int(_einst(con, pid, "ausfall_min") or AUSFALL_MIN)
-    except (TypeError, ValueError):
-        grenze_min = AUSFALL_MIN
+    grenze_min = _frist_min(con, pid)
     lead = kern.lead(con, pid)
     aus = []
-    for a in con.execute("SELECT a.* FROM aufgabe a JOIN agent g ON g.projekt_id = a.projekt_id AND g.kennung = a.agent WHERE a.projekt_id = ?"
-                         " AND a.status = 'laeuft' AND coalesce(g.rolle, '') != 'lead' AND coalesce(g.arbeitsweise, 'terminal') = 'terminal'",
-                         (pid,)).fetchall():
+    for a in _laufende(con, pid):
         k = a["agent"]
         if k in (kern.ENTWICKLER, lead):
             continue
@@ -297,26 +328,54 @@ def ausfall(con, pid, jetzt=None):
         zeichen = f"{k}:{s['id']}:{a['id']}"
         if _schon(con, pid, "ausfall", zeichen):
             continue
-        notiz = uebergabe(con, pid, a, s)
-        with db.schreiben(con):
-            con.execute("UPDATE aufgabe SET agent = NULL, status = 'wartet' WHERE id = ?", (a["id"],))
-            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="ausfall", aufgabe_id=a["id"], text=zeichen)
-            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="uebergabe", aufgabe_id=a["id"],
-                         text=json.dumps({"aufgabe": a["id"], "agent": k, "notiz": notiz}, ensure_ascii=False))
-            if lead:
-                kern._posten(con, pid, "AMW", lead, "meldung", f"Ausfall: {k} – A{a['id']} zurück in den Pool",
-                             f"Die Sitzung von {k} ist seit {s['beendet_utc'][11:16]} UTC beendet (seit über {grenze_min} min, keine neue)."
-                             f" A{a['id']} „{a['titel'][:90]}“ lief bei {k} und steht jetzt ohne Bearbeiter im Pool.\nÜbergabe: {notiz}\n"
-                             f"Neu zuteilen: amw aufgabe aendern {a['id']} --agent <Agent>. {kern.entwickler_name(con, pid)} hat die"
-                             " Frage, ob die Sitzung neu starten soll – die AMW startet nie selbst.", aufgabe_id=a["id"])
-        try:
-            kern.frage_neu(con, pid, "AMW", "entwickler", f"Sitzung von {k} neu starten? (beendet, A{a['id']} ging zurück in den Pool)",
-                           [("A", f"Ja – {k} in der Workbench › Agenten neu starten"), ("B", "Nein – die Aufgabe bekommt ein anderer")],
-                           empfehlung="A", grund=f"{k} hatte A{a['id']} in Arbeit; die Übergabe-Notiz liegt beim Lead.",
-                           aufgabe_id=a["id"], pruefen=False)
-        except kern.AmwFehler:
-            pass
+        _in_pool(con, pid, a, k, s, zeichen, lead, f"Ausfall: {k} – A{a['id']} zurück in den Pool",
+                 f"Die Sitzung von {k} ist seit {s['beendet_utc'][11:16]} UTC beendet (seit über {grenze_min} min, keine neue).",
+                 f"Sitzung von {k} neu starten? (beendet, A{a['id']} ging zurück in den Pool)",
+                 f"{k} hatte A{a['id']} in Arbeit; die Übergabe-Notiz liegt beim Lead.")
         aus.append(f"Ausfall {k}: A{a['id']} zurück in den Pool")
+    return aus
+
+
+def still(con, pid, jetzt=None):
+    """A2147 (TH157 Ausfälle): Ein Agent (nicht Lead) mit lebender Sitzung und laufendem Paket wurde geweckt, hat nicht geantwortet
+    und wurde einmal nachgeweckt (Dienst.nachwecken, Ereignis „nachgeweckt“). Ist das Nachwecken `ausfall_min` her, die Nachricht
+    noch ungelesen, hat er seit dem ersten Weckruf nichts gesendet und arbeitet er nicht gerade, geht sein Paket mit Übergabe-Notiz
+    in den Pool – wie beim Ausfall: Meldung an den Lead, Frage an den Menschen. Nie im Halt oder in der Pause; kein Prozess wird
+    beendet, nichts neu gestartet. Rückgabe: Texte fürs Protokoll."""
+    from . import pause
+    from .dienst import arbeitet_gerade
+    jetzt = jetzt or time.time()
+    if pause._letzte(con, pid):
+        return []
+    grenze_min = _frist_min(con, pid)
+    grenze = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - grenze_min * 60))
+    lead = kern.lead(con, pid)
+    aus = []
+    for a in _laufende(con, pid):
+        k = a["agent"]
+        if k in (kern.ENTWICKLER, lead) or kern.halt_gilt(con, pid, k):
+            continue
+        s = con.execute("SELECT s.* FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? AND g.kennung = ?"
+                        " AND s.zustand = 'aktiv' ORDER BY s.id DESC LIMIT 1", (pid, k)).fetchone()
+        if not s or arbeitet_gerade(s, jetzt):
+            continue                                             # ohne lebende Sitzung: das ist der Ausfall oben; wer arbeitet, behält
+        n = con.execute(
+            "SELECT n.id, n.kurz, e.geweckt_utc, p.zeit_utc AS nachgeweckt FROM empfang e JOIN nachricht n ON n.id = e.nachricht_id"
+            " JOIN plan_ereignis p ON p.projekt_id = n.projekt_id AND p.art = 'nachgeweckt' AND p.text = CAST(n.id AS TEXT)"
+            " WHERE e.agent = ? AND n.projekt_id = ? AND e.status = 'offen' AND e.geweckt_utc >= ? AND p.zeit_utc <= ?"
+            " AND NOT EXISTS (SELECT 1 FROM nachricht x WHERE x.projekt_id = n.projekt_id AND x.von = e.agent AND x.zeit_utc > e.geweckt_utc)"
+            " ORDER BY p.zeit_utc LIMIT 1", (k, pid, s["gestartet_utc"], grenze)).fetchone()
+        if not n:
+            continue
+        zeichen = f"still:{k}:{s['id']}:{a['id']}"
+        if _schon(con, pid, "ausfall", zeichen):
+            continue
+        _in_pool(con, pid, a, k, s, zeichen, lead, f"Still: {k} – A{a['id']} zurück in den Pool",
+                 f"{k} hat auf den Weckruf zu #{n['id']} „{(n['kurz'] or '')[:60]}“ ({n['geweckt_utc'][11:16]} UTC) und das Nachwecken"
+                 f" ({n['nachgeweckt'][11:16]} UTC) über {grenze_min} min nicht geantwortet, nichts gesendet und arbeitet nicht.",
+                 f"{k} antwortet nicht – Sitzung neu starten? (A{a['id']} ging zurück in den Pool)",
+                 f"{k} hatte A{a['id']} in Arbeit, ist geweckt und nachgeweckt worden und blieb still; die Übergabe-Notiz liegt beim Lead.")
+        aus.append(f"Still {k}: A{a['id']} zurück in den Pool")
     return aus
 
 
@@ -326,6 +385,7 @@ def runde(con, jetzt=None):
     aus = []
     for p in con.execute("SELECT id FROM projekt").fetchall():
         aus += ausfall(con, p["id"], jetzt)
+        aus += still(con, p["id"], jetzt)                                # A2147
         aus += herausnehmen.nachziehen(con, p["id"])                     # A2095
         aus += verteilen(con, p["id"])
     return aus

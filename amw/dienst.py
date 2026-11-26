@@ -315,14 +315,22 @@ class Dienst:
         """A1897 (c): Der Lead wurde zu einer Nachricht geweckt, sie ist nach NACHWECKEN_S noch ungelesen, und er hat seit dem
         Weckruf nichts gesendet → einmal nachwecken (höchstens einmal je Nachricht, plan_ereignis „nachgeweckt“). Nur aus den
         Daten; geweckt_utc bleibt der erste Weckruf. Wie beim Zustellen: nicht im Halt (außer stopp/freigabe), nicht ohne
-        lebende Sitzung, nicht während er gerade arbeitet. Rückgabe: Texte fürs Protokoll."""
+        lebende Sitzung, nicht während er gerade arbeitet. Rückgabe: Texte fürs Protokoll.
+        A2147 (TH157 Ausfälle): ebenso ein Agent mit laufendem Paket – aber gar nicht im Halt oder in der Pause. Bleibt er danach
+        still, gibt verteilen.still sein Paket nach ausfall_min in den Pool."""
+        from . import pause, verteilen
         jetzt = jetzt or time.time()
         grenze = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - NACHWECKEN_S))
         aus = []
+        wer = []
         for pr in self.con.execute("SELECT id FROM projekt").fetchall():
             pid, lead = pr["id"], kern.lead(self.con, pr["id"])
-            if not lead:
-                continue
+            if lead:
+                wer.append((pid, lead))
+            if not pause._letzte(self.con, pid):
+                wer += [(pid, k) for k in sorted({a["agent"] for a in verteilen._laufende(self.con, pid)} - {lead, kern.ENTWICKLER})
+                        if not kern.halt_gilt(self.con, pid, k)]
+        for pid, lead in wer:                                 # lead: hier der, der geweckt wurde
             zeilen = self.con.execute(
                 "SELECT e.nachricht_id, e.agent, n.projekt_id, n.von, n.art, n.kurz, n.text, n.aufgabe_id, e.geweckt_utc FROM empfang e"
                 " JOIN nachricht n ON n.id = e.nachricht_id JOIN nachricht_art k ON k.art = n.art"
@@ -337,7 +345,7 @@ class Dienst:
             if halt:
                 zeilen = [z for z in zeilen if z["art"] in NUR_IM_HALT]
             s = aktive_sitzung(self.con, pid, lead)
-            if not zeilen or not s or arbeitet_gerade(s):
+            if not zeilen or not s or arbeitet_gerade(s, jetzt):
                 continue
             try:
                 p, k = lies_schluessel(s)
