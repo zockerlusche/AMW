@@ -1399,10 +1399,12 @@ def pruefung_ergebnis(con, pid, pruefer, prid, ergebnis, bemerkung=None):
             z = kern.zustaendig(con, pid, p["aufgabe_id"])
             if z and z not in an and z != pruefer:
                 an.append(z)
-        kern._posten(con, pid, pruefer, ",".join(an), "meldung",
+        from . import buendel_auslieferung, wartegrund
+        im_buendel = buendel_auslieferung.gruen_ins_buendel(con, pid, p, ergebnis)   # A2124: GRÜN mit buendel_ausliefern = an weckt nicht
+        kern._posten(con, pid, pruefer, ",".join(an), "info" if im_buendel else "meldung",
                      f"P{prid} {ergebnis.upper()}: {p['zweig']}@{p['sha'][:8]}", bemerkung, aufgabe_id=p["aufgabe_id"])
-        from . import wartegrund                     # A2053: wer auf genau diese Prüfung wartet, wird geweckt
-        wartegrund.erledige(con, pid, *wartegrund.stichwort("wartet_pruefung", f"P{prid}"), f"P{prid} {ergebnis.upper()}")
+        # A2053: wer auf genau diese Prüfung wartet, wird geweckt – A2124: im Bündelbetrieb wartet er still auf das Bündel weiter
+        wartegrund.erledige(con, pid, *wartegrund.stichwort("wartet_pruefung", f"P{prid}"), f"P{prid} {ergebnis.upper()}", leise=im_buendel)
         rueck = None
         if ergebnis == "gruen" and p["aufgabe_id"] and kette_an(con, pid):
             ok = merge_ok(con, pid, p["aufgabe_id"], p["zweig"])

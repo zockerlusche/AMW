@@ -66,7 +66,9 @@ def kandidaten(con, pid):
                 continue
             stand = {"art": "fenster", "zweig": r["zweig"], "kopf": r["sha"], "abgenommen": r["ergebnis_utc"] or r["angefragt_utc"],
                      "agent": a["agent"] or r["bauer"]}
-        aus.append({"id": a["id"], "titel": a["titel"], "pakettyp": f.get("pakettyp"), **stand})
+        from . import buendel_auslieferung                       # A2124: Befund auf genau diesem Stand → wartet auf einen neuen
+        aus.append({"id": a["id"], "titel": a["titel"], "pakettyp": f.get("pakettyp"), **stand,
+                    "befund": buendel_auslieferung.befund_offen(con, pid, a["id"], stand["kopf"])})
     return aus
 
 
@@ -229,6 +231,10 @@ def zusammensetzen(con, pid, ohne=(), gebaut=(), nur=None):
             raus.append({**p, "grund": "bleibt draußen (Konflikt, Befund an den Bauer)"})
             continue
         if nur is not None and p["id"] not in nur:
+            continue
+        if p.get("befund"):                                       # A2124: der Bauer hat den Befund, ein neuer Stand nimmt es wieder mit
+            raus.append({**p, "grund": f"Befund ({'Konflikt' if p['befund'] == 'konflikt' else 'Gesamtlauf rot'}) auf diesem Stand –"
+                                       " wartet auf einen neuen Stand des Bauers"})
             continue
         rc, kopf, _ = _lauf(repo, daten, "rev-parse", "--verify", "--quiet", f"{p['kopf']}^{{commit}}", ok=None)
         if rc != 0:

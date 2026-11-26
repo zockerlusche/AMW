@@ -224,9 +224,10 @@ def von_hand(con, pid, von, aid, auf):
     return weg
 
 
-def erledige(con, pid, art, bezug, durch, aufgabe_id=None):
+def erledige(con, pid, art, bezug, durch, aufgabe_id=None, leise=False):
     """Ein Ereignis erledigt alle offenen Gründe art/bezug (nur die einer Aufgabe, wenn aufgabe_id) und weckt je
-    Aufgabe den Besitzer, Kopie an den Lead (L2). Gibt die betroffenen Aufgaben-Nummern zurück."""
+    Aufgabe den Besitzer, Kopie an den Lead (L2) – mit leise nicht (A2124: der Aufrufer weckt selbst oder gar nicht).
+    Gibt die betroffenen Aufgaben-Nummern zurück."""
     sql = "SELECT * FROM wartegrund WHERE projekt_id = ? AND art = ? AND bezug = ? AND erledigt_utc IS NULL"
     par = [pid, art, bezug]
     if aufgabe_id:
@@ -239,7 +240,7 @@ def erledige(con, pid, art, bezug, durch, aufgabe_id=None):
     for g in gruende:
         con.execute("UPDATE wartegrund SET erledigt_utc = ?, erledigt_durch = ? WHERE id = ?", (t, durch, g["id"]))
     aids = sorted({g["aufgabe_id"] for g in gruende})
-    for aid in aids:
+    for aid in aids if not leise else ():
         a = con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone()
         _melden(con, pid, a, durch)
     return aids

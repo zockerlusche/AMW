@@ -248,6 +248,16 @@ Nummer und schrieb die Versionshinweise.
   es sagt; von Hand `amw paket ausliefern-buendel` (Lead, Mensch). Nie bei offenem Bündel, laufendem oder wartendem Gesamtlauf,
   Wartungsmodus, Pause oder Wochenlimit-Halt. Ereignisse `buendel_auslieferung` (angestossen, zusammengesetzt, gesamtlauf, freigabe,
   ausgeliefert, bereit, geteilt, abgebrochen).
+- **Befund an genau den Bauer (A2124, TH158 F5):** ein Agent wird beim Bündeln nur geweckt, wenn das Zusammensetzen einen Konflikt
+  ergibt oder das Teilen sein Paket als schuldig nennt – dann genau der, der diesen Stand gebaut hat (Bauer der Prüfung auf genau
+  diesem SHA, sonst der Besitzer der Aufgabe; ist er entfernt, der Lead), mit genau diesem Befund: Stand, Zweig, Dateien und Meldung
+  bzw. der schuldige Teilungslauf, als Auftrag „weiter: amw aufgabe start N“. Ein p-Paket (Headless, kein Resume in Stufe 1) geht nach
+  E8 (`wartet_interaktiv`, an den Paket-Prüfer). Lead, Nachfolger und die übrigen Pakete bekommen nichts. Ein Befund weckt einmal je
+  Paket, Stand und Art: das Paket bleibt mit diesem Stand draußen („Befund … auf diesem Stand – wartet auf einen neuen Stand des
+  Bauers“) und zählt für den Auslöser nicht; mit einem neuen Stand (neue grüne Prüfung bzw. neuer Kopf) kommt es wieder mit.
+  Mit `buendel_ausliefern = an` weckt auch ein GRÜN nicht: statt „alle Gründe erledigt – weiter“ wartet die Aufgabe still auf
+  `stapel:buendel` (Sorte wartet_stapel, der Agent ist frei für das nächste Paket, A2053), das GRÜN kommt als Information. Der Befund
+  beendet dieses Warten, die Auslieferung schließt es mit „fertig“. Mit `aus` bleibt alles wie vorher (F5397).
 - **Zeilenenden der Arbeitsplätze und von Prüfung C (A1911):** Arbeiter-Klone und der frische Checkout von Prüfung C checken
   mit `core.autocrlf` des Projekts aus (der Wert steht auch in der Konfiguration des Klons, denn der Arbeiter ruft git ohne
   System-Konfiguration auf). Vorher bekamen sie den Systemwert (CRLF bei einem LF-Projekt): Der Arbeiter sah angefasste

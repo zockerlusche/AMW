@@ -2,7 +2,7 @@
 
 Ein losgelöster Prozess (`python -m amw.buendel_auslieferung <projekt>`, der Dienst startet sich bei der Auslieferung neu) macht:
 1. Zusammensetzen (A2120) – ein Paket mit Konflikt bleibt draußen (mit seinen Nachfolgern), der Rest wird ohne es neu
-   zusammengesetzt; der Befund steht als Ereignis buendel_befund für den Bauer (A2124). Ein Konflikt nur in gebauten Dateien (GEBAUT)
+   zusammengesetzt; der Befund steht als Ereignis buendel_befund und geht an genau den Bauer (A2124, befund). Ein Konflikt nur in gebauten Dateien (GEBAUT)
    ist keiner: sie werden nach dem Zusammensetzen einmal neu gebaut (eigener Commit).
 2. Version (A2121): Nummer, CHANGELOG, Versionsdatei; Versions-Commit nur mit diesen Dateien (und web/inc/VERSION); Zweig buendel-X.Y.Z.
 3. Gesamtlauf über die Lauf-Schlange auf genau diesem Stand (buendel.gesamtlauf_rechnen).
@@ -33,6 +33,7 @@ from . import db, kern
 
 ART, BEFUND = "buendel_auslieferung", "buendel_befund"
 SCHALTER = "buendel_ausliefern"
+BUENDEL_GRUND = "stapel:buendel"              # A2124: GRÜN im Bündelbetrieb – die Aufgabe wartet still auf das Bündel
 GEBAUT = ("web/inc/seite.html", "web/hilfe/*.json", "web/inc/VERSION")
 TEILUNGEN_MAX = 3
 ZUSAMMENSETZEN_MAX = 20                       # Konflikte hintereinander, dann Halt (je Runde fällt ein Paket heraus)
@@ -52,6 +53,95 @@ def _melden(con, pid, kurz, text):
     lead = kern.lead(con, pid) or kern.ENTWICKLER
     with db.schreiben(con):
         kern._posten(con, pid, "AMW", lead, "meldung", kurz[:200], text)
+
+
+def gruen_ins_buendel(con, pid, p, ergebnis):
+    """A2124: GRÜN auf ein Fenster-Paket bei buendel_ausliefern = an weckt nicht – die Aufgabe wartet still auf das Bündel (Grund
+    BUENDEL_GRUND, Sorte wartet_stapel: gibt den Agenten frei, A2053) statt „alle Gründe erledigt – weiter“. Bei aus bleibt alles wie
+    heute. p = Zeile der Prüfung; läuft im Schreibvorgang des Aufrufers. Rückgabe: True = Bündelbetrieb (der Aufrufer weckt nicht)."""
+    if ergebnis != "gruen" or not p["aufgabe_id"] or str(p["zweig"] or "").startswith("buendel-") \
+            or kern.projekt_wahl(con, pid, SCHALTER) != "an":
+        return False
+    a = con.execute("SELECT status FROM aufgabe WHERE id = ?", (p["aufgabe_id"],)).fetchone()
+    if a and a["status"] in ("wartet", "blockiert"):
+        from . import wartegrund
+        wartegrund.anlegen(con, pid, "AMW", p["aufgabe_id"], BUENDEL_GRUND)
+    return True
+
+
+def befund_offen(con, pid, aid, kopf):
+    """A2124: Art des Befunds (konflikt|rot), der für genau diesen Stand des Pakets schon gilt, sonst None. Ein solches Paket bleibt
+    draußen, bis sein Bauer einen neuen Stand hat (neue grüne Prüfung bzw. neuer Kopf) – kein zweiter Weckruf zum selben Befund."""
+    if not kopf:
+        return None
+    for (text,) in con.execute("SELECT text FROM plan_ereignis WHERE projekt_id = ? AND aufgabe_id = ? AND art = ? ORDER BY id DESC",
+                               (pid, aid, BEFUND)):
+        try:
+            d = json.loads(text or "{}")
+        except ValueError:
+            continue
+        if d.get("kopf") == kopf:
+            return d.get("art")
+    return None
+
+
+def _bauer(con, pid, aid, kopf, agent):
+    """Wer genau diesen Stand gebaut hat: Bauer der Prüfung auf genau diesem SHA, sonst der Besitzer der Aufgabe."""
+    r = con.execute("SELECT bauer FROM pruefung WHERE projekt_id = ? AND aufgabe_id = ? AND sha = ? AND zweig NOT LIKE 'buendel-%'"
+                    " AND bauer != 'AMW' ORDER BY id DESC LIMIT 1", (pid, aid, kopf or "")).fetchone()
+    return (r[0] if r else None) or agent
+
+
+def befund_text(b, art):
+    """Der Befund in Worten – genau das, was der Bauer zum Nachbessern braucht."""
+    stand = f"Stand {str(b.get('kopf') or '')[:8]}" + (f" (Zweig {b['zweig']})" if b.get("zweig") else "")
+    if art == "konflikt":
+        zeilen = [f"Konflikt beim Zusammensetzen auf main: {stand}" + (f", Commit {str(b['commit'])[:8]}" if b.get("commit") else ""),
+                  f"Dateien: {', '.join(b.get('dateien') or []) or '–'}"]
+        if b.get("nach"):
+            zeilen.append("Davor im Bündel: " + ", ".join(f"A{x}" for x in b["nach"]))
+    else:
+        zeilen = [f"Gesamtlauf rot, beim Teilen als schuldig gefunden: {stand}"]
+    if b.get("meldung"):
+        zeilen.append(f"Meldung: {str(b['meldung'])[:800]}")
+    zeilen.append("Das Paket bleibt mit diesem Stand draußen, der Rest geht ohne es weiter. Mit einem neuen Stand (neue Prüfbitte) nimmt"
+                  " die AMW es wieder mit.")
+    return "\n".join(zeilen)
+
+
+def befund(con, pid, b, art, felder):
+    """A2124 (TH158 F5): ein Befund weckt genau den Bauer des Pakets mit genau diesem Befund – einmal je Paket, Stand und Art; sonst
+    niemanden. Fenster-Paket: Auftrag an den Bauer. p-Paket (ein Headless, kein Resume in Stufe 1): E8 an den Paket-Prüfer.
+    Rückgabe: an wen (None: derselbe Befund galt schon)."""
+    from . import arbeitspaket
+    aid = b["aufgabe"]
+    if befund_offen(con, pid, aid, b.get("kopf")) == art:
+        return None
+    text = befund_text(b, art)
+    titel = (con.execute("SELECT titel FROM aufgabe WHERE id = ?", (aid,)).fetchone() or [""])[0]
+    if arbeitspaket.lesen(con, aid).get("art") == "p":
+        from . import entscheidung
+        try:
+            an = entscheidung.anwenden(con, pid, aid, "E8", f"Bündel/{art}", befund={"grund": text, "kopf": b.get("kopf")})["an"]
+        except arbeitspaket.Ungueltig as e:                           # nicht (mehr) in merge_reihe – der Befund steht trotzdem
+            an = None
+            felder = {**felder, "nicht_gesetzt": str(e)[:200]}
+    else:
+        an = _bauer(con, pid, aid, b.get("kopf"), b.get("agent"))
+        if not an or not con.execute("SELECT 1 FROM agent WHERE projekt_id = ? AND kennung = ? AND entfernt_utc IS NULL",
+                                     (pid, an)).fetchone():
+            an = kern.lead(con, pid) or kern.ENTWICKLER              # Bauer unbekannt oder entfernt: dann weiß es der Lead
+        kurz = (f"A{aid}: Bündel – Konflikt in {', '.join((b.get('dateien') or [])[:3]) or 'deinem Stand'}" if art == "konflikt"
+                else f"A{aid}: Bündel – Gesamtlauf rot, dein Stand ist schuldig")
+        with db.schreiben(con):
+            kern._posten(con, pid, "AMW", an, "auftrag", f"{kurz} – weiter: amw aufgabe start {aid}"[:200],
+                         f"„{titel[:120]}“\n{text}", aufgabe_id=aid)
+    from . import wartegrund
+    g_art, g_bezug = wartegrund.bezug_lesen(con, pid, BUENDEL_GRUND)
+    with db.schreiben(con):                                           # das Warten auf das Bündel endet – geweckt ist er oben
+        wartegrund.erledige(con, pid, g_art, g_bezug, f"Befund aus dem Bündel ({art})", aufgabe_id=aid, leise=True)
+    _ereignis(con, pid, BEFUND, aufgabe=aid, art=art, an=an, **felder)
+    return an
 
 
 def ist_amw(con, pid):
@@ -130,7 +220,7 @@ def runde(con, jetzt=None, starten=None):
     for (pid,) in con.execute("SELECT id FROM projekt ORDER BY id").fetchall():
         if kern.projekt_wahl(con, pid, SCHALTER) != "an" or hindernis(con, pid):
             continue
-        bereit = [p["id"] for p in buendel_zusammensetzen.kandidaten(con, pid)]
+        bereit = [p["id"] for p in buendel_zusammensetzen.kandidaten(con, pid) if not p.get("befund")]   # A2124: Befund offen zählt nicht
         if not bereit:
             continue
         startklar = {z["agent"] for z in reihenfolge.berechnen(con, pid) if z["zustand"] == "startklar" and z["agent"]}
@@ -187,8 +277,7 @@ class Lauf:
             if r["ok"]:
                 return r, ohne
             b = r["befund"]
-            _ereignis(self.con, self.pid, BEFUND, aufgabe=b["aufgabe"], art="konflikt", **{k: b.get(k) for k in ("agent", "zweig", "kopf", "commit",
-                                                                                                         "dateien", "meldung", "nach")})
+            befund(self.con, self.pid, b, "konflikt", {k: b.get(k) for k in ("agent", "zweig", "kopf", "commit", "dateien", "meldung", "nach")})
             ohne.add(b["aufgabe"])
         raise Abbruch(f"nach {ZUSAMMENSETZEN_MAX} Konflikten kein Bündel")
 
@@ -309,7 +398,7 @@ class Lauf:
         vor = {p["id"]: buendel._vor(self.con, p["id"]) for p in r["drin"]}
         t = buendel_teilen.teilen(r["drin"], pruefer, vor)
         for b in t["befunde"]:
-            _ereignis(self.con, self.pid, BEFUND, aufgabe=b["aufgabe"], art="rot", **{k: b.get(k) for k in ("agent", "zweig", "kopf", "meldung", "nach")})
+            befund(self.con, self.pid, b, "rot", {k: b.get(k) for k in ("agent", "zweig", "kopf", "meldung", "nach")})
         self.schritt("geteilt", schritt="geteilt", status=t["status"], frei=[p["id"] for p in t["frei"]],
                      befunde=[b["aufgabe"] for b in t["befunde"]], wartet=[p["id"] for p in t["wartet"]], laeufe=t["laeufe"], lauf=lid)
         if t["status"] != buendel_teilen.GETEILT or not t["frei"]:
