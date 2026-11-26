@@ -597,74 +597,90 @@ async function sichtProjektweg() {
   pwNachsehen(d);
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && zustand.pwFenster && zustand.sicht === "projektweg") { zustand.pwFenster = null; document.getElementById("pjw-fenster")?.remove(); } });
+/* A2012 (Kleinprobe A2008 D1900 v2, TL #33784): Reiter „Beschlüsse“ des Wissens – Filter Beschlüsse · Regeln · Deine Worte · Notizen,
+   links die Liste, rechts der Eintrag (wie Nachrichten: geteilt am PC, am Handy Liste → Eintrag mit „‹ zurück“). Themen stehen im
+   Projektweg (#themen bleibt gültig). Nur lesen – außer dem Abgleich mit dem Grund-Regelwerk (wie bisher, je Regel einzeln). */
 async function sichtWissen() {
+  if (zustand.wissenReiter === "themen") return zeige("themen");             /* alte Adresse: Themen gehören zum Projektweg */
+  if (!WISSEN_FILTER.includes(zustand.wissenReiter)) zustand.wissenReiter = "beschluesse";
   const m = rahmen(t("wissen"));
+  m.append(wissenReiter("beschluesse"));
   const such = el("input", { placeholder: t("wissen_ph"), value: zustand.wissenQ, style: "width:300px;max-width:100%",
-    onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; sichtWissen(); } } });
+    onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; zustand.wissenWahl = null; sichtWissen(); } } });
   let d; try { d = await holen("/api/wissen?q=" + encodeURIComponent(zustand.wissenQ)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const r = zustand.wissenReiter;
-  if (r === "themen") {                                      /* Design-Dokument je Thema */
-    let th; try { th = await holen("/api/themen"); } catch (e) { th = []; }
-    m.append(el("div", { class: "reiter" }, [["themen", th.length], ["beschluesse", d.anzahl?.beschluesse ?? d.beschluesse.length], ["regeln", d.regeln.length],
-      ["wortlaut", d.anzahl?.wortlaut ?? d.wortlaut.length], ["notizen", (d.notizen || []).length]]
-      .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
-      ...wissenExtern(),
-      el("div", { class: "rechts" }, such)));
-    return m.append(themenAnsicht(th, zustand.wissenQ));
-  }
-  const anzahl = { beschluesse: d.anzahl?.beschluesse ?? d.beschluesse.length, wortlaut: d.anzahl?.wortlaut ?? d.wortlaut.length };
-  m.append(el("div", { class: "reiter" }, [["themen", d.anzahl?.themen ?? "…"], ["beschluesse", anzahl.beschluesse], ["regeln", d.regeln.length],
-    ["wortlaut", anzahl.wortlaut], ["notizen", (d.notizen || []).length]]
-    .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
-    ...wissenExtern(),
+  const anzahl = { beschluesse: d.anzahl?.beschluesse ?? d.beschluesse.length, regeln: d.regeln.length, wortlaut: d.anzahl?.wortlaut ?? d.wortlaut.length,
+    notizen: (d.notizen || []).length };
+  m.append(el("div", { class: "ws-filter" },
+    el("div", { class: "segment ws-seg" }, WISSEN_FILTER.map(k => el("button", { type: "button", class: k === r ? "an" : "", "data-f": k,
+      onclick: () => { zustand.wissenReiter = k; zustand.wissenWahl = null; sichtWissen(); } }, t(k, { n: anzahl[k] })))),
     el("div", { class: "rechts" }, such)));
-  const box = el("div", { class: "zeile-reveal" });
   const gezeigt = { beschluesse: d.beschluesse.length, wortlaut: d.wortlaut.length }[r];
   if (gezeigt && anzahl[r] > gezeigt) m.append(el("p", { class: "sehrleise", style: "font-size:13px;margin:-4px 0 10px" }, t("w_neueste", { n: gezeigt, g: anzahl[r] })));
-  if (r === "beschluesse") box.append(...d.beschluesse.map(b => el("div", { class: "karte wissen-eintrag" },
-    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`), el("b", {}, b.stichwort),
-      el("span", { class: "etikett " + (b.status === "gilt" ? "gruen" : b.status === "unklar" ? "bernstein" : "") }, b.status),
-      el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`), postKnopf(`B${b.id}`, `B${b.id} ${b.stichwort}`)), el("div", { class: "inhalt" }, b.regel))));
+  const eintraege = wsEintraege(d, r);
+  if (!eintraege.length) { m.append(el("div", { class: "leer ws-leer" }, zustand.wissenQ ? t("nichts_gefunden") : t("ws_leer_" + r))); return; }
+  const liste = el("div", { class: "nr-liste ws-liste" }), rechts = el("div", { class: "nr-gespraech ws-eintrag" }),
+    raster = el("div", { class: "nr-raster ws-raster" }, liste, rechts);
+  const zeigen = (x, geklickt) => {
+    zustand.wissenWahl = x.schluessel;
+    for (const z of liste.children) z.classList.toggle("an", z.dataset.s === x.schluessel);
+    rechts.replaceChildren(el("button", { class: "nr-zurueck", type: "button", onclick: () => raster.classList.remove("detail") }, "‹ " + t(r, { n: anzahl[r] })),
+      ...x.inhalt());
+    if (geklickt) { raster.classList.add("detail"); rechts.scrollTop = 0; }
+  };
+  liste.append(...eintraege.map(x => el("div", { class: "nr-eintrag ws-zeile", "data-s": x.schluessel, role: "button", tabindex: "0",
+    onclick: () => zeigen(x, true), onkeydown: e => { if (e.key === "Enter") zeigen(x, true); } },
+    el("div", { class: "nr-kurz ws-titel" }, x.titel), el("div", { class: "sehrleise ws-unter" }, [x.ref, ...x.unter].filter(Boolean).join(" · ")))));
+  m.append(raster);
+  geteilt(raster)();
+  zeigen(eintraege.find(x => x.schluessel === zustand.wissenWahl) || eintraege[0], false);
+}
+/* Die Einträge eines Filters: {schluessel, ref, titel, unter: [...], inhalt: () => [Elemente]} – die Liste zeigt Titel und eine Zeile,
+   rechts steht alles. Regeln behalten ihre Gruppen (Grund-Regelwerk oben) und den Abgleich als eigenen Eintrag. */
+function wsEintraege(d, r) {
+  const erste = (x, n = 90) => { const z = String(x || "").split("\n")[0].trim(); return z.length > n ? z.slice(0, n - 1) + "…" : z; };
+  const werte = (...w) => el("div", { class: "sehrleise ws-werte" }, w.filter(Boolean).join(" · "));
+  if (r === "beschluesse") return d.beschluesse.map(b => ({ schluessel: "B" + b.id, ref: `B${b.id}`, titel: b.stichwort,
+    unter: [zeit(b.zeit_utc), b.status !== "gilt" ? b.status : null],
+    inhalt: () => [el("h3", {}, b.stichwort), el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`),
+      el("span", { class: "etikett " + (b.status === "gilt" ? "" : b.status === "unklar" ? "bernstein" : "") }, b.status),
+      el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`), postKnopf(`B${b.id}`, `B${b.id} ${b.stichwort}`)),
+      el("div", { class: "inhalt ws-text" }, b.regel)] }));
   if (r === "regeln") {
-    /* Regeln aus dem Grund-Regelwerk stehen als eigene Gruppe oben: Nummer der Vorlage, „angepasst“, wenn der Wortlaut
-       geändert wurde, darunter das Warum bzw. die belegte Erfahrung. Sie bleiben gewöhnliche Arbeitsregeln des Projekts. */
     const karte = x => { const g = x.grund ? (x.grund[sprache] || x.grund.de) : null;
-      return el("div", { class: "karte wissen-eintrag" + (g ? " grundregel" : "") },
-        el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr),
+      return [el("h3", {}, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr), el("div", { class: "kopfzeile" },
           g ? el("span", { class: "etikett gr-marke", title: t("gr_marke_h", { n: g.fassung }) }, g.nr) : null,
           el("span", { class: "etikett" }, g ? g.gruppe : x.ebene === "arbeit" ? t("arbeitsregel") : t("projektregel") + (x.teil ? " · " + x.teil : "")),
           g?.angepasst ? el("span", { class: "etikett bernstein", title: t("gr_angepasst_h") }, t("gr_angepasst")) : null,
           el("span", { class: "sehrleise" }, t("stand", { t: zeit(x.stand_utc) }))),
-        el("div", { class: "inhalt" }, x.text),
-        g ? el("div", { class: "gr-warum" }, el("b", {}, t(g.erfahrung ? "gr_erfahrung" : "gr_warum") + " "), g.erfahrung || g.warum) : null); };
+        el("div", { class: "inhalt ws-text" }, x.text),
+        g ? el("div", { class: "gr-warum" }, el("b", {}, t(g.erfahrung ? "gr_erfahrung" : "gr_warum") + " "), g.erfahrung || g.warum) : null]; };
     const grund = d.regeln.filter(x => x.grund), eigene = d.regeln.filter(x => !x.grund);
-    if (grund.length) box.append(el("h4", { class: "gr-titel" }, t("gr_gruppe", { n: grund.length }), hilfeKnopf("regelwerk")), ...grund.map(karte));
-    if (grund.length && eigene.length) box.append(el("h4", { class: "gr-titel" }, t("gr_eigene", { n: eigene.length })));
-    box.append(...eigene.map(karte));
-    const gw = d.grundregeln;                         /* Abgleich mit dem Grund-Regelwerk (nur Vorschlag; übernehmen einzeln) */
-    if (gw && (gw.zahl.fehlt || gw.zahl.aehnlich || gw.zahl.neue_fassung)) {
-      const zeile = x => el("div", { class: "gr-abgleich-zeile " + x.status },
-        el("span", { class: "gr-zeichen", title: t("gra_" + (x.status === "neue_fassung" ? "neu_uebernehmen" : x.status)), style: `color:var(${{ drin: "--gruen", aehnlich: "--leise", fehlt: "--bernstein", neue_fassung: "--bernstein" }[x.status]})` },
-          { drin: "✓", aehnlich: "≈", fehlt: "–", neue_fassung: "↻" }[x.status]),
-        el("span", { class: "etikett gr-nr" }, x.nr), el("span", { class: "gr-titel-text", title: x.text[sprache] || x.text.de }, x.titel[sprache] || x.titel.de),
-        x.status === "aehnlich" ? el("span", { class: "sehrleise", title: x.gemeinsam.join(", ") }, t("gra_wie", { r: x.ref }))
-          : x.status === "neue_fassung" ? el("span", { class: "bernstein-text" }, t("gra_neue_fassung", { r: x.ref, f: x.fassung })) : x.ref ? el("span", { class: "sehrleise" }, x.ref) : null,
-        x.status !== "drin" ? el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", title: x.text[sprache] || x.text.de,
-          onclick: async ev => { if (!confirm(t("gra_frage", { x: `${x.nr} ${x.titel[sprache] || x.titel.de}` }))) return;
-            try { const r = await schicken("/api/regelwerk/uebernehmen", { nr: x.nr }); if (!r.unterwegs) toast(t("gra_ok", { x: x.nr, r: r.regel })); zeige("wissen", true); }
-            catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t(x.status === "neue_fassung" ? "gra_neu_uebernehmen" : "gra_uebernehmen")) : null);
-      box.append(el("details", { class: "gr-abgleich" }, el("summary", {}, el("b", {}, t("gra_titel", { v: gw.vorlage })), " ",
-          el("span", { class: "sehrleise" }, t("gra_zahl", { f: gw.zahl.fehlt, a: gw.zahl.aehnlich, d: gw.zahl.drin }))),
-        el("p", { class: "sehrleise", style: "margin:6px 0" }, t("gra_h")), ...gw.regeln.map(zeile)));
-    }
+    const aus = [...grund, ...eigene].map(x => { const g = x.grund ? (x.grund[sprache] || x.grund.de) : null;
+      return { schluessel: (x.ebene === "arbeit" ? "KR" : "PR") + x.nr, ref: (x.ebene === "arbeit" ? "KR" : "PR") + x.nr, titel: erste(x.text),
+        unter: [g ? g.nr : x.ebene === "arbeit" ? t("arbeitsregel") : t("projektregel")], inhalt: () => karte(x) }; });
+    const gw = d.grundregeln;
+    if (gw && (gw.zahl.fehlt || gw.zahl.aehnlich || gw.zahl.neue_fassung)) aus.push({ schluessel: "abgleich", ref: null, titel: t("gra_titel", { v: gw.vorlage }),
+      unter: [t("gra_zahl", { f: gw.zahl.fehlt, a: gw.zahl.aehnlich, d: gw.zahl.drin })], inhalt: () => [el("h3", {}, t("gra_titel", { v: gw.vorlage })),
+        el("p", { class: "sehrleise", style: "margin:0" }, t("gra_h")), ...gw.regeln.map(wsAbgleichZeile)] });
+    return aus;
   }
-  if (r === "wortlaut") box.append(...d.wortlaut.map(w => el("div", { class: "karte wissen-eintrag" },
-    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `W${w.id}`), el("span", { class: "sehrleise" }, `${zeit(w.zeit_utc)} · ${w.kanal}`)),
-    el("div", { class: "inhalt", style: "color:var(--tinte)" }, w.text))));
-  if (r === "notizen") box.append(...(d.notizen || []).map(n => el("div", { class: "karte wissen-eintrag" },
-    el("div", { class: "kopfzeile" }, el("b", { class: "mono" }, n.schluessel), el("span", { class: "sehrleise" }, t("stand", { t: zeit(n.geaendert_utc) }))),
-    el("div", { class: "inhalt", style: "white-space:pre-wrap" }, n.wert))));
-  if (!box.children.length) box.append(el("div", { class: "leer" }, t("nichts_gefunden")));
-  m.append(box);
+  if (r === "wortlaut") return d.wortlaut.map(w => ({ schluessel: "W" + w.id, ref: `W${w.id}`, titel: erste(w.text), unter: [zeit(w.zeit_utc), w.kanal],
+    inhalt: () => [el("h3", {}, `W${w.id}`), werte(zeit(w.zeit_utc), w.kanal), el("div", { class: "inhalt ws-text", style: "color:var(--tinte)" }, w.text)] }));
+  return (d.notizen || []).map(n => ({ schluessel: "N:" + n.schluessel, ref: null, titel: n.schluessel, unter: [t("stand", { t: zeit(n.geaendert_utc) })],
+    inhalt: () => [el("h3", { class: "mono" }, n.schluessel), werte(t("stand", { t: zeit(n.geaendert_utc) })),
+      el("div", { class: "inhalt ws-text", style: "white-space:pre-wrap" }, n.wert)] }));
 }
-
+/* Abgleich mit dem Grund-Regelwerk: je Regel drin / ähnlich / fehlt / neue Fassung, übernehmen einzeln (wie bisher) */
+function wsAbgleichZeile(x) {
+  return el("div", { class: "gr-abgleich-zeile " + x.status },
+    el("span", { class: "gr-zeichen", title: t("gra_" + (x.status === "neue_fassung" ? "neu_uebernehmen" : x.status)), style: `color:var(${{ drin: "--gruen", aehnlich: "--leise", fehlt: "--bernstein", neue_fassung: "--bernstein" }[x.status]})` },
+      { drin: "✓", aehnlich: "≈", fehlt: "–", neue_fassung: "↻" }[x.status]),
+    el("span", { class: "etikett gr-nr" }, x.nr), el("span", { class: "gr-titel-text", title: x.text[sprache] || x.text.de }, x.titel[sprache] || x.titel.de),
+    x.status === "aehnlich" ? el("span", { class: "sehrleise", title: x.gemeinsam.join(", ") }, t("gra_wie", { r: x.ref }))
+      : x.status === "neue_fassung" ? el("span", { class: "bernstein-text" }, t("gra_neue_fassung", { r: x.ref, f: x.fassung })) : x.ref ? el("span", { class: "sehrleise" }, x.ref) : null,
+    x.status !== "drin" ? el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", title: x.text[sprache] || x.text.de,
+      onclick: async () => { if (!confirm(t("gra_frage", { x: `${x.nr} ${x.titel[sprache] || x.titel.de}` }))) return;
+        try { const r = await schicken("/api/regelwerk/uebernehmen", { nr: x.nr }); if (!r.unterwegs) toast(t("gra_ok", { x: x.nr, r: r.regel })); zeige("wissen", true); }
+        catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t(x.status === "neue_fassung" ? "gra_neu_uebernehmen" : "gra_uebernehmen")) : null);
+}

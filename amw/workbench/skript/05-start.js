@@ -627,8 +627,8 @@ function nrReiterLeiste(aktiv, eingangOffen, weiter) {
     try { localStorage.setItem(ablage("amw-nr"), k); } catch (e) {}
     if (zustand.sicht === "nachrichten" && weiter) weiter(k); else zeige("nachrichten"); } }, t("nr_" + k), n ? el("span", { class: "z" }, n) : null);
   const runde = API && !darfFreigeben() ? null : el("button", { type: "button", class: aktiv === "runde" ? "an" : null, onclick: () => zeige("runde") }, t("nr_runde"));   /* Lead-Runde (A1658): online nur lesen, nur System-Admins (A1680) */
-  const chat = el("button", { type: "button", class: aktiv === "teamchat" ? "an" : null, onclick: () => zeige("teamchat") }, t("n_teamchat"));   /* A1657 */
-  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? zustand.nrOffenAlle ?? z.nachrichten), chat, knopf("gesendet"), runde);
+  /* A2012: „Mitlesen“ ist ein eigener Reiter des Wissens (wissenReiter) – hier nur noch Eingang, Gesendet, Lead-Runde */
+  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? zustand.nrOffenAlle ?? z.nachrichten), knopf("gesendet"), runde);
 }
 /* Verlauf als Gespräch (A1889, wie im Mail-Programm): alles im selben Projekt mit demselben Bezug – Antworten erben ihn –,
    sonst die Kette über antwort_auf; an dich, von dir und was Agenten untereinander dazu schrieben. Ältestes oben. */
@@ -844,8 +844,7 @@ async function sichtTeamchat() {
   const d = { nachrichten: geladen.flatMap(({ p, d: x }) => (x.nachrichten || []).map(n => ({ ...n, projekt: p })))
     .sort((a, b) => (b.zeit_utc || "").localeCompare(a.zeit_utc || "") || b.id - a.id), agenten: [...new Set(geladen.flatMap(({ d: x }) => x.agenten || []))].sort() };
   const mehrere = nrProjekte().length > 1;             /* A1889: Mitlesen über alle Projekte, jede Zeile mit ihrem Projekt */
-  const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("tc_unter")));
-  m.append(nrReiterLeiste("teamchat"));
+  const m = rahmen(t("n_teamchat"), el("span", { class: "leise" }, t("tc_unter")));          /* A2012: nur lesen – die Reiter des Wissens stehen im Kopf */
   let agent = "", such = "", projektWahl = "";
   const liste = el("div", { class: "tc-liste" }), chips = el("div", { class: "nr-chipzeile" });
   m.append(el("div", { class: "nr-leiste" }, el("div", { class: "nr-filter" },

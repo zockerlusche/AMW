@@ -171,8 +171,8 @@ class Seite(Wiederholt, Grund):
         self.assertIn("1 neue Nachricht an dich", self.tab.js("document.querySelector('#ue-fuer_dich .nr-start').innerText"))   # A1657: Karte „Für dich“
         self.tab.js("document.querySelector('.nr-start').click()")
         self.warten("zustand.sicht === 'nachrichten' && document.querySelector('.nr-reiter button.an')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False, False])   # An dich, Mitlesen (A1657/A1889), Gesendet, Lead-Runde (nur am PC)
-        self.assertEqual(self.tab.js("document.querySelectorAll('.nr-reiter button')[3].textContent"), "Lead-Runde")
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.classList.contains('an'))"), [True, False, False])   # An dich, Gesendet, Lead-Runde (nur am PC); Mitlesen ist seit A2012 ein Reiter des Wissens
+        self.assertEqual(self.tab.js("document.querySelectorAll('.nr-reiter button')[2].textContent"), "Lead-Runde")
         self.assertIn("Mache ich", self.tab.js("document.querySelector('.nr-liste').innerText"))
         n2 = self.con.execute("SELECT max(id) FROM nachricht WHERE von = 'CC1'").fetchone()[0]
         offen = lambda: self.con.execute("SELECT status FROM empfang WHERE nachricht_id = ? AND agent = ?", (n2, kern.ENTWICKLER)).fetchone()[0]
@@ -293,12 +293,16 @@ class Seite(Wiederholt, Grund):
         self.tab.js("(() => { const s = document.querySelector('#np-regeln'); s.value = ''; s.dispatchEvent(new Event('change')); })()")
         self.assertEqual(self.tab.js("document.querySelectorAll('.np-rw-regel').length"), 0)                 # „ohne“: keine Liste
         regelwerk.uebernehmen(self.con, self.pid, "Entwickler", auswahl=["G1", "G3"], texte={"G3": "Eigener Weg einer Änderung."})
-        self.oeffnen("wissen", "document.querySelector('.reiter')")
-        self.tab.js("[...document.querySelectorAll('.reiter button, .reiter a')].find(b => /Regeln/.test(b.textContent)).click()")
-        self.warten("document.querySelectorAll('.wissen-eintrag.grundregel').length === 2")
-        self.assertEqual(self.tab.js("document.querySelector('.gr-titel').childNodes[0].textContent"), "Grundregeln (2)")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.gr-marke')].map(x => x.textContent)"), ["G1", "G3"])
-        karten = self.tab.js("[...document.querySelectorAll('.wissen-eintrag.grundregel')].map(k => k.innerText)")
+        self.oeffnen("wissen", "document.querySelector('.ws-filter')")                 # A2012: Regeln sind ein Filter, Liste links, Eintrag rechts
+        self.tab.js("document.querySelector('.ws-seg [data-f=regeln]').click()")
+        gr = r"[...document.querySelectorAll('.ws-zeile')].filter(z => /^G\d+$/.test(z.querySelector('.ws-unter').textContent.split(' · ').pop()))"
+        self.warten(f"{gr}.length === 2")                                                        # dazu der Abgleich als eigener Eintrag
+        self.assertEqual(self.tab.js(f"{gr}.map(z => z.querySelector('.ws-unter').textContent.split(' · ').pop())"), ["G1", "G3"])
+        karten = []
+        for i in range(2):
+            self.tab.js(f"{gr}[{i}].click()")
+            self.warten(f"{gr}[{i}].classList.contains('an') && document.querySelector('.ws-eintrag .gr-marke')")
+            karten.append(self.tab.js("document.querySelector('.ws-eintrag').innerText"))
         self.assertIn("Erfahrung:", karten[0])
         self.assertNotIn("ANGEPASST", karten[0].upper().replace("ERFAHRUNG", ""))
         self.assertIn("Warum:", karten[1])

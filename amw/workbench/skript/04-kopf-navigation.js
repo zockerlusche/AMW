@@ -43,13 +43,14 @@ let ruhig = false;
 /* Menü nach TH156 (A2018): Leitstand · Projektweg · Fragen (bis „Für dich“) · Wissen · Betrieb · Einstellungen. Was früher ein eigener
    Punkt war, gehört jetzt zu einem dieser Bereiche; jede alte Adresse (#planung, #themen, #nachrichten, #arbeit …) bleibt gültig. */
 const BEREICH = { planung: "projektweg", themen: "projektweg", arbeit: "projektweg", verlauf: "projektweg", nachrichten: "wissen", teamchat: "wissen",
-  runde: "wissen", dokumente: "wissen", releases: "wissen", termine: "betrieb" };
+  runde: "wissen", dokumente: "wissen", ergebnisse: "wissen", releases: "projektweg", termine: "betrieb" };   /* #ergebnisse: alte Adresse (A2012) */   /* A2012: Versionshinweise beim Projektweg (TH156) */
 /* Die Reihe eines Bereichs steht im Seitenkopf jeder seiner Seiten (rahmen): so ist alles erreichbar, was im Menü keinen Punkt mehr hat.
    Wissen hat seine Reiter schon auf der Seite – nur die Nachrichten bekommen sie hier. */
-const REIHEN = { projektweg: [["projektweg", "n_projektweg"], ["themen", "n_themen"], ["planung", "n_planung"]], betrieb: [["betrieb", "n_betrieb"], ["termine", "pr_termine"]] };
+const REIHEN = { projektweg: [["projektweg", "n_projektweg"], ["themen", "n_themen"], ["planung", "n_planung"], ["releases", "n_releases"]],
+  betrieb: [["betrieb", "n_betrieb"], ["termine", "pr_termine"]] };
 const REIHE_AN = { arbeit: "planung", verlauf: "planung" };
 function bereichReihe(sicht) {
-  if (["nachrichten", "teamchat", "runde"].includes(sicht)) { const r = wissenReiter("nachrichten"); r.className = "bereich-reihe"; return r; }
+  if (["nachrichten", "teamchat", "runde"].includes(sicht)) { const r = wissenReiter(sicht === "teamchat" ? "teamchat" : "nachrichten"); r.className = "bereich-reihe"; return r; }
   const teile = REIHEN[BEREICH[sicht] || sicht];
   return teile ? el("div", { class: "bereich-reihe" }, teile.map(([s, n]) => el("button", { type: "button", class: s === (REIHE_AN[sicht] || sicht) ? "an" : "",
     "data-s": s, onclick: () => zeige(s) }, t(n)))) : null;
@@ -65,14 +66,15 @@ function planReiter(aktiv, n = {}) {
     ["risiken", t("pr_risiken") + (n.risiken !== undefined ? ` (${n.risiken})` : ""), plan("risiken")],
     ["check", t("pr_check") + (n.check ? ` (${n.check})` : ""), plan("check")], ["protokoll", t("pr_protokoll"), plan("protokoll")]], aktiv);
 }
+/* A2012 (Kleinprobe A2008, TL #33784): Wissen hat vier Reiter – Beschlüsse (mit Regeln, Wortlaut, Notizen als Filter), Dokumente,
+   Nachrichten, Mitlesen (nur lesen). Themen gehören zum Projektweg, die Versionshinweise auch. */
+const WISSEN_FILTER = ["beschluesse", "regeln", "wortlaut", "notizen"];
 function wissenReiter(aktiv) {
-  const w = k => () => { zustand.wissenReiter = k; zeige("wissen"); };
-  return bereichReiter([...["themen", "beschluesse", "regeln", "wortlaut", "notizen"].map(k => [k, t("rb_" + k), w(k)]),
-    ["nachrichten", t("n_nachrichten"), () => zeige("nachrichten")], ["dokumente", t("n_dokumente"), () => zeige("dokumente")],
-    ["releases", t("n_releases"), () => zeige("releases")]], aktiv);
+  const an = WISSEN_FILTER.includes(aktiv) ? "beschluesse" : aktiv;
+  return bereichReiter([["beschluesse", t("rb_beschluesse"), () => { if (!WISSEN_FILTER.includes(zustand.wissenReiter)) zustand.wissenReiter = "beschluesse"; zeige("wissen"); }],
+    ["dokumente", t("n_dokumente"), () => zeige("dokumente")], ["nachrichten", t("n_nachrichten"), () => zeige("nachrichten")],
+    ["teamchat", t("n_teamchat"), () => zeige("teamchat")]], an);
 }
-const wissenExtern = () => [["nachrichten", "n_nachrichten"], ["dokumente", "n_dokumente"], ["releases", "n_releases"]].map(([s, k]) =>
-  el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
 function zeige(sicht, still = false) {
   if (sicht === "steuerung") return zurSteuerung();                     /* A2018: Adresse #steuerung */
   if (PW_ADRESSEN[sicht]) return pwAdresse(sicht);                      /* A2011: #reihenfolge, #zeitplan, #gesamtplan → Reiter im Projektweg */
@@ -90,7 +92,7 @@ function zeige(sicht, still = false) {
   try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
   kzKnopf();                                                            /* A2014: „Alle Projekte“ im Kopf nur in der Gesamtsicht */
-  const fertig = ({ projekte: sichtProjekte, start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  const fertig = ({ projekte: sichtProjekte, start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, ergebnisse: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return fertig; }
   return Promise.resolve(fertig).then(() => {
     if (offen?.size) for (const s of $("#inhalt").querySelectorAll("details > summary")) if (offen.has(s.textContent)) s.parentElement.open = true;

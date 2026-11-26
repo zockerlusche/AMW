@@ -109,8 +109,8 @@ class Wege(Rundgang):
           "M": "zustand.sicht === 'planung' && document.querySelector('.tl-bogen.blink')",
           "TH": "zustand.sicht === 'themen' && document.querySelector('.th-thema')?.textContent.includes('Spielstände')",
           "F": "zustand.sicht === 'fragen' && document.querySelector('.karte.blink')?.textContent.includes('Wie viele')",
-          "B": "zustand.sicht === 'wissen' && document.querySelector('.karte.blink')?.textContent.includes('Es gibt drei')",
-          "W": "zustand.sicht === 'wissen' && document.querySelector('.karte.blink')?.textContent.includes('Drei Plätze')",
+          "B": "zustand.sicht === 'wissen' && document.querySelector('.ws-zeile.blink') && document.querySelector('.ws-eintrag')?.textContent.includes('Es gibt drei')",   # A2012
+          "W": "zustand.sicht === 'wissen' && document.querySelector('.ws-zeile.blink') && document.querySelector('.ws-eintrag')?.textContent.includes('Drei Plätze')",
           "#": "zustand.sicht === 'nachrichten' && document.querySelector('.nr-blase.diese')?.textContent.includes('Fertig, siehe')",
           "team": "zustand.sicht === 'teamchat' && document.querySelector('.tc-eintrag.blink')?.textContent.includes('Nur unter uns')"}
 

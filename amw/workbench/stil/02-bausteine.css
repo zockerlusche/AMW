@@ -802,3 +802,16 @@ main.geteilt-seite { padding-bottom: 16px; }
 .rueckfrage input[type=text] { width: 100%; padding: 8px; margin: 0 0 14px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; color: var(--tinte); font: inherit; }
 .rueckfrage-knoepfe { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 @media (max-width: 760px) { .dialog-hg.rueckfrage-hg { padding: 8px; } .rueckfrage { width: 100%; } .rueckfrage-knoepfe .knopf { flex: 1 1 0; } }
+/* A2012: Wissen – Filter als ruhige Segment-Gruppe (Kleinprobe A2008), Liste links wie die Nachrichten */
+.ws-filter { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; } .ws-filter .rechts { margin-left: auto; }
+.segment { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--linie2); border-radius: 6px; overflow: hidden; }
+.segment button { border: 0; background: transparent; padding: 6px 12px; min-height: 36px; cursor: pointer; font: inherit; font-size: 14px; color: var(--leise); }
+.segment button + button { border-left: 1px solid var(--linie2); } .segment button.an { background: var(--flaeche2); color: var(--tinte); font-weight: 600; }
+.ws-zeile .ws-titel { overflow-wrap: anywhere; } .ws-unter { font-size: 12.5px; } .ws-eintrag h3 { overflow-wrap: anywhere; } .ws-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .ws-filter .rechts { margin-left: 0; width: 100%; } .ws-filter .rechts input { width: 100% !important; } }
+.ws-filter input, .dk-oben input { background: var(--flaeche); color: var(--tinte); border: 1px solid var(--linie); border-radius: 3px; padding: 6px 9px; min-width: 0; font: inherit; }
+.dk-oben { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; } .dk-oben input { flex: 1 1 260px; max-width: 420px; }
+.dk-mehr { margin-bottom: 14px; } .dk-mehr > summary { cursor: pointer; color: var(--leise); font-size: 13.5px; padding: 4px 0; } .dk-mehr[open] > summary { margin-bottom: 8px; }
+.dk-mehr .dk-filter { margin-bottom: 0; }
+@media (max-width: 760px) { .segment { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .segment::-webkit-scrollbar { display: none; }
+  .segment button { flex: none; padding: 6px 10px; } .dk-oben input { max-width: none; } }

@@ -40,14 +40,18 @@ async function sichtDokumente() {
   const formatWahl = el("select", { "aria-label": t("dk_format"), onchange: e => neu("format", e.target.value) },
     el("option", { value: "" }, t("dk_format_alle")),
     DK_FORMATE.filter(v => formate[v] != null).map(v => el("option", { value: v, ...(f.format === v ? { selected: true } : {}) }, `${t("dkf_" + v)} (${formate[v]})`)));
-  m.append(el("div", { class: "dk-filter" }, such, formatWahl,
+  /* A2012 (F5398, TH156 Regel 1–9): Suche und Ansicht bleiben sichtbar, die übrigen Filter sind zugeklappt, solange keiner gesetzt ist */
+  const gesetzt = [f.format, f.von, f.bezug, f.zeit, f.sort && f.sort !== "neu", f.status !== "aktuell"].filter(Boolean).length;
+  m.append(el("div", { class: "dk-oben" }, such,
+    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
+  m.append(el("details", { class: "dk-mehr", ...(gesetzt ? { open: true } : {}) }, el("summary", {}, gesetzt ? t("ws_filter_n", { n: gesetzt }) : t("ws_filter")),
+   el("div", { class: "dk-filter" }, formatWahl,
     auswahl("von", t("alle_agenten"), Object.entries(d.von).map(([a, n]) => [a, `${a} (${n})`])),
     auswahl("bezug", t("dk_alle_bezuege"), bezugListe),
     wahl("zeit", [["", t("dk_zeit_alle")], ["heute", t("dk_zeit_heute")], ["7", t("dk_zeit_7")], ["30", t("dk_zeit_30")]], ""),
     wahl("sort", [["neu", t("dk_sort_neu")], ["alt", t("dk_sort_alt")], ["titel", t("dk_sort_titel")], ["art", t("dk_sort_art")]], "neu"),
     el("select", { onchange: e => neu("status", e.target.value) }, ["aktuell", "archiviert", "alle"].map(s =>
-      el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))),
-    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
+      el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))))));
   const ab = f.zeit === "heute" ? new Date(new Date().setHours(0, 0, 0, 0)) : f.zeit ? new Date(Date.now() - Number(f.zeit) * 864e5) : null;
   d.dokumente = d.dokumente.filter(x => (!ab || new Date(x.version_utc) >= ab) && (!f.format || x.vorschau === f.format));
   const vergleich = { alt: (a, b) => a.version_utc.localeCompare(b.version_utc) || a.id - b.id,

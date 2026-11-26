@@ -42,7 +42,7 @@ class Posteingang(Daten, Rundgang):
         self.groesse("pc")
         self.oeffnen("nachrichten", "document.querySelectorAll('.nr-eintrag').length >= 2")
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.nr-reiter button')].map(b => b.firstChild.textContent)").__getitem__(slice(0, 3)),
-                         ["An dich", "Mitlesen", "Gesendet"])
+                         ["An dich", "Gesendet", "Lead-Runde"])   # A2012: Mitlesen ist ein Reiter des Wissens
         self.assertEqual(self.tab.js("document.querySelector('.nr-offen').textContent"), "2 zu tun für dich")   # P und Zweitprojekt
         liste = self.tab.js("document.querySelector('.nr-liste').innerText")
         for x in ("Mache ich", "Meilenstein im Zweitprojekt abschließen?"):

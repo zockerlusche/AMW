@@ -2694,5 +2694,11 @@
   "kz_s_geplant": "geplant",
   "kz_s_offen": "offen",
   "kz_s_beantwortet": "beantwortet",
-  "kz_s_freigegeben": "freigegeben"
+  "kz_s_freigegeben": "freigegeben",
+  "ws_leer_beschluesse": "Noch keine Beschlüsse. Sie entstehen aus deinen Antworten und deinen Worten.",
+  "ws_leer_regeln": "Noch keine Regeln für dieses Projekt.",
+  "ws_leer_wortlaut": "Noch nichts von dir festgehalten.",
+  "ws_leer_notizen": "Keine Notizen.",
+  "ws_filter": "Filter",
+  "ws_filter_n": "Filter ({n} gesetzt)"
 }

@@ -22,7 +22,7 @@ function dialogeZu() {
 /* Den Eintrag mit dieser Nummer auf der gezeigten Seite ins Bild holen; false = er steht nicht dort */
 function refInsBild(ref) {
   const z = [...document.querySelectorAll("#inhalt .karte .ref")].find(e => e.textContent === ref)?.closest(".karte")
-    || document.querySelector(`#inhalt .tc-eintrag[data-ref="${ref}"]`);
+    || document.querySelector(`#inhalt .tc-eintrag[data-ref="${ref}"]`) || document.querySelector(`#inhalt .ws-zeile[data-s="${ref}"]`);   /* A2012: Zeile im Wissen */
   if (!z) return false;
   z.scrollIntoView({ block: "center" });
   z.classList.remove("blink"); void z.offsetWidth; z.classList.add("blink");
@@ -62,7 +62,7 @@ async function refOeffnen(ref, aufgabe) {
       const r = art === "B" ? "beschluesse" : "wortlaut";
       if (!(await abrufen("/api/wissen?q=" + ref))[r].some(x => x.id === nr)) return refFehlt(ref);
       if (!dialogeZu()) return;
-      zustand.wissenReiter = r; zustand.wissenQ = ref; await zeige("wissen");
+      zustand.wissenReiter = r; zustand.wissenQ = ref; zustand.wissenWahl = ref; await zeige("wissen");   /* A2012: gleich rechts offen */
       return refInsBild(ref);
     }
     const d = await abrufen("/api/nachrichten");         /* „#“: an dich oder von dir – sonst zwischen Agenten (Team-Chat) */

@@ -2694,5 +2694,11 @@
   "kz_s_geplant": "planned",
   "kz_s_offen": "open",
   "kz_s_beantwortet": "answered",
-  "kz_s_freigegeben": "approved"
+  "kz_s_freigegeben": "approved",
+  "ws_leer_beschluesse": "No decisions yet. They come from your answers and your words.",
+  "ws_leer_regeln": "No rules for this project yet.",
+  "ws_leer_wortlaut": "Nothing of yours recorded yet.",
+  "ws_leer_notizen": "No notes.",
+  "ws_filter": "Filters",
+  "ws_filter_n": "Filters ({n} set)"
 }

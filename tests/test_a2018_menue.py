@@ -14,7 +14,7 @@ from tests.test_wege import Grund
 # alte Adresse → (leuchtender Menüpunkt, gewählter Reiter der Reihe)
 ALT = {"start": ("start", None), "projektweg": ("projektweg", "projektweg"), "themen": ("projektweg", "themen"), "planung": ("projektweg", "planung"),
        "arbeit": ("projektweg", "planung"), "verlauf": ("projektweg", "planung"), "fragen": ("fragen", None), "wissen": ("wissen", None),
-       "nachrichten": ("wissen", "Nachrichten"), "teamchat": ("wissen", "Nachrichten"), "dokumente": ("wissen", None), "releases": ("wissen", None),
+       "nachrichten": ("wissen", "Nachrichten"), "teamchat": ("wissen", "Mitlesen"), "dokumente": ("wissen", None), "releases": ("projektweg", "releases"),   # A2012
        "betrieb": ("betrieb", "betrieb"), "termine": ("betrieb", "termine"), "einstellungen": ("einstellungen", None)}
 MENUE = ["start", "projektweg", "fragen", "wissen", "betrieb", "einstellungen"]
 KENNT = "document.querySelector('#inhalt .seitenkopf h1') && zustand.sicht === '%s'"
@@ -68,7 +68,7 @@ class Seite(Daten, Rundgang):
     def test_reihe_ohne_zahl_und_umschalten(self):
         self.groesse("pc")
         self.oeffnen("projektweg", "document.querySelector('.bereich-reihe')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.bereich-reihe button')].map(b => b.textContent)"), ["Projektweg", "Themen", "Planung"])
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('.bereich-reihe button')].map(b => b.textContent)"), ["Projektweg", "Themen", "Planung", "Versionshinweise"])   # A2012
         self.tab.js("document.querySelector('.bereich-reihe [data-s=planung]').click()")
         self.warten("zustand.sicht === 'planung' && document.querySelector('.bereich-reihe .an')?.dataset.s === 'planung'")
         self.oeffnen("betrieb", "document.querySelector('.bereich-reihe')")

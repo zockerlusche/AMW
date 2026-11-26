@@ -9,7 +9,7 @@ from tests.rundgang import OnlineRundgang, Rundgang
 from tests.test_rundgang import Daten as Grunddaten
 
 ARBEIT = ("listen", "offen", "geparkt", "pool", "erledigt")
-WISSEN = ("themen", "beschluesse", "regeln", "wortlaut", "notizen")
+WISSEN = ("beschluesse", "regeln", "wortlaut", "notizen")   # A2012: Themen beim Projektweg
 
 
 class Daten(Grunddaten):
@@ -64,7 +64,7 @@ class Seiten(Daten, Rundgang):
             with self.subTest(reiter=r):
                 self.ueberall("wissen", f"wissen-{r}", bereit="document.querySelector('#inhalt .reiter')",
                               tun=reiter("zustand.wissenReiter", r, "sichtWissen"),
-                              danach=f"zustand.wissenReiter === {r!r} && document.querySelector('#inhalt .reiter button.an')")
+                              danach=f"zustand.wissenReiter === {r!r} && document.querySelector('.ws-seg .an')?.dataset.f === {r!r}")
 
     def test_thema_dialog(self):
         tid = self.con.execute("SELECT max(id) FROM thema WHERE projekt_id = ?", (self.pid,)).fetchone()[0]
