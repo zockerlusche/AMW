@@ -435,7 +435,8 @@ def projekt_einstellen(con, pid, von, **werte):
                "gesamtlauf_prozesse": (1, 64),
                "gesamtlauf_frist_min": (0, 600),               # A2051: Vorgabe-Frist eines Gesamtlaufs (Vorgabe 60, 0 = keine)
                "fragen_takt_h": (0, 24), "fragen_frist_h": (1, 168),   # A1945 (K10): Fragen gebündelt (0 = sofort), Frist                 # A1966: Prozesse des parallelen Gesamtlaufs (Vorgabe: halbe Kernzahl)
-               "warten_agent_min": (5, 1440)}                  # A1997: Funkstille beim Warten auf einen Agenten → Lead
+               "warten_agent_min": (5, 1440),                  # A1997: Funkstille beim Warten auf einen Agenten → Lead
+               "ruhe_min": (15, 1440)}                         # A2160: so lange ohne Aktivität am laufenden Paket, dann Frage an den Agenten
     with db.schreiben(con):
         e = json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}")
         alt = dict(e)

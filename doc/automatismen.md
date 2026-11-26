@@ -419,8 +419,15 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
     „A<Vorgänger>“ und den Status wartet, meldet es dem Bauer und dem Lead. Ein neuer Stand hebt den Halt auf; mit dem Live-Gang
     des Vorgängers erledigt er sich von selbst. Von Hand: `amw aufgabe wartet <nr> --erledigt A<Vorgänger>`.
   - Vorgänger live: Nachricht an den Bauer, den Zweig jetzt auf main umsetzen.
-- Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `ausfall_vorschlag`, `uebergabe`; A2148: `buendel_basis`,
-  `buendel_basis_halt`, `buendel_basis_frei`, `buendel_basis_live`.
+- **Ruhig ohne Weckruf (A2160, TH157):** Hat ein Agent (nicht Lead) mit lebender Sitzung eine Aufgabe in „läuft“ und seit
+  `ruhe_min` (Vorgabe 90, 15–1440) keine Aktivität daran – kein Commit, dessen Betreff die Aufgabe nennt (alle Zweige), kein Lauf
+  (angemeldet, Start oder Ende), keine eigene Nachricht, kein Hook-Ereignis seiner Sitzung; gezählt ab Beginn der Aufgabe – und
+  arbeitet er nicht gerade, bekommt er die Frage der AMW „Kommst du voran mit A…? Kurz antworten oder Wartegrund setzen“, und
+  der Lead die Meldung „Ruhig: … – A… seit … ohne Aktivität“ (Ereignis `ruhig`). Einmal je Paket und Ruhephase: eine neue
+  Aktivität beginnt eine neue. Nie im Halt oder in der Pause. Danach greift „Still trotz Weckruf“: die Frage weckt, bleibt sie
+  unbeantwortet, weckt der Dienst nach und gibt das Paket nach `ausfall_min` zurück bzw. schlägt es vor.
+- Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `ausfall_vorschlag`, `uebergabe`, `ruhig`; A2148:
+  `buendel_basis`, `buendel_basis_halt`, `buendel_basis_frei`, `buendel_basis_live`.
 
 ## Sperrliste je Projekt (A1919, TH160)
 
@@ -1302,5 +1309,6 @@ tausende Zeilen auf – und fiel bisher erst im Review auf (P309).
 | `amw projekt einstellen` | `sprachpruefung` | Sprach-Server in Prüfung C: `auto` (mit pyrightconfig.json), `pyright`, `aus` (Lead oder Mensch) |
 | `amw projekt einstellen` | `sperrmuster` | was Arbeiter in diesem Projekt nie ändern dürfen, zusätzlich zur festen Liste (Lead oder Mensch) |
 | `amw projekt einstellen` | `warten_agent_min` | Funkstille beim Warten auf einen anderen Agenten, dann Meldung an den Lead (5–1440 min, Vorgabe 60) |
+| `amw projekt einstellen` | `ruhe_min` | So lange ohne Aktivität am laufenden Paket (Commit, Lauf, Nachricht, Hook), dann fragt die AMW den Agenten und meldet es dem Lead (15–1440 min, Vorgabe 90, A2160) |
 | Zahnrad › Projekt | `entwickler_name` | wie der Mensch in Meldungen heißt (Vorgabe „Entwickler“); gilt auch als Wartegrund |
 | Zahnrad › Dieser PC | `fernsitzung_prozess` | Programm einer Fernsitzung für den Schirm (leer = nicht prüfen) |

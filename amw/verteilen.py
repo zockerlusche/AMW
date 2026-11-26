@@ -26,6 +26,7 @@ import time
 from . import buendel_nachfolger, db, kern, wartegrund
 
 AUSFALL_MIN = 30
+RUHE_MIN = 90             # A2160: Vorgabe für ruhe_min – so lange ohne Commit, Lauf, Nachricht oder Hook-Ereignis am laufenden Paket
 # A2147: eine Nachricht, die ganz im Weckruf stand, gilt beim Wecken als gelesen (gelesen_utc = geweckt_utc) – das ist keine
 # Reaktion des Agenten. Reagiert hat er erst, wenn er selbst liest, etwas sendet oder seine Sitzung ein Hook-Ereignis meldet.
 UNGELESEN_SQL = "(e.status = 'offen' OR e.gelesen_utc <= e.geweckt_utc)"
@@ -294,6 +295,84 @@ def _frist_min(con, pid):
         return AUSFALL_MIN
 
 
+def _ruhe_min(con, pid):
+    try:
+        return int(_einst(con, pid, "ruhe_min") or RUHE_MIN)
+    except (TypeError, ValueError):
+        return RUHE_MIN
+
+
+def _commit_zeit(con, pid, aid):
+    """UTC-ISO des letzten Commits zur Aufgabe (Betreff nennt A<aid>, alle Zweige – auch die der Arbeitsbäume) oder None."""
+    ordner = kern.projekt_ordner(con, pid)
+    if not ordner:
+        return None
+    try:
+        r = subprocess.run(["git", "-C", ordner, "log", "--all", "-1", "--format=%ct", f"--grep=A{aid}\\b"], capture_output=True, text=True,
+                           encoding="utf-8", errors="replace", timeout=30, stdin=subprocess.DEVNULL,
+                           creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        t = r.stdout.strip()
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(int(t))) if t.isdigit() else None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def letzte_aktivitaet(con, pid, a, s):
+    """A2160: (UTC-ISO, was) der jüngsten Aktivität am laufenden Paket `a` seines Agenten: Beginn, Commit zur Aufgabe, Lauf (Start
+    oder Ende), eigene Nachricht, Hook-Ereignis der Sitzung. Aktivität statt Schätzung (TH157)."""
+    k = a["agent"]
+    n = con.execute("SELECT max(zeit_utc) FROM nachricht WHERE projekt_id = ? AND von = ?", (pid, k)).fetchone()[0]
+    l = con.execute("SELECT max(max(coalesce(angemeldet_utc, ''), coalesce(start_utc, ''), coalesce(ende_utc, ''))) FROM lauf"
+                    " WHERE projekt_id = ? AND agent = ?", (pid, k)).fetchone()[0]
+    kandidaten = [(a["begonnen_utc"], "Beginn"), (_commit_zeit(con, pid, a["id"]), "Commit"), (l or None, "Lauf"), (n, "Nachricht"),
+                  (s["ereignis_utc"] if s is not None else None, "Sitzung")]
+    return max(((t, w) for t, w in kandidaten if t), default=(None, None))
+
+
+def ruhig(con, pid, jetzt=None):
+    """A2160 (TH157 Ausfälle): Ein Agent (nicht Lead) mit lebender Sitzung und laufendem Paket, der seit `ruhe_min` (Vorgabe 90)
+    weder einen Commit zur Aufgabe noch einen Lauf, eine Nachricht oder ein Hook-Ereignis hat und nicht gerade arbeitet, bekommt
+    eine Frage der AMW („Kommst du voran mit A…?“); der Lead bekommt eine Meldung. Einmal je Paket und Ruhephase (Zeichen mit der
+    letzten Aktivität), nie im Halt oder in der Pause. Danach greift A2147: die Frage weckt, bleibt sie unbeantwortet, weckt der
+    Dienst nach und verteilen.still gibt das Paket zurück bzw. schlägt es vor. Rückgabe: Texte."""
+    from . import pause
+    from .dienst import arbeitet_gerade
+    jetzt = jetzt or time.time()
+    if pause._letzte(con, pid):
+        return []
+    grenze_min = _ruhe_min(con, pid)
+    lead = kern.lead(con, pid)
+    aus = []
+    for a in _laufende(con, pid):                                # ohne den Lead (Rolle lead)
+        k = a["agent"]
+        if k == kern.ENTWICKLER or kern.halt_gilt(con, pid, k):
+            continue
+        s = con.execute("SELECT s.* FROM sitzung s JOIN agent g ON g.id = s.agent_id WHERE g.projekt_id = ? AND g.kennung = ?"
+                        " AND s.zustand = 'aktiv' ORDER BY s.id DESC LIMIT 1", (pid, k)).fetchone()
+        if not s or arbeitet_gerade(s, jetzt):
+            continue                                             # ohne lebende Sitzung greift der Ausfall; wer arbeitet, ist aktiv
+        zuletzt, was = letzte_aktivitaet(con, pid, a, s)
+        if not zuletzt or (jetzt - wartegrund._sek(zuletzt)) / 60 < grenze_min:
+            continue
+        zeichen = f"ruhig:{k}:{a['id']}:{zuletzt}"
+        if _schon(con, pid, "ruhig", zeichen):
+            continue
+        seit = f"{zuletzt[11:16]} UTC ({was})"
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="ruhig", aufgabe_id=a["id"], text=zeichen)
+            kern._posten(con, pid, "AMW", k, "frage", f"Kommst du voran mit A{a['id']}? Kurz antworten oder Wartegrund setzen",
+                         f"Seit {seit} gab es zu A{a['id']} „{a['titel'][:90]}“ keinen Commit, keinen Lauf, keine Nachricht und kein Ereignis"
+                         f" deiner Sitzung (über {grenze_min} min).\nKurz antworten: amw posten --an {lead or kern.ENTWICKLER} --aufgabe {a['id']} …"
+                         f" · oder warten mit Grund: amw aufgabe wartet {a['id']} --auf …", aufgabe_id=a["id"])
+            if lead:
+                kern._posten(con, pid, "AMW", lead, "meldung", f"Ruhig: {k} – A{a['id']} seit {seit} ohne Aktivität, die AMW fragt nach",
+                             f"A{a['id']} „{a['titel'][:90]}“ läuft bei {k}; seit {seit} keine Aktivität (Commit, Lauf, Nachricht, Hook) über"
+                             f" {grenze_min} min. {k} hat die Frage „Kommst du voran?“. Bleibt sie unbeantwortet, weckt der Dienst nach und"
+                             " gibt das Paket nach ausfall_min zurück (verteilen = an) bzw. schlägt es dir vor.", aufgabe_id=a["id"])
+        aus.append(f"Ruhig {k}: A{a['id']} seit {seit}")
+    return aus
+
+
 def _laufende(con, pid):
     """Aufgaben in „läuft“ bei Agenten im Terminal, die nicht Lead sind."""
     return con.execute("SELECT a.* FROM aufgabe a JOIN agent g ON g.projekt_id = a.projekt_id AND g.kennung = a.agent WHERE a.projekt_id = ?"
@@ -416,6 +495,7 @@ def runde(con, jetzt=None):
     for p in con.execute("SELECT id FROM projekt").fetchall():
         aus += ausfall(con, p["id"], jetzt)
         aus += still(con, p["id"], jetzt)                                # A2147
+        aus += ruhig(con, p["id"], jetzt)                                # A2160
         aus += herausnehmen.nachziehen(con, p["id"])                     # A2095
         aus += buendel_nachfolger.abgleichen(con, p["id"], jetzt)        # A2148: Basis im Bündel nachhalten
         aus += verteilen(con, p["id"])
