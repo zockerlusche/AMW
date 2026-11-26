@@ -581,7 +581,7 @@ async function sichtProjektweg() {
   /* A2063 (Marcel 24.11.): der Verlauf gehört zum gewählten Schritt – oben umschaltbar auf „alle Schritte“; je Eintrag eine Zeile,
      Langes auf Klick. */
   const wer = e => el("span", { class: "pjw-wer" + (e.rolle === "mensch" ? " du" : "") }, e.rolle === "agent" ? e.von : t("pjw_r_" + e.rolle));
-  const eintrag = e => el("div", { class: "pjw-eintrag" }, el("span", { class: "pjw-z" }, wann(e.zeit)),
+  const eintrag = e => el("div", { class: "pjw-eintrag" + (e.art === "rueckgabe" ? " rueckgabe" : "") },   /* A2167: nur die Rückgabe in den Pool hervorgehoben */ el("span", { class: "pjw-z" }, wann(e.zeit)),
     e.lang ? el("details", { class: "pjw-lang" }, el("summary", {}, wer(e), " ", e.zeile), el("div", { class: "leise" }, e.lang))
       : el("span", {}, wer(e), " ", e.zeile || e.text));
   const alle = !!zustand.pwVerlaufAlle;

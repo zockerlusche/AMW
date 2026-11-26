@@ -23,7 +23,7 @@ ROH = 500                        # so viele jüngste Rohzeilen je Quelle
 GRENZE = 120                     # so viele Einträge je Schritt zeigt die Seite
 BUENDEL_S = 10 * 60
 TITEL_MAX = 70                   # gekürzt wird der Titel, nicht der Satz – was geschah, bleibt lesbar; ganz auf Klick
-RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "pruefpunkt", "pruefpunkt_ende", "agent", "pause", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
+RANG = ("weg", "feinplan_angestossen", "feinplan_entwurf", "delta", "ms_start", "schieben", "schieben_ende", "pruefpunkt", "pruefpunkt_ende", "agent", "pause", "ausfall", "verteilt", "start", "abgabe", "pruefung", "entscheidung", "abschluss",
         "auslieferung", "ab_angestossen", "ab_bereit", "ab_ergebnis", "ms_fertig")
 # Art → (ein Paket, mehrere); {m} Meilenstein, {t} Titel, {n} Anzahl, {x} Zusatz
 TEXTE = {
@@ -359,11 +359,82 @@ def zusammenfassen(liste):
 FELDER = ("id", "zeit", "rolle", "von", "text", "art", "aufgabe_id", "bogen_id", "schritt", "mehr", "fehler")
 
 
+AUSFALL = ("ausfall", "uebergabe", "ausfall_vorschlag", "ruhig", "nachgeweckt")
+
+
+def _agent_grund(zeichen):
+    """Zeichen eines Ausfalls/Vorschlags (verteilen): „still:K:S:A“ (still) oder „K:S:A“ (Sitzung beendet) → (Agent, Grund)."""
+    teile = (zeichen or "").split(":")
+    if teile[0] == "still":
+        return (teile[1] if len(teile) > 1 else "?"), "still"
+    return teile[0] or "?", "Sitzung beendet"
+
+
+def _ausfaelle(con, pid):
+    """A2167 (TH157 F5, W2487): Rückgabe in den Pool (Ausfall oder Stille, mit der Übergabe-Notiz auf Klick), der Vorschlag an den
+    Lead, die Rückfrage an einen ruhigen Agenten und das Nachwecken – je Fall ein ruhiger Satz. Nur die Rückgabe trägt die Art
+    „rueckgabe“ (hervorgehoben). Höchstens drei Abfragen, gleich viele bei vielen Ereignissen."""
+    zeilen = _neueste(con, f"SELECT id, zeit_utc, von, art, text, aufgabe_id FROM plan_ereignis WHERE projekt_id = ? AND art IN"
+                           f" ({', '.join('?' * len(AUSFALL))}) ORDER BY id DESC", (pid, *AUSFALL))
+    if not zeilen:
+        return []
+    auf = {r["id"]: r for r in con.execute("SELECT id, titel, bogen_id FROM aufgabe WHERE projekt_id = ?", (pid,))}
+    geweckt = sorted({int(r["text"]) for r in zeilen if r["art"] == "nachgeweckt" and (r["text"] or "").isdigit()})
+    an = {}
+    if geweckt:
+        for r in con.execute(f"SELECT nachricht_id, agent FROM empfang WHERE geweckt_utc IS NOT NULL AND nachricht_id IN"
+                             f" ({', '.join('?' * len(geweckt))}) ORDER BY agent", geweckt):
+            an.setdefault(r["nachricht_id"], []).append(r["agent"])
+    # die Übergabe-Notiz schreibt _in_pool gleich nach dem Ausfall (nächste id, selbe Aufgabe); eine Übergabe ohne Ausfall
+    # (Herausnehmen, A2095) steht dort im eigenen Eintrag
+    notiz = {r["id"] - 1: r for r in zeilen if r["art"] == "uebergabe"}
+    aus, wecken = [], {}
+
+    def paket(r):
+        a = auf.get(r["aufgabe_id"])
+        return (f"A{r['aufgabe_id']} „{_titel_kurz(a['titel'])}“" if a else f"A{r['aufgabe_id']}"), (a["bogen_id"] if a else None)
+
+    for r in zeilen:
+        if r["art"] == "ausfall":
+            k, grund = _agent_grund(r["text"])
+            u = notiz.get(r["id"])
+            n = _json(u["text"]).get("notiz") if u and u["aufgabe_id"] == r["aufgabe_id"] else None
+            n = " ".join(str(n).split()) if n else ""
+            name, bogen = paket(r)
+            aus.append(_eintrag("ausfall", r["id"], r["zeit_utc"], "amw", r["von"], "rueckgabe", "umsetzung", bogen, None,
+                                text=f"{name} ging von {k} zurück in den Pool – {grund}" + (" (Übergabe-Notiz)" if n else ""),
+                                mehr=f"Übergabe-Notiz: {n}" if n else None, aufgabe=r["aufgabe_id"]))
+        elif r["art"] == "ausfall_vorschlag":
+            k, grund = _agent_grund(r["text"])
+            name, bogen = paket(r)
+            aus.append(_eintrag("ausfall", r["id"], r["zeit_utc"], "amw", r["von"], "ausfall_vorschlag", "umsetzung", bogen, None,
+                                text=f"Vorschlag an den Lead: {name} von {k} zurück in den Pool – {grund}", aufgabe=r["aufgabe_id"]))
+        elif r["art"] == "ruhig":
+            teile = (r["text"] or "").split(":", 3)           # ruhig:K:A:zuletzt (zuletzt hat selbst Doppelpunkte)
+            k = teile[1] if len(teile) > 1 else "?"
+            seit = f" (ruhig seit {_ortszeit(teile[3], r['zeit_utc'])})" if len(teile) > 3 and teile[3] else ""
+            name, bogen = paket(r)
+            aus.append(_eintrag("ausfall", r["id"], r["zeit_utc"], "amw", r["von"], "ruhig", "umsetzung", bogen, None,
+                                text=f"Rückfrage an {k}: kommst du voran mit {name}?{seit}", aufgabe=r["aufgabe_id"]))
+        elif r["art"] == "nachgeweckt":                       # je Agent und Zeitpunkt eine Zeile, die Nachrichten gezählt
+            for k in an.get(int(r["text"]) if (r["text"] or "").isdigit() else -1) or ["?"]:
+                w = wecken.get((k, r["zeit_utc"]))
+                if w:
+                    w["n"] += 1
+                    continue
+                wecken[(k, r["zeit_utc"])] = {"n": 1, "r": r, "k": k}
+    for w in wecken.values():
+        r = w["r"]
+        aus.append(_eintrag("ausfall", r["id"], r["zeit_utc"], "amw", r["von"], "nachgeweckt", "umsetzung", None, None,
+                            text=f"{w['k']} nachgeweckt" + (f" ({w['n']} Nachrichten)" if w["n"] > 1 else ""), aufgabe=r["aufgabe_id"]))
+    return aus
+
+
 def gesamt(con, pid, weg, schritt_von, grenze=GRENZE):
     """Der ganze Verlauf: die Einträge aus verlauf.projektweg (`weg`, schon gebündelt) und die abgeleiteten, älteste zuerst, höchstens
     `grenze` je Schritt. schritt_von(eintrag) → Schritt eines Eintrags aus `weg`."""
     alle = [{**e, "schritt": schritt_von(e), "rang": (0, e["id"]), "zusatz": None, "nummer": None, "titel": None, "ms": None} for e in weg]
-    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe, _pruefpunkte, _agenten, _pausen):
+    for quelle in (_umsetzung, _auslieferung, _feinplan, _delta, _abschluss, _eingriffe, _pruefpunkte, _agenten, _pausen, _ausfaelle):
         alle += quelle(con, pid)
     alle.sort(key=lambda x: (x["zeit"], x["rang"]))
     je, aus = {}, zusammenfassen(alle)

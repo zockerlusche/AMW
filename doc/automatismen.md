@@ -1175,6 +1175,10 @@ die der Lead nur noch bestätigt oder ändert.
   (`verlauf_quellen`): Feinplaner je Fassung, auch abgelehnt mit Grund; Konzeptänderung; zugeteilt, gestartet, abgegeben, Prüfung
   grün/rot, fertig/verworfen, ausgeliefert; Abschlussprüfung, bereit zur Abnahme, abgeschlossen. Nichts wird doppelt gespeichert,
   der Altbestand erscheint mit.
+- **Ausfall und Stille (A2167, TH157 F5):** je Fall ein ruhiger Satz in der Umsetzung – „A… ging von CC1 zurück in den Pool –
+  still | Sitzung beendet (Übergabe-Notiz)“ (die Notiz auf Klick, als einzige Zeile hervorgehoben), „Vorschlag an den Lead: … zurück in
+  den Pool“, „Rückfrage an CC1: kommst du voran mit A…? (ruhig seit HH:MM)“ und „CC1 nachgeweckt (n Nachrichten)“. Quelle sind die
+  Ereignisse `ausfall`, `uebergabe`, `ausfall_vorschlag`, `ruhig` und `nachgeweckt`; eine Übergabe beim Herausnehmen bleibt dessen Zeile.
 - **Regeln:** nur Pakete mit Meilenstein; je Tatsache eine Quelle; beim Fenster-Paket der erste Start; wieder geöffnet und neu
   geschlossen steht nur der letzte Abschluss da. Gleiches hintereinander (dieselbe Art, derselbe, derselbe Meilenstein, höchstens
   10 min Abstand) ist eine Zeile; Titel und Nummern (P, A, Commit) auf Klick. Höchstens 120 Zeilen je Schritt.

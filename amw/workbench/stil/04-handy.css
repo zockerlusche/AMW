@@ -199,6 +199,7 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-verlauf { border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); padding: 10px 14px; position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow-y: auto; }
 .pjw-eintrag { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--linie); font-size: 13px; }
 .pjw-eintrag:last-child { border-bottom: 0; }
+.pjw-eintrag.rueckgabe > span:last-child, .pjw-eintrag.rueckgabe summary { color: var(--bernstein); }   /* A2167 */
 .pjw-z { color: var(--sehrleise); font-variant-numeric: tabular-nums; }
 .pjw-wer { font-weight: 600; }
 .pjw-wer.du { color: var(--bernstein); }
