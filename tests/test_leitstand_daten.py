@@ -12,7 +12,7 @@ from unittest import mock
 from amw import arbeitspaket as ap, db, kern, leitstand_daten, planung, waechter
 
 JETZT = datetime.datetime(2026, 11, 24, 10, 0, tzinfo=datetime.timezone.utc)
-SCHLUESSEL = {"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen"}
+SCHLUESSEL = {"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "haengt"}
 
 
 def um(minuten):
@@ -324,6 +324,7 @@ class Sprache(Grund):
         self.ereignis("headless_start", um(-5), {"aufgabe": a, "platz": 1, "grund": "Platz 1 in der Reihenfolge"}, a)
         self.ereignis("waechter", um(-4), f"A{a} nicht gestartet, Regel 4: alle Arbeitsplätze belegt", a)
         self.paket("Danach", p=True, bogen=m)
+        self.setzen(self.paket("Plakat", "CC2", bogen=m), status="wartet", wartet_auf="Freigabe der Druckerei", angelegt_utc=um(-2000))  # A2149
         fertig = self.meilenstein("Planen")
         with db.schreiben(self.con):
             self.con.execute("UPDATE bogen SET status = 'fertig' WHERE id = ?", (fertig,))

@@ -11,6 +11,7 @@ hat, und je Art genau eine – nie eine je Paket.
 - jetzt: der Mensch fehlt (seine Aufgaben bleiben frei). Headless vom Start bis zum Ende der Abnahme; gezählt ab dem letzten Start.
 - als_naechstes: ohne Headless-Pakete, die schon abgegeben oder bereit zum Merge sind (ihre Aufgabe steht dann wieder auf „wartet“).
 - entscheidungen: neueste zuerst, aus allen Projekten – alles andere bleibt im Projekt.
+- haengt (A2149): Pakete, die seit mehr als 24 h nur mit einem Wartetext von Hand warten, ohne offenen Grund – „hängt ohne Grund“.
 
 Text in Menschensprache; die Nummer (A12, L3, Version) steht nur im Feld nummer, ein Meilenstein hat keine.
 """
@@ -31,7 +32,7 @@ WARUM_SONST = "gesperrt"
 
 
 def daten(con, pid, jetzt=None):
-    """{"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen"} eines Projekts – Aufbau: Kopf dieses Moduls."""
+    """{"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "haengt"} eines Projekts – Aufbau: Kopf dieses Moduls."""
     uhr = jetzt or datetime.datetime.now(UTC)
     with einmal.merken(con):                             # Zeitplan und Prognose rechnen dieselbe Reihenfolge nur einmal
         mensch = kern.entwickler_name(con, pid)
@@ -43,7 +44,15 @@ def daten(con, pid, jetzt=None):
                 "zuletzt": _zuletzt(con, pid, boegen, mensch),
                 "jetzt": _jetzt(con, pid, plan, headless, mensch, uhr),
                 "als_naechstes": _als_naechstes(plan, headless, mensch),
-                "entscheidungen": _entscheidungen(con)}
+                "entscheidungen": _entscheidungen(con),
+                "haengt": _haengt(con, pid, mensch, uhr)}
+
+
+def _haengt(con, pid, mensch, uhr):
+    """A2149: „hängt ohne Grund“ – wartet nur mit Freitext, länger als wartegrund.HAENGT_H."""
+    from . import wartegrund
+    return [{"titel": x["titel"], "nummer": f"A{x['id']}", "wer": _wer(x["agent"], mensch), "wartet_auf": x["wartet_auf"], "seit_utc": x["seit_utc"]}
+            for x in wartegrund.haengt_ohne_grund(con, pid, jetzt=uhr.timestamp())]
 
 
 def _wer(kennung, mensch):

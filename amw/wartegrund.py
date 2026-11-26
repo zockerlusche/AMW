@@ -198,6 +198,40 @@ def lauf_ersetzen(con, pid, alt, neu):
             anlegen(con, pid, "AMW", a["id"], f"L{neu}")
 
 
+FREITEXT_GELEERT = "wartetext_geleert"    # A2149: plan_ereignis – der Wartetext von Hand ging mit dem letzten Grund (Text: der alte)
+HAENGT_H = 24                             # A2149: so lange wartet eine Aufgabe nur mit Freitext, dann nennt der Leitstand sie
+
+
+def freitext_leeren(con, pid, aid, durch):
+    """A2149: Sind alle Gründe einer Aufgabe erledigt, geht der Wartetext von Hand mit (wie beim Start) – er hält sie sonst für immer
+    aus der Verteilung. Läuft im Schreibvorgang des Aufrufers. Rückgabe: der alte Text oder None."""
+    if offene(con, aid):
+        return None
+    r = con.execute("SELECT wartet_auf FROM aufgabe WHERE id = ? AND status IN ('wartet', 'blockiert')", (aid,)).fetchone()
+    alt = ((r[0] if r else None) or "").strip()
+    if not alt:
+        return None
+    con.execute("UPDATE aufgabe SET wartet_auf = NULL WHERE id = ?", (aid,))
+    db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art=FREITEXT_GELEERT, aufgabe_id=aid,
+                 text=json.dumps({"text": alt[:500], "durch": durch[:200]}, ensure_ascii=False))
+    return alt
+
+
+def haengt_ohne_grund(con, pid, jetzt=None):
+    """A2149: Aufgaben, die seit mehr als HAENGT_H Stunden nur mit Freitext warten – ohne einen einzigen offenen Grund. Seit: der
+    zuletzt erledigte Grund, ohne Grund das Anlegen (geaendert_utc taugt nicht – jede Änderung der Aufgabe setzt es neu).
+    [{"id", "titel", "agent", "wartet_auf", "seit_utc"}], älteste zuerst."""
+    grenze = (jetzt or time.time()) - HAENGT_H * 3600
+    aus = []
+    for a in con.execute("SELECT id, titel, agent, wartet_auf, coalesce((SELECT max(w.erledigt_utc) FROM wartegrund w WHERE w.aufgabe_id ="
+                         " aufgabe.id), angelegt_utc) AS seit FROM aufgabe WHERE projekt_id = ? AND einstufung = 'aktiv'"
+                         " AND status IN ('wartet', 'blockiert') AND trim(coalesce(wartet_auf, '')) != '' AND NOT EXISTS (SELECT 1 FROM"
+                         " wartegrund w WHERE w.aufgabe_id = aufgabe.id AND w.erledigt_utc IS NULL) ORDER BY seit, id", (pid,)):
+        if a["seit"] and _sek(a["seit"]) <= grenze:
+            aus.append({"id": a["id"], "titel": a["titel"], "agent": a["agent"], "wartet_auf": a["wartet_auf"], "seit_utc": a["seit"]})
+    return aus
+
+
 def schliessen(con, aid, durch):
     """Alle offenen Gründe einer Aufgabe still erledigen (sie läuft wieder, ist fertig oder verworfen)."""
     con.execute("UPDATE wartegrund SET erledigt_utc = ?, erledigt_durch = ? WHERE aufgabe_id = ? AND erledigt_utc IS NULL",
@@ -219,6 +253,7 @@ def von_hand(con, pid, von, aid, auf):
         if not n:
             raise kern.AmwFehler(f"A{aid} wartet nicht (mehr) auf {bezug}")
         weg.append(bezug)
+    freitext_leeren(con, pid, aid, f"{', '.join(weg)} erledigt ({von})")   # A2149
     if von != a["agent"]:
         _melden(con, pid, a, f"{', '.join(weg)} erledigt ({von})")
     return weg
@@ -240,6 +275,8 @@ def erledige(con, pid, art, bezug, durch, aufgabe_id=None, leise=False):
     for g in gruende:
         con.execute("UPDATE wartegrund SET erledigt_utc = ?, erledigt_durch = ? WHERE id = ?", (t, durch, g["id"]))
     aids = sorted({g["aufgabe_id"] for g in gruende})
+    for aid in aids:                                   # A2149: der letzte Grund nimmt den Wartetext von Hand mit
+        freitext_leeren(con, pid, aid, durch)
     for aid in aids if not leise else ():
         a = con.execute("SELECT * FROM aufgabe WHERE id = ?", (aid,)).fetchone()
         _melden(con, pid, a, durch)

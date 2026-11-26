@@ -317,6 +317,10 @@ den Coder, der Coder auf das Merge-OK. Und eine Bitte als Info weckte den Lead n
   für anderes – mit `verteilen = an` teilt die AMW ihm das nächste startklare Paket zu und weckt ihn; mit `vorschlag` geht der
   Vorschlag an den Lead. Wartet sie auf eine Antwort oder ein anderes Paket, gilt das erst nach 10 Minuten. Das wartende Paket
   bleibt seins; ist sein Grund erledigt, weckt die AMW ihn dafür.
+- **Wartetext geht mit dem letzten Grund (A2149):** ist der letzte offene Grund einer wartenden Aufgabe erledigt – automatisch oder
+  von Hand (`--erledigt`) –, leert die AMW auch den Freitext (`--wartet-auf`), wie beim Start; vorher hielt er das Paket für immer aus
+  der Verteilung. Der alte Text steht im Ereignis `wartetext_geleert`. Wartet eine Aufgabe länger als 24 h nur mit Freitext, ganz ohne
+  offenen Grund, nennt der Leitstand sie als „hängt ohne Grund“ (Daten: `haengt`).
 - **Abgebrochener Lauf (A2074):** endet ein Lauf ohne Ergebnis (abgebrochen – auch gewollt oder aus der Schlange genommen – oder
   Rückgabewert verloren), bleibt der Grund offen; die Liste zeigt „L7 (abgebrochen)“. Besitzer des Laufs, Besitzer der wartenden
   Aufgaben und Lead bekommen je eine Nachricht mit der Liste. Ein genannter Ersatz (`--auf L9`) löst ihn ab, `--erledigt L7` hebt
