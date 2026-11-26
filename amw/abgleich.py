@@ -336,6 +336,12 @@ def _sicher(fehler, weg, f, *args, **kw):
         return None
 
 
+def _leitstand_online(d, con, pid):
+    """A2006: online nur die Entscheidungen des eigenen Projekts – fremde Projekte erscheinen dort nie mit Namen."""
+    eigen = con.execute("SELECT name FROM projekt WHERE id = ?", (pid,)).fetchone()["name"]
+    return {**d, "entscheidungen": [e for e in d.get("entscheidungen") or [] if e.get("projekt") == eigen]}
+
+
 def ansichten(con, pid, speicher=None, fehler=None):
     """Dieselben Antworten wie die lokale Workbench, Schlüssel = Weg, wie ihn die Seite anfragt. fehler (A2001): Liste, in die
     gescheiterte Ansichten kommen – sie fehlen dann im Ergebnis (online bleibt der alte Stand), der Rest geht hoch."""
@@ -357,6 +363,7 @@ def ansichten(con, pid, speicher=None, fehler=None):
              "/api/agenten": lambda: workbench.daten_agenten_alle(con, pid),
              "/api/planung": lambda: workbench.daten_planung(con, pid),
              "/api/projektweg": lambda: workbench.daten_projektweg(con, pid),   # A2033: online nur lesen
+             "/api/leitstand": lambda: _leitstand_online(workbench.daten_leitstand(con, pid), con, pid),   # A2006
              "/api/pakete": lambda: paketliste.daten(con, pid, am_pc=False),   # A1850: online nur lesen – ohne Platz-Abfrage, ohne Mitlesen
              "/api/verlauf": lambda: workbench.daten_verlauf(con, pid, {"tage": ["3"]}),
              "/api/seit": lambda: verlauf.seit_daten(con, pid),

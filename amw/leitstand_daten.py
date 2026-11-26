@@ -12,6 +12,8 @@ hat, und je Art genau eine – nie eine je Paket.
 - als_naechstes: ohne Headless-Pakete, die schon abgegeben oder bereit zum Merge sind (ihre Aufgabe steht dann wieder auf „wartet“).
 - entscheidungen: neueste zuerst, aus allen Projekten – alles andere bleibt im Projekt.
 - haengt (A2149): Pakete, die seit mehr als 24 h nur mit einem Wartetext von Hand warten, ohne offenen Grund – „hängt ohne Grund“.
+- zeitplan (A2006): je offenem Meilenstein mit Prognose – Ziel gegen voraussichtlich (start, p50, p85 mit Token-Pause), verzug_tage
+  (p50 − Ziel), bereit (alle Pakete fertig, der Meilenstein wartet auf seine Abnahme); nach Nummer, ohne eigene Abfrage.
 
 Text in Menschensprache; die Nummer (A12, L3, Version) steht nur im Feld nummer, ein Meilenstein hat keine.
 """
@@ -32,7 +34,7 @@ WARUM_SONST = "gesperrt"
 
 
 def daten(con, pid, jetzt=None):
-    """{"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "haengt"} eines Projekts – Aufbau: Kopf dieses Moduls."""
+    """{"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "haengt", "zeitplan"} eines Projekts – Aufbau: Kopf dieses Moduls."""
     uhr = jetzt or datetime.datetime.now(UTC)
     with einmal.merken(con):                             # Zeitplan und Prognose rechnen dieselbe Reihenfolge nur einmal
         mensch = kern.entwickler_name(con, pid)
@@ -45,7 +47,8 @@ def daten(con, pid, jetzt=None):
                 "jetzt": _jetzt(con, pid, plan, headless, mensch, uhr),
                 "als_naechstes": _als_naechstes(plan, headless, mensch),
                 "entscheidungen": _entscheidungen(con),
-                "haengt": _haengt(con, pid, mensch, uhr)}
+                "haengt": _haengt(con, pid, mensch, uhr),
+                "zeitplan": _zeitplan(boegen, prognose)}
 
 
 def _haengt(con, pid, mensch, uhr):
@@ -64,7 +67,7 @@ def _wer(kennung, mensch):
 def _boegen(con, pid):
     """{id: Zeile} aller Meilensteine mit ihren Paketen (gesamt ohne verworfene, fertig)."""
     return {r["id"]: r for r in con.execute(
-        "SELECT b.id, b.titel, b.status, b.zieldatum, count(a.id) AS gesamt, coalesce(sum(a.status = 'fertig'), 0) AS fertig FROM bogen b"
+        "SELECT b.id, b.nr, b.titel, b.status, b.zieldatum, count(a.id) AS gesamt, coalesce(sum(a.status = 'fertig'), 0) AS fertig FROM bogen b"
         " LEFT JOIN aufgabe a ON a.bogen_id = b.id AND a.status != 'verworfen' WHERE b.projekt_id = ? GROUP BY b.id", (pid,))}
 
 
@@ -81,6 +84,20 @@ def _fortschritt(boegen, prognose):
     return {"fertig": fertig, "gesamt": gesamt, "prozent": 100 * fertig // gesamt if gesamt else 0,      # 100 erst, wenn alles fertig ist
             "p50": max((e[0] for e in ende.values()), default=None), "p85": max((e[1] for e in ende.values()), default=None),
             "ziel": max((b["zieldatum"] for b in aktiv if b["zieldatum"]), default=None), "verzug_tage": max(verzug, default=None)}
+
+
+def _zeitplan(boegen, prognose):
+    """A2006: Meilensteine, die noch nicht fertig sind und eine Prognose haben – Ziel gegen voraussichtlich, nach Nummer."""
+    aus = []
+    for b in sorted(boegen.values(), key=lambda b: (b["nr"] or 0, b["id"])):
+        p = prognose.get(b["id"])
+        if not p or b["status"] in ("fertig", "verworfen"):
+            continue
+        p50, p85 = p.get("p50_mit") or p["p50"], p.get("p85_mit") or p["p85"]
+        verzug = (datetime.date.fromisoformat(p50) - datetime.date.fromisoformat(b["zieldatum"])).days if b["zieldatum"] and p50 else None
+        aus.append({"nr": b["nr"], "titel": b["titel"], "status": b["status"], "ziel": b["zieldatum"], "start": p.get("start"),
+                    "p50": p50, "p85": p85, "verzug_tage": verzug, "bereit": b["gesamt"] > 0 and b["fertig"] == b["gesamt"]})
+    return aus
 
 
 # --- Zuletzt -----------------------------------------------------------------------------------------------------------------

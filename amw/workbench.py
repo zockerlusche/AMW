@@ -382,6 +382,13 @@ def _startvorschlaege(con, pid):
         return []
 
 
+def daten_leitstand(con, pid):
+    """A2006: der Leitstand (Startseite) – Fortschritt, Zuletzt, Jetzt, Als Nächstes, Entscheidungen, Zeitplan (leitstand_daten).
+    Eigener Abruf, nicht in /api/start: die Prognose ist zu teuer für den 15-s-Takt; die Seite holt ihn beim Zeichnen."""
+    from . import leitstand_daten
+    return leitstand_daten.daten(con, pid)
+
+
 def daten_start(con, pid):
     gesund = herzschlag.gesundheit()
     alt = altbestand_bis(con, pid)
@@ -1659,6 +1666,7 @@ def baue_handler(port, token, netz=None):
                     "/api/pause": lambda c, p: daten_pause(c, p),
                     "/api/lauf/ausgabe": lambda c, p: daten_lauf_ausgabe(c, p, q),
                     "/api/zeitplan": lambda c, p: daten_zeitplan(c, p),
+                    "/api/leitstand": lambda c, p: daten_leitstand(c, p),
                     "/api/projektweg": lambda c, p: daten_projektweg(c, p),
                     "/api/agent/ende-stand": lambda c, p: daten_ende_stand(c, p),
                     "/api/kosten": lambda c, p: daten_kosten(c, p),

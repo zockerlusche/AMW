@@ -12,7 +12,7 @@ from unittest import mock
 from amw import arbeitspaket as ap, db, kern, leitstand_daten, planung, waechter
 
 JETZT = datetime.datetime(2026, 11, 24, 10, 0, tzinfo=datetime.timezone.utc)
-SCHLUESSEL = {"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "haengt"}
+SCHLUESSEL = {"fortschritt", "zuletzt", "jetzt", "als_naechstes", "entscheidungen", "haengt", "zeitplan"}
 
 
 def um(minuten):
