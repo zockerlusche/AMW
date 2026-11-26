@@ -100,9 +100,9 @@ class Seite(Rundgang):
         self.oeffnen("projektweg", "typeof zeige === 'function'")
         self.tab.js(UMSETZUNG)
         self.warten("document.querySelector('.pjw-eintrag.rueckgabe')")
-        self.assertEqual(self.tab.js("document.querySelectorAll('.pjw-eintrag.rueckgabe').length"), 1)
-        self.assertIn("Übergabe-Notiz: letzter Commit abc1234", self.tab.js("document.querySelector('.pjw-eintrag.rueckgabe').innerText"))
-        self.assertTrue(self.tab.js("[...document.querySelectorAll('.pjw-eintrag:not(.rueckgabe)')].some(e => e.innerText.includes('kommst du voran'))"))
+        self.assertEqual(self.tab.js("document.querySelectorAll('aside.pjw-verlauf .pjw-eintrag.rueckgabe').length"), 1)
+        self.assertIn("Übergabe-Notiz: letzter Commit abc1234", self.tab.js("document.querySelector('aside.pjw-verlauf .pjw-eintrag.rueckgabe').textContent"))
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('aside.pjw-verlauf .pjw-eintrag:not(.rueckgabe)')].some(e => e.innerText.includes('kommst du voran'))"))
 
     def test_bilder(self):
         self.ueberall("projektweg", "a2167-verlauf", bereit="typeof zeige === 'function'", tun=UMSETZUNG,
