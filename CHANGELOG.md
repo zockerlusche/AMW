@@ -4,6 +4,15 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.200.0 – 26.11.2026 · Eingriffe als Knöpfe; Rückfragen als Dialog der Seite
+- **Neu:** Eingriffe als Knöpfe: ein Paket früher oder später schieben (mit der gesperrten Stelle und ihrem Grund), einen Agenten herausnehmen oder freigeben, einen Prüfpunkt „Marcel testet“ hinter ein Paket setzen und alles pausieren, auf Wunsch mit Ende.
+- **Verbessert:** Rückfragen beim Freigeben, Abnehmen und Zurückgeben erscheinen als Dialog der Seite statt als Fenster des Browsers. Ein Doppelklick auf „Ja“ bei einem Thema oder auf eine Antwort zählt nur einmal.
+- **Verbessert:** „Nie gleichzeitig“ und „gleiche Ressource“ wirken: Der Feinplan legt sie an, und Pakete, die nicht zusammen laufen dürfen, warten aufeinander.
+- **Verbessert:** Steht ein Paket gebaut im Bündel, bekommen seine Nachfolger schon Arbeit; der Auftrag nennt den Zweig, auf dem sie aufbauen, und bei Rot hält die AMW sie an.
+- **Neu:** Zeigt ein Agent an seinem laufenden Paket länger keine Aktivität, fragt die AMW nach und sagt es dem Lead (Einstellung `ruhe_min`).
+- **Verbessert:** Beim Bündeln ohne Agent weckt die AMW nur noch den, der ein Paket mit Konflikt oder rotem Gesamtlauf gebaut hat – mit genau diesem Befund.
+- **Behoben:** Ein Wartetext von Hand hält ein Paket nicht mehr fest, wenn seine Gründe erledigt sind.
+
 ## 1.199.0 – 26.11.2026 · Suchtreffer öffnen das Ding selbst; stille Agenten werden nachgeweckt
 - **Verbessert:** Ein Klick auf einen Suchtreffer öffnet das Ding selbst; die gesuchte Nummer steht oben, und Nummern im Text von Nachrichten und Berichten öffnen es ebenfalls.
 - **Verbessert:** Neue Projekte schließen fertige Meilensteine ohne Urteil selbst ab und teilen freien Agenten die Arbeit selbst zu; bestehende Projekte bleiben, wie sie sind.
