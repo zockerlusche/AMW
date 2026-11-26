@@ -195,7 +195,7 @@ class Nachhalten(Basis):
     def test_live_gang_sagt_auf_main_umsetzen_einmal(self):
         self.zugeteilt()
         with db.schreiben(self.con):
-            self.con.execute("UPDATE aufgabe SET status = 'fertig' WHERE id = ?", (self.vor,))
+            self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'abc1234' WHERE id = ?", (self.vor,))
         aus = bn.abgleichen(self.con, self.pid, self.jetzt)
         self.assertEqual(len(aus), 1, aus)
         self.assertIn(f"A{self.vor} ist live – A{self.nach} jetzt auf main umsetzen", self.post("CC1", "auftrag")[-1][1])
