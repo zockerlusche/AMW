@@ -166,7 +166,8 @@ function geteilt(raster) {
     m.classList.toggle("geteilt-seite", BREIT.matches);
     if (!BREIT.matches) { raster.style.height = ""; return; }
     const oben = raster.getBoundingClientRect().top - m.getBoundingClientRect().top + m.scrollTop;
-    raster.style.height = Math.max(320, m.clientHeight - oben - parseFloat(getComputedStyle(m).paddingBottom || 0)) + "px";
+    /* Untergrenze 240 px: seit der Bereichs-Reihe (A2018) steht die Liste tiefer – bei 640 px Fensterhöhe passt sie so noch ganz (L3944) */
+    raster.style.height = Math.max(240, m.clientHeight - oben - parseFloat(getComputedStyle(m).paddingBottom || 0)) + "px";
   };
   ro.observe(m);
   for (let x = raster.previousElementSibling; x; x = x.previousElementSibling) ro.observe(x);   /* Kopf, Filter: ändern die Höhe darüber */
