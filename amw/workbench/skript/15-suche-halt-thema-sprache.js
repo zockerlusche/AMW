@@ -76,13 +76,14 @@ async function refOeffnen(ref, aufgabe) {
   } catch (e) { toast(t("fehler", { x: e.message || e }), true); }
 }
 /* Nummern in einem Text als Verweise: [Text, Verweis, Text …]. Ab zwei Ziffern (F5, A4, M2 sind meist etwas anderes), nie
-   mitten in Wörtern, Pfaden und Versionsnummern. Ohne Lookbehind (ältere iPads). */
+   mitten in Wörtern, Pfaden und Versionsnummern; ein „/“ davor nur zwischen zwei Nummern („TH163/TH164“). Ohne Lookbehind (ältere iPads). */
 function mitRefs(s) {
   if (typeof s !== "string") return [s];
-  const aus = [], re = /(^|[^\p{L}\d_#&/.-])((?:TH|[DAFBWMLP]|#)[1-9]\d{1,6})(?![\p{L}\d_]|[.,]\d)/gu;
+  const aus = [], re = /(^|[^\p{L}\d_#&.-])((?:TH|[DAFBWMLP]|#)[1-9]\d{1,6})(?![\p{L}\d_]|[.,]\d)/gu;
   let pos = 0, m;
   while ((m = re.exec(s))) {
     const von = m.index + m[1].length, ref = m[2];
+    if (m[1] === "/" && !/\d/.test(s[m.index - 1] || "")) continue;      /* /A1234 in einem Pfad */
     if (von > pos) aus.push(s.slice(pos, von));
     aus.push(el("a", { href: "#", class: "verweis", "data-ref": ref, onclick: e => { e.preventDefault(); e.stopPropagation(); refOeffnen(ref); } }, ref));
     pos = von + ref.length;

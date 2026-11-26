@@ -47,7 +47,7 @@ def bestand(con, pid, ordner):
     nr["TH"] = themen.neu(con, pid, "TL", "Spielstände")
     pfad = os.path.join(ordner, "bericht.md")
     with open(pfad, "w", encoding="utf-8", newline="\n") as f:
-        f.write(f"# Bericht\n\nGebaut in A{nr['A']}, siehe **B{nr['B']}** und `A{nr['A']}`. Taste F5, Papier A4, Pfad /A{nr['A']}, Version B{nr['B']}.2.\n")
+        f.write(f"# Bericht\n\nGebaut in A{nr['A']}, siehe **B{nr['B']}** und `A{nr['A']}`. Taste F5, Papier A4, Pfad /A{nr['A']}, Version B{nr['B']}.2. Paar A{nr['A']}/B{nr['B']}.\n")
     nr["D"] = dokumente.ablegen(con, pid, "CC1", pfad, "Bericht zum Speichern", "bericht")
     nr["#"], _ = kern.posten(con, pid, "TL", "Entwickler", "info", f"Fertig, siehe D{nr['D']}", text=f"Bericht D{nr['D']}, Aufgabe A{nr['A']}.")
     nr["team"], _ = kern.posten(con, pid, "TL", "CC1", "info", "Nur unter uns")
@@ -180,7 +180,7 @@ class Pc(Wege):
         self.warten("document.querySelector('.dialog .md a.verweis[data-ref]')")
         # nicht im Code, nicht in Pfad und Version, nicht F5 und A4
         self.assertEqual(self.tab.js("[...document.querySelectorAll('.dialog .md a.verweis[data-ref]')].map(a => a.textContent)"),
-                         [f"A{self.nr['A']}", f"B{self.nr['B']}"])
+                         [f"A{self.nr['A']}", f"B{self.nr['B']}", f"A{self.nr['A']}", f"B{self.nr['B']}"])
         self.tab.js("[...document.querySelectorAll('.dialog .md a.verweis[data-ref]')][1].click()")                  # Seite statt Dialog: der Dialog geht zu
         self.warten(self.OK["B"])
         self.assertEqual(self.tab.js("document.querySelectorAll('.dialog').length"), 0)
