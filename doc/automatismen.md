@@ -394,6 +394,9 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
 - **Einstellung `verteilen`:** vorschlag (Vorgabe bestehender Projekte ohne Eintrag) – der Lead bekommt „Vorschlag: A… an CC1?“
   als Frage mit dem Befehl; an – die AMW teilt zu (Auftrag an den Agenten mit Begründung, Meldung an den Lead); aus. Je Paar
   Agent/Aufgabe ein Vorschlag. **Neue Projekte** starten mit `an` (A2152, TH164: in der Umsetzung verteilt die AMW selbst).
+- **Höchstens n offene Pakete je Agent (A2174):** Hat ein Agent schon `verteilen_max_offen` (Vorgabe 2, 1–5) zugeteilte, nicht fertige
+  Pakete (läuft, wartet, blockiert), bekommt er nichts Neues – auch wenn er gerade nur auf seine Läufe wartet und deshalb als frei gilt
+  (A2053). Gebaute Pakete, die nur auf eine Prüfung oder auf Stapel/Bündel warten, zählen nicht. Ein anderer freier Agent bekommt das Paket.
 - **Ausfall:** Hat ein Agent eine Aufgabe in „läuft“ und ist seine Sitzung seit `ausfall_min` (Vorgabe 30, 5–1440) beendet
   ohne neue (die Aufsicht prüft die Pipe – ein stiller, wartender Agent hat Puls), geht die Aufgabe ohne Bearbeiter in den
   Pool zurück. Übergabe-Notiz: letzter Commit zur Aufgabe, letzte Tätigkeit, offene Kriterien und Wartegründe – an den Lead

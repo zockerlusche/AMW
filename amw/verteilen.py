@@ -82,6 +82,30 @@ def fach_pruefen(v):
 
 # --- frei, Kandidaten, passt -----------------------------------------------------------------------------------------------
 
+MAX_OFFEN = 2                                            # A2174: so viele zugeteilte, nicht fertige Pakete je Agent (Vorgabe)
+
+
+def max_offen(con, pid):
+    """A2174: Einstellung verteilen_max_offen (1–5, Vorgabe 2)."""
+    try:
+        return min(5, max(1, int(_einst(con, pid, "verteilen_max_offen") or MAX_OFFEN)))
+    except (TypeError, ValueError):
+        return MAX_OFFEN
+
+
+def offene_pakete(con, pid, k):
+    """A2174: die Pakete des Agenten, die noch Arbeit von ihm brauchen – läuft, wartet, blockiert; gebaute, die nur auf eine Prüfung oder
+    auf Stapel/Bündel warten (Wartegrund-Sorte wartet_pruefung, wartet_stapel), zählen nicht."""
+    aus = []
+    for a in con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('laeuft', 'wartet', 'blockiert')",
+                         (pid, k)).fetchall():
+        sorten = {wartegrund.sorte(g["art"], g["bezug"]) for g in wartegrund.offene(con, a["id"])}
+        if sorten & {"wartet_pruefung", "wartet_stapel"}:
+            continue
+        aus.append(a["id"])
+    return aus
+
+
 def freie_agenten(con, pid):
     """[(kennung, sitzung)] – frei im Sinne von TH157, die am längsten freien zuerst."""
     from . import herausnehmen
@@ -95,6 +119,8 @@ def freie_agenten(con, pid):
         if k in (co, lead) or kern.halt_gilt(con, pid, k) or herausnehmen.ist(con, pid, k) or wartegrund.freie_arbeit(con, pid, k):
             continue                                                                        # A2095: ein Herausgenommener bekommt nichts
         if wartegrund.haelt_fest(con, pid, k):                # A2053: Antwort/Paket in den ersten 10 min – Prüfung/Stapel/Lauf nie
+            continue
+        if len(offene_pakete(con, pid, k)) >= max_offen(con, pid):   # A2174: kein Horten, während er auf seine Läufe wartet
             continue
         if k not in [x for x, _ in aus]:
             aus.append((k, s))
