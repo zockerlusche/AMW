@@ -110,9 +110,11 @@ function lsAblauf(l) {
     naechst.length ? el("div", {}, el("h2", { class: "ls-lbl" }, t("lst_naechstes")),
       el("div", { class: "ls-linie" }, naechst.map(g => g.pakete.length > 1
         ? el("div", { class: "ls-gleichzeitig" }, el("div", { class: "leise" }, t("lst_gleichzeitig", { x: lsUhr(g.start_utc) })),
-            el("div", { class: "ls-raster" }, g.pakete.map(p => lsZeile(p, [p.wer || t("lst_frei_paket"), lsDauer(p.dauer_min)].join(" · ")))))
+            el("div", { class: "ls-raster" }, g.pakete.map(p => lsZeile(p, [p.wer || t("lst_frei_paket"), lsDauer(p.dauer_min),
+              p.freigabe ? t("lst_wartet_freigabe") : null].filter(Boolean).join(" · ")))))
         : lsZeile(g.pakete[0], [g.pakete[0].wer || t("lst_frei_paket"), lsDauer(g.pakete[0].dauer_min), t("lst_ab", { x: lsUhr(g.start_utc) }),
-            g.pakete[0].wartet_auf ? t("lst_nach", { x: g.pakete[0].wartet_auf }) : null].filter(Boolean).join(" · ")))),
+            g.pakete[0].wartet_auf ? t("lst_nach", { x: g.pakete[0].wartet_auf }) : null,
+            g.pakete[0].freigabe ? t("lst_wartet_freigabe") : null].filter(Boolean).join(" · ")))),
       el("a", { class: "verweis", href: "#projektweg", onclick: e => { e.preventDefault(); zeige("projektweg"); } }, t("lst_ganze_reihenfolge"))) : null);
 }
 function lsZeitplan(l) {

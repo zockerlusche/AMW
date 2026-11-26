@@ -233,42 +233,45 @@ class Jetzt(Grund):
 
 class AlsNaechstes(Grund):
     def test_gleiche_startminute_eine_gruppe(self):
-        self.paket("läuft", "CC1", status="laeuft", begonnen_utc=um(-30))
-        b = self.paket("danach bei CC1", "CC1")
-        c = self.paket("Headless jetzt", p=True)
-        e = self.paket("CC2 jetzt", "CC2")
-        f = self.paket("Frei", nach=[c])
+        m = self.meilenstein("Bauen")                                                  # A2006: nur aktive Meilensteine kommen als Nächstes
+        self.paket("läuft", "CC1", status="laeuft", begonnen_utc=um(-30), bogen=m)
+        b = self.paket("danach bei CC1", "CC1", bogen=m)
+        c = self.paket("Headless jetzt", p=True, bogen=m)
+        e = self.paket("CC2 jetzt", "CC2", bogen=m)
+        f = self.paket("Frei", nach=[c], bogen=m)
         g = self.d()["als_naechstes"]
         self.assertEqual([(x["start_utc"], sorted(p["nummer"] for p in x["pakete"])) for x in g],
                          [(um(0), sorted([f"A{c}", f"A{e}"])), (um(30), [f"A{b}"]), (um(60), [f"A{f}"])])
         je = {p["titel"]: p for x in g for p in x["pakete"]}
-        self.assertEqual(je["Headless jetzt"], {"titel": "Headless jetzt", "nummer": f"A{c}", "wer": "Headless", "dauer_min": 60, "wartet_auf": None})
+        self.assertEqual(je["Headless jetzt"], {"titel": "Headless jetzt", "nummer": f"A{c}", "wer": "Headless", "dauer_min": 60, "wartet_auf": None,
+                                             "freigabe": False})
         self.assertEqual((je["CC2 jetzt"]["wer"], je["Frei"]["wer"]), ("CC2", None))
 
     def test_hoechstens_acht_gruppen(self):
+        m = self.meilenstein("Bauen")
         for i in range(11):
-            self.paket(f"T{i}", "CC1")
+            self.paket(f"T{i}", "CC1", bogen=m)
         g = self.d()["als_naechstes"]
         self.assertEqual([x["start_utc"] for x in g], [um(60 * i) for i in range(8)])
 
     def test_wartet_auf_aus_dem_zeitplan(self):
-        a = self.paket("Hinter dem Prüfpunkt", "CC1")
+        a = self.paket("Hinter dem Prüfpunkt", "CC1", bogen=self.meilenstein("Bauen"))
         with mock.patch("amw.zwischenpruefung.dahinter", return_value={a: 1}):
             self.assertEqual(self.d()["als_naechstes"][0]["pakete"][0]["wartet_auf"], kern.ENTWICKLER)
 
 
 class Entscheidungen(Grund):
-    def test_aus_zwei_projekten_als_satz(self):
+    def test_nur_das_eigene_projekt_als_satz(self):
+        """A2006 (Lead #34119): je Projekt nur seine Entscheidungen – über alle Projekte zeigt die Gesamtsicht (A2014)."""
         q = self.projekt("Schule")
         a, b, c = self.paket("Anmeldung"), self.paket("Texte", pid=q), self.paket("Kasse")
         self.ereignis("headless_start", um(-30), {"aufgabe": a, "platz": 1, "grund": "Platz 1", "von": "AMW"}, a)
         self.ereignis("verteilt", um(-20), {"aufgabe": b, "agent": "CC2", "grund": "Rang 5"}, b, q)
         self.ereignis("waechter", um(-10), f"A{c} nicht gestartet, Regel 4: alle Arbeitsplätze belegt – 1 von 1 belegt", c)
-        soll = [(um(-10), "Laden", "Laden: „Kasse“ nicht gestartet – belegt", f"A{c}"),
-                (um(-20), "Schule", "Schule: „Texte“ an CC2 verteilt", f"A{b}"),
-                (um(-30), "Laden", "Laden: „Anmeldung“ als Headless gestartet", f"A{a}")]
-        for pid in (self.pid, q):                                                       # in jedem Projekt dieselben
-            self.assertEqual([(x["zeit_utc"], x["projekt"], x["text"], x["nummer"]) for x in self.d(pid)["entscheidungen"]], soll)
+        zeilen = lambda pid: [(x["zeit_utc"], x["projekt"], x["text"], x["nummer"]) for x in self.d(pid)["entscheidungen"]]
+        self.assertEqual(zeilen(self.pid), [(um(-10), "Laden", "Laden: „Kasse“ nicht gestartet – belegt", f"A{c}"),
+                                            (um(-30), "Laden", "Laden: „Anmeldung“ als Headless gestartet", f"A{a}")])
+        self.assertEqual(zeilen(q), [(um(-20), "Schule", "Schule: „Texte“ an CC2 verteilt", f"A{b}")])
 
     def test_nur_die_letzten_zehn_neueste_zuerst(self):
         a = self.paket("Anmeldung")
@@ -298,7 +301,7 @@ class Entscheidungen(Grund):
 
 
 class Getrennt(Grund):
-    def test_ein_fremdes_projekt_kommt_nur_in_den_entscheidungen_vor(self):
+    def test_ein_fremdes_projekt_kommt_nirgends_vor(self):
         q = self.projekt("Schule", plaetze=1)
         m = self.meilenstein("Fremder Meilenstein", pid=q, ziel="2026-12-01")
         self.fertig("Fremd fertig", -9, pid=q, bogen=m)
@@ -310,7 +313,7 @@ class Getrennt(Grund):
         self.lauf("Fremder Lauf", 3, pid=q)
         d = self.d()
         self.assertEqual(d["fortschritt"]["gesamt"], 0)
-        self.assertEqual([d[k] for k in ("zuletzt", "jetzt", "als_naechstes")], [[], [], []])
+        self.assertEqual([d[k] for k in ("zuletzt", "jetzt", "als_naechstes", "entscheidungen")], [[], [], [], []])   # A2006: auch keine Entscheidungen
         fremd = self.d(q)
         self.assertEqual((len(fremd["zuletzt"]), len(fremd["jetzt"]), len(fremd["als_naechstes"])), (3, 3, 1))
 

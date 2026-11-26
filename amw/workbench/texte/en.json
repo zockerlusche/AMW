@@ -2638,5 +2638,6 @@
   "lst_themen_n": "({n} of {g} topics approved)",
   "lst_schritt": "Current step",
   "lst_themen": "Topics",
-  "lst_themen_frei": "{n} of {g} approved"
+  "lst_themen_frei": "{n} of {g} approved",
+  "lst_wartet_freigabe": "waiting for approval"
 }

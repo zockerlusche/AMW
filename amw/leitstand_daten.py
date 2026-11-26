@@ -9,8 +9,9 @@ hat, und je Art genau eine – nie eine je Paket.
   positiv = später), None ohne Ziel oder ohne offene Pakete.
 - zuletzt: älteste zuerst; auch Pakete und Versionen ohne Meilenstein.
 - jetzt: der Mensch fehlt (seine Aufgaben bleiben frei). Headless vom Start bis zum Ende der Abnahme; gezählt ab dem letzten Start.
-- als_naechstes: ohne Headless-Pakete, die schon abgegeben oder bereit zum Merge sind (ihre Aufgabe steht dann wieder auf „wartet“).
-- entscheidungen: neueste zuerst, aus allen Projekten – alles andere bleibt im Projekt.
+- als_naechstes: ohne Headless-Pakete, die schon abgegeben oder bereit zum Merge sind (ihre Aufgabe steht dann wieder auf „wartet“);
+  nur Pakete aus aktiven Meilensteinen (A2006, Lead #34119) – wartet eines auf den Menschen oder einen Monitor, steht freigabe: true.
+- entscheidungen: neueste zuerst, nur das eigene Projekt (A2006, Lead #34119 – über alle Projekte zeigt die Gesamtsicht, A2014).
 - haengt (A2149): Pakete, die seit mehr als 24 h nur mit einem Wartetext von Hand warten, ohne offenen Grund – „hängt ohne Grund“.
 - zeitplan (A2006): je offenem Meilenstein mit Prognose – Ziel gegen voraussichtlich (start, p50, p85 mit Token-Pause), verzug_tage
   (p50 − Ziel), bereit (alle Pakete fertig, der Meilenstein wartet auf seine Abnahme); nach Nummer, ohne eigene Abfrage.
@@ -45,8 +46,8 @@ def daten(con, pid, jetzt=None):
         return {"fortschritt": _fortschritt(boegen, prognose),
                 "zuletzt": _zuletzt(con, pid, boegen, mensch),
                 "jetzt": _jetzt(con, pid, plan, headless, mensch, uhr),
-                "als_naechstes": _als_naechstes(plan, headless, mensch),
-                "entscheidungen": _entscheidungen(con),
+                "als_naechstes": _als_naechstes(plan, headless, mensch, _bereit(con, pid, plan)),
+                "entscheidungen": _entscheidungen(con, pid),
                 "haengt": _haengt(con, pid, mensch, uhr),
                 "zeitplan": _zeitplan(boegen, prognose)}
 
@@ -180,24 +181,40 @@ def _jetzt(con, pid, plan, headless, mensch, uhr):
 
 # --- Als Nächstes ------------------------------------------------------------------------------------------------------------
 
-def _als_naechstes(plan, headless, mensch):
+def _bereit(con, pid, plan):
+    """A2006: {Aufgabe: wartet auf Freigabe?} – nur Pakete aus aktiven Meilensteinen (fehlt eines, kommt es nicht gleich); True, wenn ein
+    offener Grund auf den Menschen, einen Monitor oder eine offene Frage an ihn zeigt. Zwei Abfragen, gleich viele bei jeder Menge."""
+    ids = [x["aid"] for x in plan if x["zustand"] != "laeuft"]
+    if not ids:
+        return {}
+    marken = ",".join("?" * len(ids))
+    aktiv = {r[0] for r in con.execute(f"SELECT a.id FROM aufgabe a JOIN bogen b ON b.id = a.bogen_id WHERE a.id IN ({marken}) AND b.status = 'aktiv'", ids)}
+    warten = {r[0] for r in con.execute(
+        f"SELECT w.aufgabe_id FROM wartegrund w WHERE w.aufgabe_id IN ({marken}) AND w.erledigt_utc IS NULL AND (w.art IN ('entwickler', 'monitor')"
+        " OR (w.art = 'frage' AND EXISTS (SELECT 1 FROM frage f WHERE 'F' || f.id = w.bezug AND f.an = 'entwickler' AND f.status = 'offen')))",
+        ids)}
+    return {a: a in warten for a in aktiv}
+
+
+def _als_naechstes(plan, headless, mensch, bereit):
     gruppen = {}                                         # Startminute → Pakete, in der Reihenfolge des Plans
     for x in plan:
-        if x["zustand"] != "laeuft" and x["aid"] not in headless:
+        if x["zustand"] != "laeuft" and x["aid"] not in headless and x["aid"] in bereit:
             gruppen.setdefault(x["start_utc"][:16], []).append(x)
     return [{"start_utc": min(x["start_utc"] for x in gruppen[g]),
              "pakete": [{"titel": x["titel"], "nummer": f"A{x['aid']}", "wer": HEADLESS if x["art"] == "headless" else _wer(x["agent"], mensch),
-                         "dauer_min": x["dauer_min"], "wartet_auf": x["wartet_auf"]} for x in gruppen[g]]} for g in sorted(gruppen)[:GRUPPEN]]
+                         "dauer_min": x["dauer_min"], "wartet_auf": x["wartet_auf"], "freigabe": bereit[x["aid"]]} for x in gruppen[g]]}
+            for g in sorted(gruppen)[:GRUPPEN]]
 
 
 # --- Entscheidungen ----------------------------------------------------------------------------------------------------------
 
-def _entscheidungen(con):
-    """Über alle Projekte: [{"zeit_utc", "projekt", "text", "nummer"}], neueste zuerst."""
+def _entscheidungen(con, pid):
+    """Nur das eigene Projekt (A2006): [{"zeit_utc", "projekt", "text", "nummer"}], neueste zuerst."""
     aus = []
     for r in con.execute("SELECT e.zeit_utc, e.art, e.text, a.id AS aufgabe, a.titel, p.name FROM plan_ereignis e JOIN projekt p ON p.id = e.projekt_id"
-                         " LEFT JOIN aufgabe a ON a.id = e.aufgabe_id WHERE e.art IN ('headless_start', 'verteilt')"
-                         " OR (e.art = 'waechter' AND e.text LIKE '% nicht gestartet, Regel %') ORDER BY e.zeit_utc DESC, e.id DESC LIMIT ?", (LETZTE,)):
+                         " LEFT JOIN aufgabe a ON a.id = e.aufgabe_id WHERE e.projekt_id = ? AND (e.art IN ('headless_start', 'verteilt')"
+                         " OR (e.art = 'waechter' AND e.text LIKE '% nicht gestartet, Regel %')) ORDER BY e.zeit_utc DESC, e.id DESC LIMIT ?", (pid, LETZTE)):
         was = f"„{verlauf_quellen._titel_kurz(r['titel'])}“" if r["titel"] else "ein Paket"
         if r["art"] == "waechter":
             m = paketliste._REGEL.match(r["text"])

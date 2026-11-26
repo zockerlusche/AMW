@@ -55,10 +55,31 @@ class Abruf(Grund):
         self.ereignis("verteilt", um(-2), {"aufgabe": a, "agent": "CC1", "grund": "Rang"}, aufgabe=a)
         self.ereignis("verteilt", um(-1), {"aufgabe": b, "agent": "CC1", "grund": "Rang"}, aufgabe=b, pid=fremd)
         pc = workbench.daten_leitstand(self.con, self.pid)["entscheidungen"]
-        self.assertEqual({e["projekt"] for e in pc}, {"Laden", "Geheim"})                          # am PC alle Projekte
+        self.assertEqual({e["projekt"] for e in pc}, {"Laden"})                                    # Lead #34119: auch am PC nur das eigene
         online = abgleich.ansichten(self.con, self.pid)["/api/leitstand"]["entscheidungen"]
         self.assertEqual({e["projekt"] for e in online}, {"Laden"})
         self.assertNotIn("Geheim", json.dumps(abgleich.ansichten(self.con, self.pid)["/api/leitstand"], ensure_ascii=False))
+
+
+
+class AlsNaechstes(Grund):
+    """Lead #34119 (2): „Als Nächstes“ heißt „kommt gleich“ – nur Pakete aus aktiven Meilensteinen; wartet eines auf den Menschen oder
+    einen Monitor, ist es als Freigabe gekennzeichnet."""
+    def test_nur_aktive_meilensteine_und_freigabe(self):
+        from amw import wartegrund
+        aktiv, geplant = self.meilenstein("Jetzt"), self.meilenstein("Später", status="geplant")
+        frei = self.paket("Kommt gleich", "CC1", bogen=aktiv)
+        mensch = self.paket("Wartet auf Marcel", "CC2", bogen=aktiv)
+        monitor = self.paket("Wartet auf Monitor", bogen=aktiv)
+        spaeter = self.paket("Geplanter Meilenstein", "CC1", bogen=geplant)
+        ohne = self.paket("Ohne Meilenstein", "CC2")
+        wartegrund.anlegen(self.con, self.pid, "TL", mensch, "Entwickler")
+        wartegrund.anlegen(self.con, self.pid, "TL", monitor, "Monitor: TH1")
+        je = {p["nummer"]: p for g in self.d()["als_naechstes"] for p in g["pakete"]}
+        self.assertEqual(sorted(je), sorted(f"A{x}" for x in (frei, mensch, monitor)))
+        self.assertNotIn(f"A{spaeter}", je)
+        self.assertNotIn(f"A{ohne}", je)
+        self.assertEqual({k: v["freigabe"] for k, v in je.items()}, {f"A{frei}": False, f"A{mensch}": True, f"A{monitor}": True})
 
 
 class Obergrenze(_tld.Leistung):

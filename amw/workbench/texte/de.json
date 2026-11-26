@@ -2638,5 +2638,6 @@
   "lst_themen_n": "({n} von {g} Themen freigegeben)",
   "lst_schritt": "Schritt jetzt",
   "lst_themen": "Themen",
-  "lst_themen_frei": "{n} von {g} freigegeben"
+  "lst_themen_frei": "{n} von {g} freigegeben",
+  "lst_wartet_freigabe": "wartet auf Freigabe"
 }
