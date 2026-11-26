@@ -4,6 +4,14 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.198.0 – 26.11.2026 · Neues Menü: Leitstand, Projektweg, Fragen, Wissen; Bündel ohne Agent
+- **Verbessert:** Das Menü hat fünf Punkte und „Fragen“: Leitstand, Projektweg, Fragen, Wissen, Betrieb, Einstellungen; am Handy Leitstand · Projektweg · Fragen · Wissen · Mehr. Themen und Planung stehen als Reiter unter Projektweg, Nachrichten unter Wissen, Termine unter Betrieb. Jede alte Adresse und jeder Link aus einer Push-Meldung führt weiter auf ihre Seite. Die Zahl am Projektweg zählt jedes Ding einmal und nur, was du tun musst.
+- **Verbessert:** Neue Namen: der Abschnitt mit den Eingriffen heißt „Steuerung“ (Knopf oben im Leitstand, Adresse `#steuerung`), aus „Tor“ wird „Schritt“, aus „Platz“ und „p-Paket“ wird „Headless“. Ein Paket, das auf eine Eingabe wartet, zeigt „wartet auf dich“ oder „wartet auf Lead“. Das Blatt „Mehr“ am Handy schließt mit ✕.
+- **Verbessert:** Schlägt der Planer eine Konzeptänderung vor, warten die Pakete, die sie ändert oder verwirft, bis zum Ja.
+- **Verbessert:** Ein Prüfpunkt nennt beim Setzen, welche Pakete er nicht aufhält, und „Für dich“ nennt das Paket, das du testen sollst.
+- **Verbessert:** Die Seiten laden mit weniger Datenbank-Abfragen; das Protokoll kann bei langsamen Seiten die Zahl und die Zeit der Abfragen nennen (`amw messung --anfragen --zaehlen an`).
+- **Neu:** Die AMW kann ein Bündel ohne Agent zusammensetzen, prüfen, teilen und bis zur Freigabe bereitstellen (Einstellung `buendel_ausliefern`, nur vom Menschen; Vorgabe aus).
+
 ## 1.197.0 – 25.11.2026 · Freigaben wirken beim ersten Klick, das Ja zu einer Konzeptänderung startet immer
 - **Behoben:** Freigeben, Abnehmen und das Anlegen oder Speichern eines Agenten wirken beim ersten Klick, auch wenn die Workbench inzwischen neu gestartet ist. Ein Doppelklick wirkt einmal. Zwischen Drücken und Loslassen zeichnet die Seite nicht neu. Geht etwas schief, steht ein verständlicher Satz da, und der Knopf geht wieder.
 - **Verbessert:** Das Ja zu einer Konzeptänderung startet die neuen Pakete immer, auch wenn der Plan des laufenden Meilensteins inzwischen geändert ist. Ein Entwurf lässt sich mit Grund zurückstellen (`amw thema entwurf-warten TH… --grund …`, `entwurf-weiter TH…`); was der Mensch zurückstellt, hebt nur er auf. Überholte Entwürfe verschwinden.
