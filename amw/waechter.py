@@ -35,9 +35,10 @@ REGELN = {
     13: "Anbieter in diesem Projekt nicht freigegeben (gibt nur der Mensch frei)",
     14: "Anbieter mit dieser Claude-Code-Version noch nicht geprüft – die AMW prüft ihn selbst (Negativprobe)",
     15: "angehalten bis zum Ja zu einer Konzeptänderung",
+    16: "wartet auf ein Paket, mit dem es nacheinander laufen soll",      # A2153: nie gleichzeitig / gleiche Ressource
 }
 ARBEITEND = ("laeuft", "abgegeben", "abnahme")   # A1925: zählt für die PC-Grenze (plaetze_pc) – merge_reihe arbeitet nicht mehr
-WARTEN = {2, 4, 7, 8, 9, 11, 14, 15}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
+WARTEN = {2, 4, 7, 8, 9, 11, 14, 15, 16}               # vorübergehend: später erneut prüfen; die anderen: nicht starten, Lead melden
 LIMIT_PROZENT = 80
 LAUFEND = ("laeuft", "abgegeben", "abnahme", "merge_reihe")   # P245: der Platz bleibt bis zum Merge belegt (Resume nur dort)
 
@@ -240,6 +241,8 @@ def pruefen(con, pid, aid, limit=None):
     gesp = abnahme.startregel(b, f["pakettyp"], abnahme.projekt_muster(con, pid))   # A1919: feste Liste + Muster des Projekts
     if gesp:
         return _nein(5, ", ".join(f"{x} ({g})" for x, g in gesp))
+    if n := arbeitspaket.nebenlaeufer(con, pid, aid):    # A2153 (TH165): nie gleichzeitig / gleiche Ressource
+        return _nein(16, n[1])
     lauf = [x for x in laufende(con, pid) if x["id"] != aid]
     if len(lauf) >= len(plaetze):
         return _nein(4, f"{len(lauf)} von {len(plaetze)} belegt")

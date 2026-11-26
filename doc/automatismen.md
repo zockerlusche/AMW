@@ -1042,6 +1042,14 @@ die der Lead nur noch bestätigt oder ändert.
   Ein zurückgestellter Entwurf hält weiter an, ein gescheiterter Planer-Lauf ändert nichts. Einzeln lösen Lead, Co oder Mensch:
   `amw aufgabe wartet <nr> --erledigt "Änderung TH<n>"`; derselbe Entwurf hält es dann nicht noch einmal an. Verlauf: je eine Zeile beim
   Anhalten und beim Lösen (Ereignisse `delta_angehalten`, `delta_frei`). Es geschieht sofort, dazu alle 10 Minuten im Dienst.
+- **Nacheinander: „nie gleichzeitig“ und „gleiche Ressource“ (A2153, TH165):** Planer und Feinplaner können beide Felder je
+  Paket setzen (`nie_gleichzeitig`: Pakete dieses Entwurfs oder A-Nummern; `gleiche_ressource`: ein Name), von Hand
+  `amw aufgabe aendern <nr> --nie-gleichzeitig A12 | --gleiche-ressource <Name>`. Arbeitet ein Paket, mit dem ein anderes nie
+  gleichzeitig laufen soll (in einer der beiden Listen) oder das dieselbe Ressource nennt, startet das andere nicht: der Wächter
+  (Regel 16, also auch der Disponent) und die Verteilung an Fenster-Agenten lassen es warten, im Wächter-Protokoll steht der Grund
+  („… – nie gleichzeitig mit A12 „…“, das noch arbeitet“). Arbeiten heißt: ein Headless-Paket läuft, ist abgegeben oder in der
+  Abnahme (ab „bereit zum Merge“ ist es frei); eine andere Aufgabe hat den Status „läuft“. Eine Reihenfolge legt das nicht fest –
+  dafür ist `nach` da. Der Zeitplan rechnet beides weiterhin nicht ein.
 - **Überholte Entwürfe (A2118):** Ein Vermerk „nichts zu bauen“ (oder ein angenommener Plan) nach dem Entwurf schließt ihn in jeder Anzeige
   (`planer.geklaert`). Ein zu langer Grund bei „nichts zu bauen“ wird auf 1000 Zeichen gekürzt.
 

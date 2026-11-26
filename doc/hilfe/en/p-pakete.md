@@ -52,7 +52,7 @@ One that checks exactly what the package should deliver, runs fast and is red to
 Not measured yet – that is what packages of the same size and kind with the same model usually cost so far (P50). Point at it or tap it to see the range up to almost always (P85) and the expected time. The range appears once five packages have been measured; `amw paket zeigen <no>` shows it too.
 
 ### When `--nach`, when `--nie-gleichzeitig`, when `--gleiche-ressource`?
-`--nach`: the package needs the result of the other task. `--nie-gleichzeitig`: the two get in each other's way, in either order. `--gleiche-ressource`: many packages share something (e.g. the same test database) – they get the same name and run one after the other.
+`--nach`: the package needs the result of the other task. `--nie-gleichzeitig`: the two get in each other's way, in either order. `--gleiche-ressource`: many packages share something (e.g. the same test database) – they get the same name and run one after the other. While one of them is working, the other waits – also a package in an agent's window. The reason is in the watcher's log ("rule 16 … never at the same time as A12 …"). The detailed planner can set both fields itself.
 
 ### A package waits for me after the check – but it is fine. How does it get into the merge list?
 Some packages always go to you or the lead after the check first, for example the package type “test-schreiben” or a hint about outside access that turns out to be harmless when you read it. AMW keeps the checked state. Once you have read it and it is fine: `amw paket annehmen <no> --grund "what you read"` (lead or you). The package then appears under “Ready to merge” and is approved and delivered like any other.

@@ -30,7 +30,8 @@ Schema des Feinplans (JSON):
                "modell": "haiku|sonnet|opus", "effort": "low|medium|high", "fertig_quelle": "commit|release|thema|dokument|frist|ja",
                "nach": ["P0", "A1234"], "abnahme_befehl": "python -m unittest tests.test_x" | null,
                "bereiche": "amw/x.py, tests/test_x.py" | null, "pakettyp": "normal|test-schreiben|test-ergaenzen" | null,
-               "interaktiv_grund": "…" | null, "lead_liest": true | false}],
+               "interaktiv_grund": "…" | null, "lead_liest": true | false,
+               "nie_gleichzeitig": ["P2", "A1234"] | [], "gleiche_ressource": "Testdatenbank" | null}],
    "fragen": [{"frage": "…", "optionen": {"A": "…", "B": "…"}, "empfehlung": "A", "grund": "…"}],
    "grund": "warum dieser Schnitt und diese Reihenfolge"}
 
@@ -40,6 +41,8 @@ Schema des Feinplans (JSON):
   "lead_liest": true bei Urteils-Arbeit (Konzepttexte, Architektur) – das Paket nimmt die AMW nie selbst ab (A2054).
   Ein p-Paket mit Testdatei in "bereiche" setzt die AMW selbst auf test-schreiben, wenn kein Testtyp angegeben ist (A2139).
   "nach": erst wenn das andere Paket gemergt ist. Die Arbeitsschritte im Paket plant niemand vorher.
+  "nie_gleichzeitig": diese Pakete arbeiten nie zur selben Zeit, auch mit getrennten Dateien (z. B. dieselbe Testumgebung);
+  "gleiche_ressource": Pakete mit demselben Namen laufen nacheinander (A2153, TH165). Eine Reihenfolge legt erst "nach" fest.
 """
 import datetime
 import functools
@@ -593,7 +596,8 @@ def _anlegen(con, pid, zeilen, entwurf):
                                      **({"dateibereich": p["bereiche"]} if p.get("bereiche") else {}))
         modell, effort = planer.p_modell(con, pid, p) if p["ausfuehrung"] == "p" else (p["modell"], p["effort"])
         arbeitspaket.setzen(con, pid, von, aid, art=p["ausfuehrung"], **({"modell": modell} if modell else {}),
-                            **({"effort": effort} if effort else {}), **({"pakettyp": p["pakettyp"]} if p.get("pakettyp") else {}))
+                            **({"effort": effort} if effort else {}), **({"pakettyp": p["pakettyp"]} if p.get("pakettyp") else {}),
+                            **({"gleiche_ressource": p["gleiche_ressource"]} if p.get("gleiche_ressource") else {}))   # A2153
         if p.get("thema"):
             themen.verweise_setzen(con, pid, von, aid, [p["thema"]])
         with db.schreiben(con):
@@ -604,6 +608,7 @@ def _anlegen(con, pid, zeilen, entwurf):
                 db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von=von, art="lead_liest", aufgabe_id=aid,
                              text=json.dumps({"an": True}))
         angelegt[p["schluessel"]] = f"A{aid}"
+    planer.nie_gleichzeitig_setzen(con, pid, von, entwurf, angelegt)          # A2153: erst jetzt gibt es alle Nummern
     return angelegt
 
 

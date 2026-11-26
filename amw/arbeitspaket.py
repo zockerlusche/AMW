@@ -199,6 +199,32 @@ def lesen(con, aid):
     return f
 
 
+ARBEITET_P = ("laeuft", "abgegeben", "abnahme")     # A2153: so lange arbeitet ein p-Paket (danach nur noch Merge/Auslieferung)
+
+
+def nebenlaeufer(con, pid, aid):
+    """A2153 (TH165): Arbeitet gerade ein Paket, das nie gleichzeitig mit `aid` laufen soll (in der Liste von `aid` oder `aid` in
+    seiner) oder dieselbe Ressource nennt? Dann (Nummer, lesbarer Grund) des ersten, sonst None. Arbeitet: ein p-Paket in
+    ARBEITET_P, jede andere Aufgabe mit Status „läuft“. Für den Wächter (Regel 16) und die Verteilung an Fenster-Agenten."""
+    import json
+    eigen = lesen(con, aid)
+    res = (eigen["gleiche_ressource"] or "").strip().casefold()
+    for r in con.execute("SELECT a.id, a.titel, k.nie_gleichzeitig, k.gleiche_ressource FROM aufgabe a"
+                         " LEFT JOIN paket k ON k.aufgabe_id = a.id WHERE a.projekt_id = ? AND a.id != ?"
+                         " AND (CASE WHEN k.art = 'p' THEN k.zustand IN (?, ?, ?) ELSE a.status = 'laeuft' END) ORDER BY a.id",
+                         (pid, aid, *ARBEITET_P)):
+        try:
+            andere = json.loads(r["nie_gleichzeitig"] or "[]")
+        except ValueError:
+            andere = []
+        wer = f"A{r['id']} „{(r['titel'] or '')[:60]}“"
+        if r["id"] in eigen["nie_gleichzeitig"] or aid in andere:
+            return r["id"], f"nie gleichzeitig mit {wer}, das noch arbeitet"
+        if res and (r["gleiche_ressource"] or "").strip().casefold() == res:
+            return r["id"], f"gleiche Ressource „{eigen['gleiche_ressource']}“ wie {wer}, das noch arbeitet"
+    return None
+
+
 def _aufgabe(con, pid, aid):
     from . import kern
     a = con.execute("SELECT * FROM aufgabe WHERE id = ? AND projekt_id = ?", (aid, pid)).fetchone()

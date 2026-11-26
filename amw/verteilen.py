@@ -196,6 +196,11 @@ def verteilen(con, pid):
         for a, tiefe in liste:
             if a["id"] in vergeben:
                 continue
+            from . import arbeitspaket, waechter
+            if n := arbeitspaket.nebenlaeufer(con, pid, a["id"]):   # A2153 (TH165): wartet, bis das andere nicht mehr arbeitet
+                waechter.protokollieren(con, pid, a["id"], waechter._nein(16, n[1]))
+                vergeben.add(a["id"])
+                continue
             ergebnis, gruende = passt(con, pid, k, a)
             if ergebnis == "nein":
                 continue

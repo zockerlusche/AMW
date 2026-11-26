@@ -27,7 +27,7 @@ HEADLESS = "Headless"
 # Regel des Wächters → ein Wort, warum ein Paket nicht startete
 WARUM = {1: "unvollständig", 2: "Dateikonflikt", 3: "Grafikkarte", 4: "belegt", 5: "geschützt", 6: "Abnahmebefehl", 7: "Wartung", 8: "Wochenlimit",
          9: "Pause", 10: "Einrichtung", 11: "Versionsprüfung", 12: "ausgeschaltet", 13: "Anbieter", 14: "Anbieterprüfung",
-         15: "Konzeptänderung"}
+         15: "Konzeptänderung", 16: "nacheinander"}
 WARUM_SONST = "gesperrt"
 
 

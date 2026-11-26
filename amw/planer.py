@@ -19,7 +19,8 @@ Schema des Planer-Ergebnisses (JSON):
                "modell": "haiku|sonnet|opus", "effort": "low|medium|high", "fertig_quelle": "commit|release|thema|dokument|frist|ja",
                "nach": ["P0", "A1234"], "abnahme_befehl": "python -m unittest tests.test_x" | null,
                "bereiche": "amw/x.py, tests/test_x.py" | null, "pakettyp": "normal|test-schreiben|test-ergaenzen" | null,
-               "interaktiv_grund": "…" | null, "lead_liest": true | false}]}
+               "interaktiv_grund": "…" | null, "lead_liest": true | false,
+               "nie_gleichzeitig": ["P2", "A1234"] | [], "gleiche_ressource": "Testdatenbank" | null}]}
   oder {"nichts_zu_bauen": true, "grund": "…"}
 
   p ist die Vorgabe (A2004, TH164/TH166): ein Paket der Größe S – oder M bei Art mechanisch –, das keine Oberfläche ist, läuft
@@ -30,6 +31,9 @@ Schema des Planer-Ergebnisses (JSON):
   Architektur): dieses Paket nimmt die AMW nie selbst ab, der Lead liest es (A2054, TH167 F4). Pakete, die gleichzeitig laufen können
   (ohne "nach" dazwischen, auch mittelbar), ändern nie dieselben Dateien: legt sie hintereinander oder trennt die Bereiche (A2133).
   Ein p-Paket mit Testdatei in "bereiche" setzt die AMW selbst auf test-schreiben, wenn kein Testtyp angegeben ist (A2139).
+  "nie_gleichzeitig": Pakete, die nie zur selben Zeit arbeiten dürfen, obwohl sie andere Dateien ändern (z. B. dieselbe
+  Testumgebung); "gleiche_ressource": Pakete mit demselben Namen laufen nacheinander (A2153, TH165). Das zweite wartet, bis das
+  erste nicht mehr arbeitet – reihenfolge gibt es nicht vor, dafür ist "nach" da.
 """
 import difflib
 import functools
@@ -49,7 +53,8 @@ AUSFUEHRUNG = ("agent", "p")
 MODELLE = ("haiku", "sonnet", "opus")
 EFFORTS = ("low", "medium", "high")
 MAX_PAKETE, MAX_MEILENSTEINE = 30, 5
-LAENGE = {"titel": 120, "auftrag": 4000, "grund": 1000, "abnahme_befehl": 300, "bereiche": 400, "interaktiv_grund": 300}
+LAENGE = {"titel": 120, "auftrag": 4000, "grund": 1000, "abnahme_befehl": 300, "bereiche": 400, "interaktiv_grund": 300,
+          "gleiche_ressource": 60}
 PAKETTYPEN = ("normal", "test-schreiben", "test-ergaenzen")
 
 
@@ -247,6 +252,21 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
                 f.append(f"{wo}: nach „{v}“ ist weder ein Paket dieses Entwurfs noch eine Aufgabe (A1234)")
         if s and s in nach:
             f.append(f"{wo}: hängt von sich selbst ab")
+        nie, roh = [], p.get("nie_gleichzeitig") or []
+        for v in (roh.split(",") if isinstance(roh, str) else roh if isinstance(roh, list) else [roh]):   # A2153 (TH165)
+            v = str(v).strip()
+            if not v:
+                continue
+            if v == s:
+                f.append(f"{wo}: nie_gleichzeitig mit sich selbst")
+            elif v in p_namen:
+                nie.append(v)
+            elif v[:1] in "Aa" and v[1:].isdigit():
+                if con is not None and not con.execute("SELECT 1 FROM aufgabe WHERE projekt_id = ? AND id = ?", (pid, int(v[1:]))).fetchone():
+                    f.append(f"{wo}: nie_gleichzeitig {v} – die Aufgabe gibt es im Projekt nicht")
+                nie.append("A" + v[1:])
+            else:
+                f.append(f"{wo}: nie_gleichzeitig „{v}“ ist weder ein Paket dieses Entwurfs noch eine Aufgabe (A1234)")
         groesse = _wahl(p.get("groesse"), empfehlung.GROESSEN, "groesse", wo, f, klein=False)
         aus_p.append({"schluessel": s, "meilenstein": m, "titel": _text(p.get("titel"), "titel", wo, f),
                       "auftrag": _text(p.get("auftrag"), "auftrag", wo, f), "groesse": groesse,
@@ -259,7 +279,9 @@ def pruefen(daten, con=None, pid=None, tid=None, delta=None):
                       "bereiche": _text(p.get("bereiche"), "bereiche", wo, f, pflicht=False),          # A2004
                       "pakettyp": _wahl(p.get("pakettyp"), PAKETTYPEN, "pakettyp", wo, f) if p.get("pakettyp") else None,
                       "interaktiv_grund": _text(p.get("interaktiv_grund"), "interaktiv_grund", wo, f, pflicht=False),
-                      "lead_liest": p.get("lead_liest") is True})                                     # A2054
+                      "lead_liest": p.get("lead_liest") is True,                                      # A2054
+                      "nie_gleichzeitig": nie,                                                        # A2153
+                      "gleiche_ressource": _text(p.get("gleiche_ressource"), "gleiche_ressource", wo, f, pflicht=False)})
         if aus_p[-1]["ausfuehrung"] == "p" and aus_p[-1]["art"] == "oberflaeche":   # A1976 (TH156): zuerst eine Kleinprobe
             f.append(f"{wo}: ein Oberflächen-Paket nie als p – ausfuehrung agent, mit Kleinprobe zuerst (TH156)")
         if aus_p[-1]["ausfuehrung"] == "p" and not aus_p[-1]["abnahme_befehl"]:
@@ -609,6 +631,19 @@ def _entstanden(con, pid, entwurf, schon, zuvor):
     return gefunden
 
 
+def nie_gleichzeitig_setzen(con, pid, von, entwurf, angelegt):
+    """A2153 (TH165): „nie_gleichzeitig“ des Entwurfs an die angelegten Pakete – Schlüssel P… werden zu deren Nummern, A… bleibt;
+    ein Schlüssel, der nicht angelegt wurde, fällt weg."""
+    from . import arbeitspaket
+    for p in entwurf.get("pakete") or []:
+        if not p.get("nie_gleichzeitig") or p["schluessel"] not in angelegt:
+            continue
+        nrn = [int(angelegt[v][1:]) if v in angelegt else int(v[1:]) for v in p["nie_gleichzeitig"]
+               if v in angelegt or (v[:1] == "A" and v[1:].isdigit())]
+        if nrn:
+            arbeitspaket.setzen(con, pid, von, int(angelegt[p["schluessel"]][1:]), nie_gleichzeitig=nrn)
+
+
 def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
     from . import arbeitspaket, fertigquelle, planung, themen
     if entwurf["nichts_zu_bauen"]:
@@ -636,7 +671,8 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
                                      **({"dateibereich": p["bereiche"]} if p.get("bereiche") else {}))
         modell, effort = p_modell(con, pid, p) if p["ausfuehrung"] == "p" else (p["modell"], p["effort"])
         felder = {"art": p["ausfuehrung"], **({"modell": modell} if modell else {}), **({"effort": effort} if effort else {}),
-                  **({"pakettyp": p["pakettyp"]} if p.get("pakettyp") else {})}
+                  **({"pakettyp": p["pakettyp"]} if p.get("pakettyp") else {}),
+                  **({"gleiche_ressource": p["gleiche_ressource"]} if p.get("gleiche_ressource") else {})}   # A2153
         arbeitspaket.setzen(con, pid, von, aid, **felder)
         themen.verweise_setzen(con, pid, von, aid, [tid])
         q = fertig_aus_plan(p["fertig_quelle"], tid)                # A1996 (K2): die Fertig-Quelle gehört ins Paket
@@ -649,6 +685,7 @@ def _anlegen(con, pid, von, tid, e, entwurf, geaendert, merke, angelegt):
         if q.get("aus_plan") == "frist":
             fristen.append(f"A{aid}")
         angelegt[p["schluessel"]] = f"A{aid}"
+    nie_gleichzeitig_setzen(con, pid, von, entwurf, angelegt)              # A2153: erst jetzt gibt es alle Nummern
     with db.schreiben(con):
         con.execute("DELETE FROM plan_ereignis WHERE id = ?", (merke,))
         _ereignis(con, pid, von, JA, tid, entwurf=e["id"], angelegt=angelegt, geaendert=geaendert is not None,
