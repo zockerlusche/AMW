@@ -2574,5 +2574,7 @@
   "egr_pa_ende_h": "Ohne Ende gilt die Pause, bis du sie aufhebst.",
   "egr_pa_setzen": "Pause setzen",
   "egr_pa_ok": "Pause gesetzt",
-  "egr_pa_ok_bis": "Pause bis {x}"
+  "egr_pa_ok_bis": "Pause bis {x}",
+  "egr_pp_keiner": "dahinter wartet kein Paket – am Ende des Meilensteins testest du bei der Abnahme",
+  "egr_pp_wartet": "Danach warten {n} Pakete auf dein Ja."
 }

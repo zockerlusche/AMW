@@ -2574,5 +2574,7 @@
   "egr_pa_ende_h": "Without an end the pause lasts until you lift it.",
   "egr_pa_setzen": "Set pause",
   "egr_pa_ok": "Pause set",
-  "egr_pa_ok_bis": "Paused until {x}"
+  "egr_pa_ok_bis": "Paused until {x}",
+  "egr_pp_keiner": "no package waits after it – you test at the end of the milestone, at the acceptance",
+  "egr_pp_wartet": "Then {n} packages wait for your yes."
 }

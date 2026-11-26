@@ -40,6 +40,8 @@ class Paket(Daten):
         self.assertFalse(e["schieben"]["frueher"]["geht"])
         self.assertEqual((e["schieben"]["frueher"]["art"], e["schieben"]["frueher"]["x"]), ("braucht", "Abmelden oben rechts"))
         self.assertEqual((e["pruefpunkt"], e["ist_pruefpunkt"]), (None, False))
+        self.assertEqual(sorted(workbench.daten_aufgabe(self.con, self.pid, self.a)["eingriffe"]["pruefpunkt_wartet"]), sorted([self.b, self.c]))
+        self.assertEqual(e["pruefpunkt_wartet"], [])                                           # hinter dem zweiten wartet nichts
         with db.schreiben(self.con):
             self.con.execute("UPDATE aufgabe SET status = 'fertig', beleg = 'x' WHERE id = ?", (self.c,))
         self.assertIsNone(workbench.daten_aufgabe(self.con, self.pid, self.c)["eingriffe"])
@@ -73,6 +75,11 @@ class Paket(Daten):
         self.rueckfrage(True, "Probe vorbei")
         self.warten("document.querySelector('.dialog [data-eg=pruefpunkt]')")
         self.assertEqual(zwischenpruefung.offene(self.con, self.pid), [])
+
+    def test_pruefpunkt_gesperrt_wenn_dahinter_nichts_wartet(self):
+        self.dialog(f"aufgabeDialog({self.dritt})", "document.querySelector('.dialog [data-eg=pruefpunkt]')")
+        self.assertTrue(self.tab.js("document.querySelector('.dialog [data-eg=pruefpunkt]').disabled"))
+        self.assertIn("Prüfpunkt dahinter: dahinter wartet kein Paket", self.tab.js("document.querySelector('.dialog .eg-sperre').textContent"))
 
     def test_abbrechen_tut_nichts(self):
         self.dialog(f"aufgabeDialog({self.a})", "document.querySelector('.dialog [data-eg=pruefpunkt]')")

@@ -17,17 +17,20 @@ function eingriffePaket(a, neu) {
   const sperren = s ? ["frueher", "spaeter"].filter(r => s[r] && !s[r].geht).map(r => `${t("egr_" + r)}: ${egSperre(s[r])}`) : [];
   const einmalig = s && !s.frueher.geht && !s.spaeter.geht && s.frueher.grund === s.spaeter.grund;   /* gar nicht schiebbar: ein Grund */
   const pp = e.ist_pruefpunkt ? a.id : e.pruefpunkt;
+  const ppSperre = pp ? null : !a.bogen_id ? t("egr_sp_ohne") : !(e.pruefpunkt_wartet || []).length ? t("egr_pp_keiner") : null;   /* nur zeigen, was geht */
   const pruefKnopf = pp
     ? el("button", { class: "klein-knopf", type: "button", "data-eg": "pruefpunkt-weg", onclick: async () => {
         const grund = await rueckfrage(t("egr_pp_weg_frage", { a: pp }), { ja: t("egr_pp_weg"), eingabe: t("egr_grund_ph") }); if (!grund) return;
         egTun("/api/plan/pruefpunkt", { aufgabe: pp, entfernen: true, grund }, () => t("egr_pp_weg_ok", { a: pp }), neu); } }, t("egr_pp_weg"))
-    : el("button", { class: "klein-knopf", type: "button", "data-eg": "pruefpunkt", disabled: a.bogen_id ? null : "disabled",
-        title: a.bogen_id ? t("egr_pp_h") : t("egr_sp_ohne"), onclick: async () => {
-          const hinweis = await rueckfrage(t("egr_pp_frage", { x: a.titel }), { ja: t("egr_pp_setzen"), eingabe: t("egr_pp_ph") }); if (!hinweis) return;
+    : el("button", { class: "klein-knopf", type: "button", "data-eg": "pruefpunkt", disabled: ppSperre ? "disabled" : null,
+        title: ppSperre || t("egr_pp_h"), onclick: async () => {
+          const hinweis = await rueckfrage(t("egr_pp_frage", { x: a.titel }) + "\n" + t("egr_pp_wartet", { n: e.pruefpunkt_wartet.length }),
+            { ja: t("egr_pp_setzen"), eingabe: t("egr_pp_ph") }); if (!hinweis) return;
           egTun("/api/plan/pruefpunkt", { aufgabe: a.id, grund: hinweis, hinweis }, r => t("egr_pp_ok", { a: r.paket, n: (r.wartet || []).length }), neu); } }, t("egr_pp"));
   return el("div", { class: "au-block eg-block" }, el("h4", {}, t("egr_titel")),
     el("div", { class: "dk-aktionen" }, knopf("frueher"), knopf("spaeter"), pruefKnopf),
-    sperren.length ? el("p", { class: "sehrleise eg-sperre", style: "margin:6px 0 0" }, einmalig ? egSperre(s.frueher) : sperren.join(" · ")) : null,
+    sperren.length || ppSperre ? el("p", { class: "sehrleise eg-sperre", style: "margin:6px 0 0" },
+      [sperren.length ? (einmalig ? egSperre(s.frueher) : sperren.join(" · ")) : null, ppSperre ? `${t("egr_pp")}: ${ppSperre}` : null].filter(Boolean).join(" · ")) : null,
     el("p", { class: "sehrleise", style: "margin:4px 0 0" }, t("egr_neu_h")));
 }
 /* Agent: herausnehmen (mit Vorschau, was mit seinen Paketen geschieht) oder wieder freigeben – im Fenster des Agenten */

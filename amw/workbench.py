@@ -222,8 +222,12 @@ def eingriffe_paket(con, pid, a):
     except kern.AmwFehler:
         schieben = None
     offen = zwischenpruefung.offene(con, pid)
-    return {"schieben": schieben, "pruefpunkt": next((p["paket"] for p in offen if p["nach"] == a["id"]), None),
-            "ist_pruefpunkt": any(p["paket"] == a["id"] for p in offen)}
+    hinter = next((p["paket"] for p in offen if p["nach"] == a["id"]), None)
+    ist_pp = any(p["paket"] == a["id"] for p in offen)
+    wartet = None                                     # wer hinter einem neuen Prüfpunkt warten würde (A2102, lesend); leer: er hielte nichts auf
+    if not hinter and not ist_pp and a["bogen_id"]:
+        wartet = [x["id"] if isinstance(x, dict) else x for x in zwischenpruefung.wartende(con, pid, a["id"])["wartet"]]
+    return {"schieben": schieben, "pruefpunkt": hinter, "ist_pruefpunkt": ist_pp, "pruefpunkt_wartet": wartet}
 
 
 # Was jede Sicht zeigt – ändert sich hier etwas (neue Zeile, neuer Stand), zeichnet die Workbench die offene Sicht neu.
