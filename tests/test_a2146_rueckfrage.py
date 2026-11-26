@@ -165,19 +165,24 @@ class Einmal(Rundgang):
         self.warten(f"document.querySelectorAll('.karte.frage:not(.weg)').length === {n - 1}")
         self.assertEqual(len(posts(self, f"/api/frage/{self.fid}/antwort")), 1)
 
-    def test_zwei_optionen_schnell_nacheinander_eine_antwort(self):
-        """Erst A, dann B, solange A noch unterwegs ist: je Frage geht eine Antwort zur Zeit hinaus (Sperre je Frage, nicht je Knopf)."""
+    def test_antwort_dann_parken_geht_nur_eins(self):
+        """Erst eine Antwort, dann „Parken“, solange die Antwort noch unterwegs ist: je Frage geht eins zur Zeit hinaus (Sperre je Frage,
+        nicht je Knopf – zwei Optionen sperren sich schon über den Knopf)."""
         self.oeffnen("fragen", "document.querySelector('.karte.frage .optionen button')")
         self.tab.js(LANGSAM)
-        self.tab.js("const k = document.querySelectorAll('.karte.frage')[0].querySelectorAll('.optionen button'); k[0].click(); k[1].click()")
+        self.tab.js("const k = document.querySelectorAll('.karte.frage')[0]; k.querySelector('.optionen button').click();"
+                    " [...k.querySelectorAll('button')].find(b => b.textContent === t('f_parken')).click()")
         self.warten("window.__post.length")
         time.sleep(2.5)
-        self.assertEqual(len(posts(self, "/antwort")), 1)
+        self.assertEqual([u.split("?")[0].rsplit("/", 1)[-1] for u in self.tab.js("window.__post")], ["antwort"])
 
     def test_nach_der_rueckfrage_bleibt_die_karte_gesperrt(self):
         """Eine Rückfrage lässt die Karte stehen – ihre Knöpfe bleiben aus, auch nach dem Freigeben der Sperre (bleibtAus)."""
         self.oeffnen("fragen", "document.querySelector('.karte.frage textarea')")
         self.tab.js(ZAEHLEN)
+        # Lokal zeichnet die Seite nach ~1 s neu (frische Karte „wartet auf …“) – online oder bei langsamer Antwort nicht. Genau dann zählt
+        # bleibtAus; deshalb hier kein Neuzeichnen (Messung L4054).
+        self.tab.js("window.zeige = () => Promise.resolve()")
         self.tab.js("const k = document.querySelectorAll('.karte.frage')[0]; const n = k.querySelector('textarea'); n.value = 'Was heißt grün genau?';"
                     " [...k.querySelectorAll('button')].find(b => b.textContent === t('rueckfrage')).click()")
         self.warten("window.__post.length")
@@ -197,6 +202,9 @@ class Einmal(Rundgang):
         self.tab.js("zeige('themen', true)")
         self.warten("document.querySelector('.th-knoepfe button[data-h=freigeben]:not([data-alt])')")
         self.tab.js("document.querySelector('.th-knoepfe button[data-h=freigeben]:not([data-alt])').click()")
+        time.sleep(0.3)
+        if self.tab.js(OFFEN):                                                                    # schließt den Schritt: auch hier ja sagen
+            self.rueckfrage(True)
         time.sleep(2.5)
         self.assertEqual(len(posts(self, "/api/thema/freigeben")), 1)
 
