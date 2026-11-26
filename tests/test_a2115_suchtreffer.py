@@ -48,7 +48,7 @@ def bestand(con, pid, ordner):
     pfad = os.path.join(ordner, "bericht.md")
     with open(pfad, "w", encoding="utf-8", newline="\n") as f:
         f.write(f"# Bericht\n\nGebaut in A{nr['A']}, siehe **B{nr['B']}** und `A{nr['A']}`. Taste F5, Papier A4, Pfad /A{nr['A']}, Version B{nr['B']}.2.\n")
-    nr["D"] = dokumente.ablegen(con, pid, "CC1", pfad, "Bericht zum Speichern", "bericht")["id"]
+    nr["D"] = dokumente.ablegen(con, pid, "CC1", pfad, "Bericht zum Speichern", "bericht")
     nr["#"], _ = kern.posten(con, pid, "TL", "Entwickler", "info", f"Fertig, siehe D{nr['D']}", text=f"Bericht D{nr['D']}, Aufgabe A{nr['A']}.")
     nr["team"], _ = kern.posten(con, pid, "TL", "CC1", "info", "Nur unter uns")
     return nr, b
@@ -197,8 +197,7 @@ class Pc(Wege):
         such = f"document.querySelector('.suche-genau .zeile') && document.querySelectorAll('.liste').length > 1"
         self.ueberall("start", "a2115-suche", bereit="document.querySelector('#inhalt') && zustand.start",
                       tun=f"void suchen('D{self.nr['D']}')", danach=such)
-        self.ueberall("nachrichten", "a2115-nachricht", bereit="document.querySelector('.nr-eintrag')",
-                      tun="document.querySelector('.nr-eintrag').click()", danach="document.querySelector('.nr-blase a.verweis[data-ref]')")
+        self.ueberall("nachrichten", "a2115-nachricht", bereit="document.querySelector('.nr-blase.diese a.verweis[data-ref]')")   # die gewählte steht offen
 
 
 class Online(Wege, OnlineRundgang):
