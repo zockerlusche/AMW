@@ -2504,5 +2504,16 @@
   "pm_ab_ok": "Abschluss bestätigt",
   "pm_ab_frei": "bestätigt von {x}",
   "pm_ab_wartet": "Abschluss wartet auf dich",
-  "pm_bereit": "bereit zur Abnahme"
+  "pm_bereit": "bereit zur Abnahme",
+  "sa_dokument": "Dokument",
+  "sa_aufgabe": "Aufgabe",
+  "sa_frage": "Frage",
+  "sa_meilenstein": "Meilenstein",
+  "sa_beschluss": "Beschluss",
+  "sa_wortlaut": "dein Wort",
+  "sa_thema": "Thema",
+  "sa_lauf": "Lauf",
+  "sa_pruefung": "Prüfung",
+  "sa_nachricht": "Nachricht",
+  "rf_nicht_da": "{x} lässt sich hier nicht öffnen: nicht vorhanden oder zu weit zurück."
 }

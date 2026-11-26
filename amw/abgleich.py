@@ -465,7 +465,9 @@ INDEX_S = 900        # Suchindex höchstens alle 15 min (gepackt ~1 MB; nur bei 
 
 def suchindex(con, pid):
     """Für die Suche online (web/api.php): Aufgaben, Beschlüsse, Fragen, Wortlaut vollständig, Nachrichten die
-    letzten 2000 (nur Kurztext). Je Eintrag [art, ref, titel, suchtext, zusatz, zeit]; gepackt (zlib + Base64)."""
+    letzten 2000 (nur Kurztext), Dokumente (Titel und Anfang des Texts); Themen, Prüfungen und die letzten 2000 Läufe nur
+    für die Suche nach der Nummer (A2115). Je Eintrag [art, ref, titel, suchtext, zusatz, zeit], bei Prüfungen dazu die
+    Aufgabe; gepackt (zlib + Base64)."""
     teile = [
         ("meilenstein", "SELECT 'M' || nr, titel, 'M' || nr || ' ' || substr(coalesce(ziel, ''), 1, 300), status, angelegt_utc FROM bogen"   # A2089
                         " WHERE projekt_id = ? ORDER BY id DESC"),
@@ -481,6 +483,14 @@ def suchindex(con, pid):
         ("nachricht", "SELECT '#' || n.id, n.kurz, coalesce((SELECT 'M' || b.nr FROM bogen b WHERE n.bezug LIKE 'M%' AND b.id = CAST(substr(n.bezug, 2)"
                       " AS INTEGER) AND b.projekt_id = n.projekt_id), ''), n.von, n.zeit_utc FROM nachricht n WHERE n.projekt_id = ?"   # A2089: Bezug
                       " ORDER BY n.id DESC LIMIT 2000"),
+        ("dokument", "SELECT 'D' || d.id, d.titel, substr(coalesce((SELECT v.suchtext FROM dokument_version v WHERE v.dokument_id = d.id"
+                     " ORDER BY v.nr DESC LIMIT 1), ''), 1, 300), d.art, d.angelegt_utc FROM dokument d"
+                     " WHERE d.projekt_id = ? AND d.status != 'geloescht' ORDER BY d.id DESC"),
+        ("thema", "SELECT 'TH' || id, name, '', CASE stil WHEN 1 THEN 'stil' ELSE '' END, angelegt_utc FROM thema WHERE projekt_id = ?"
+                  " ORDER BY id DESC"),
+        ("lauf", "SELECT 'L' || id, substr(coalesce(beschreibung, ''), 1, 120), '', status, angemeldet_utc FROM lauf WHERE projekt_id = ?"
+                 " ORDER BY id DESC LIMIT 2000"),
+        ("pruefung", "SELECT 'P' || id, zweig, '', ergebnis, angefragt_utc, aufgabe_id FROM pruefung WHERE projekt_id = ? ORDER BY id DESC"),
     ]
     eintraege = [[art, *r] for art, sql in teile for r in con.execute(sql, (pid,))]
     roh = json.dumps(eintraege, ensure_ascii=False, separators=(",", ":")).encode("utf-8")

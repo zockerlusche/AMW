@@ -2170,7 +2170,7 @@ def cmd_suche(a, con):
     treffer = workbench.daten_suche(con, pid, {"q": [such]})
     if a.art:
         treffer = [t for t in treffer if t["art"] in a.art]
-    treffer.sort(key=lambda t: t["zeit"] or "", reverse=True)
+    treffer.sort(key=lambda t: (bool(t.get("genau")), t["zeit"] or ""), reverse=True)   # A2115: die Nummer selbst steht immer oben
     for t in treffer[:a.grenze]:
         titel = " ".join((t["titel"] or "").split())
         print(f"{t['ref']:<7} {_zeit(t['zeit']) or '':<12} [{t['zusatz'] or ''}] {titel[:120]}")

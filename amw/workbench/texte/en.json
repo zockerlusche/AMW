@@ -2504,5 +2504,16 @@
   "pm_ab_ok": "Closing confirmed",
   "pm_ab_frei": "confirmed by {x}",
   "pm_ab_wartet": "Closing waits for you",
-  "pm_bereit": "ready for acceptance"
+  "pm_bereit": "ready for acceptance",
+  "sa_dokument": "Document",
+  "sa_aufgabe": "Task",
+  "sa_frage": "Question",
+  "sa_meilenstein": "Milestone",
+  "sa_beschluss": "Decision",
+  "sa_wortlaut": "Your words",
+  "sa_thema": "Topic",
+  "sa_lauf": "Run",
+  "sa_pruefung": "Review",
+  "sa_nachricht": "Message",
+  "rf_nicht_da": "{x} can’t be opened here: it doesn’t exist or is too far back."
 }

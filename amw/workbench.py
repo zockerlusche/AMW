@@ -1247,9 +1247,10 @@ def daten_wissen(con, pid, q):
     muster = f"%{such}%"
     if such:
         b = con.execute("SELECT id, zeit_utc, thema, stichwort, regel, quelle, status FROM beschluss WHERE projekt_id = ?"
-                        " AND (stichwort LIKE ? OR regel LIKE ?) ORDER BY id DESC LIMIT 80", (pid, muster, muster))
-        w = con.execute("SELECT id, zeit_utc, text, kanal FROM wortlaut WHERE projekt_id = ? AND text LIKE ?"
-                        " ORDER BY id DESC LIMIT 80", (pid, muster))
+                        " AND (stichwort LIKE ? OR regel LIKE ? OR 'B' || id = upper(?)) ORDER BY 'B' || id = upper(?) DESC, id DESC LIMIT 80",
+                        (pid, muster, muster, such, such))         # A2115: „B123“ findet auch den Beschluss selbst
+        w = con.execute("SELECT id, zeit_utc, text, kanal FROM wortlaut WHERE projekt_id = ? AND (text LIKE ? OR 'W' || id = upper(?))"
+                        " ORDER BY 'W' || id = upper(?) DESC, id DESC LIMIT 80", (pid, muster, such, such))
     else:
         b = con.execute("SELECT id, zeit_utc, thema, stichwort, regel, quelle, status FROM beschluss WHERE projekt_id = ?"
                         " AND status = 'gilt' ORDER BY id DESC LIMIT 60", (pid,))
@@ -1262,9 +1263,9 @@ def daten_wissen(con, pid, q):
                     (pid, muster, muster) if such else (pid,))
     z = lambda sql, *par: con.execute(sql, (pid, *par)).fetchone()[0]
     anzahl = {"themen": z("SELECT count(*) FROM thema WHERE projekt_id = ?"),       # alle, nicht nur die gezeigten
-              "beschluesse": z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND (stichwort LIKE ? OR regel LIKE ?)",
-                               muster, muster) if such else z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND status = 'gilt'"),
-              "wortlaut": z("SELECT count(*) FROM wortlaut WHERE projekt_id = ? AND text LIKE ?", muster) if such
+              "beschluesse": z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND (stichwort LIKE ? OR regel LIKE ? OR 'B' || id = upper(?))",
+                               muster, muster, such) if such else z("SELECT count(*) FROM beschluss WHERE projekt_id = ? AND status = 'gilt'"),
+              "wortlaut": z("SELECT count(*) FROM wortlaut WHERE projekt_id = ? AND (text LIKE ? OR 'W' || id = upper(?))", muster, such) if such
               else z("SELECT count(*) FROM wortlaut WHERE projekt_id = ?")}
     from . import regelwerk
     return {"beschluesse": zeilen(b), "wortlaut": zeilen(w), "regeln": regeln_mit_herkunft(zeilen(r)), "notizen": zeilen(n), "anzahl": anzahl,
@@ -1276,8 +1277,14 @@ def daten_suche(con, pid, q):
     if len(such) < 2:
         return []
     m = f"%{such}%"
-    from . import meilensteine                            # A2089: „M19“ findet den Meilenstein und die Nachrichten mit Bezug auf ihn
+    from . import meilensteine, nummernsuche              # A2089: „M19“ findet den Meilenstein und die Nachrichten mit Bezug auf ihn
     bezug = meilensteine.suchbezug(con, pid, such)
+    aus = nummernsuche.treffer(con, pid, such)            # A2114: eine Nummer findet das Ding selbst zuerst
+    for x in aus:
+        if x["art"] == "pruefung":                        # A2115: eine Prüfung steht auf der Karte ihrer Aufgabe
+            x["aufgabe"] = con.execute("SELECT aufgabe_id FROM pruefung WHERE projekt_id = ? AND id = ?",
+                                       (pid, int(x["ref"][1:]))).fetchone()[0]
+    da = {(x["art"], x["ref"]) for x in aus}
     teile = [
         ("meilenstein", "SELECT 'M' || nr AS ref, titel AS titel, status AS zusatz, angelegt_utc AS zeit FROM bogen"
                         " WHERE projekt_id = ? AND (titel LIKE ? OR ziel LIKE ? OR 'M' || nr = upper(?))", 4),
@@ -1291,11 +1298,11 @@ def daten_suche(con, pid, q):
         ("dokument", "SELECT 'D' || d.id, d.titel, d.art, d.angelegt_utc FROM dokument d WHERE d.projekt_id = ? AND d.status != 'geloescht'"
                      " AND (d.titel LIKE ? OR EXISTS (SELECT 1 FROM dokument_version v WHERE v.dokument_id = d.id AND v.suchtext LIKE ?))", 3),
     ]
-    aus = []
     for art, sql, n in teile:
         par = (pid, m, m, such) if art == "meilenstein" else (pid, m, m, bezug or "") if art == "nachricht" else (pid, *[m] * (n - 1))
         for r in con.execute(sql + " ORDER BY 4 DESC LIMIT 25", par):
-            aus.append({"art": art, "ref": r[0], "titel": r[1], "zusatz": r[2], "zeit": r[3]})
+            if (art, r[0]) not in da:
+                aus.append({"art": art, "ref": r[0], "titel": r[1], "zusatz": r[2], "zeit": r[3]})
     return aus
 
 

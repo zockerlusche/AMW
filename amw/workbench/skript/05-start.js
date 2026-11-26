@@ -890,6 +890,7 @@ async function sichtNachrichten() {
   const merken = () => { nrMerk = { ...nrMerk, reiter, gewaehlt, projektWahl, nurOffen: { ...nurOffen }, gesehen: [...gesehen], links: liste.scrollTop, rechtsOben: rechts.scrollTop }; };
   const STUFEN = ["gesendet", "benachrichtigt", "gelesen", "erledigt"];
   const schl = x => `${x.projekt || ""}:${x.id}`;
+  const refsHier = (x, s) => (x.projekt || projekt) === projekt ? mitRefs(s) : s;   /* A2115: Nummern gelten im eigenen Projekt */
   const chip = (b, x) => b ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: e => { e.stopPropagation();
     if (x?.projekt && x.projekt !== projekt) { try { localStorage.setItem(`amw-sicht:${x.projekt}`, "nachrichten"); } catch (_) {} projektWechseln(x.projekt); return; }
     bezugOeffnen(b); } }, b.text) : null;
@@ -943,8 +944,8 @@ async function sichtNachrichten() {
       ganz.length > blasen.length ? el("button", { class: "verweis nr-aelter", type: "button", onclick: () => { nrMerk = { ...nrMerk, fadenGanz: schl(x) }; gespraech(x); } },
         t("nr_aelter", { n: ganz.length - blasen.length })) : null,
       ...blasen.map(b => el("div", { class: "nr-blase" + (b.von === E ? " ich" : "") + (b.id === x.id ? " diese" : ""), "data-id": b.id },
-        el("div", { class: "wer" }, `${person(b.von)} → ${b.an.map(person).join(", ") || "–"} · ${zeit(b.zeit_utc)}`), el("div", {}, b.kurz),
-        b.text ? el("div", { class: "leise", style: "white-space:pre-wrap;margin-top:4px" }, b.text) : null)),
+        el("div", { class: "wer" }, `${person(b.von)} → ${b.an.map(person).join(", ") || "–"} · ${zeit(b.zeit_utc)}`), el("div", {}, refsHier(x, b.kurz)),
+        b.text ? el("div", { class: "leise", style: "white-space:pre-wrap;margin-top:4px" }, refsHier(x, b.text)) : null)),
       ich ? el("div", { class: "nr-ketten" }, x.empfaenger.map(kette)) : null,
       el("div", { class: "aktionen" },
         x.zurueckgezogen || x.unterwegs ? null : el("button", { class: "knopf", type: "button", onclick: () => nachrichtDialog(an, { antwort_auf: ich ? null : x.id,
@@ -1069,14 +1070,15 @@ async function sichtTeamchat() {
     chips.replaceChildren(...(c ? [c] : []));
     const l = d.nachrichten.filter(x => (!projektWahl || x.projekt === projektWahl) && (!agent || x.von === agent || x.an.includes(agent))
       && (!such || `${x.kurz} ${x.text || ""}`.toLowerCase().includes(such)));
-    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "tc-eintrag" },
+    const refs = (x, s) => x.projekt === projekt ? mitRefs(s) : s;   /* A2115 */
+    liste.replaceChildren(...(l.length ? l.map(x => el("div", { class: "tc-eintrag", "data-ref": "#" + x.id },
       el("div", { class: "nr-kopf" }, mehrere ? projektMarke(x.projekt) : null, el("span", { class: "etikett" }, t("art_" + x.art) || x.art), el("b", {}, x.von), " → ", el("b", {}, x.an.join(", ") || "–"),
         x.bezug ? el("button", { class: "nr-chip", type: "button", title: t("nr_bezug_h"), onclick: () => {
           if (x.projekt && x.projekt !== projekt) { try { localStorage.setItem(`amw-sicht:${x.projekt}`, "teamchat"); } catch (_) {} projektWechseln(x.projekt); return; }   /* Bezug aus einem anderen Projekt: dorthin */
           bezugOeffnen(x.bezug); } }, x.bezug.text) : null,
         el("span", { class: "nr-zeit" }, zeit(x.zeit_utc))),
-      el("div", { class: "nr-kurz" }, x.kurz),
-      x.text ? el("details", { class: "tc-text" }, el("summary", {}, t("tc_mehr")), el("div", { style: "white-space:pre-wrap" }, x.text)) : null))
+      el("div", { class: "nr-kurz" }, refs(x, x.kurz)),
+      x.text ? el("details", { class: "tc-text" }, el("summary", {}, t("tc_mehr")), el("div", { style: "white-space:pre-wrap" }, refs(x, x.text))) : null))
       : [el("div", { class: "leer" }, t("tc_leer"))]));
   }
   zeichnen();
@@ -1095,7 +1097,7 @@ function gespraechZu(bezug, text, vorschlag) {
     const alle = [...d.gesendet.map(x => ({ ...x, ich: 1 })), ...d.eingang].filter(x => x.bezug?.kuerzel === bezug).sort((a, b) => a.id - b.id);
     kopf.textContent = t("nr_zu_titel", { n: alle.length });
     liste.replaceChildren(...(alle.length ? alle.map(x => el("div", { class: "nr-blase" + (x.ich ? " ich" : "") },
-      el("div", { class: "wer" }, `${x.ich ? t("du") + " → " + x.empfaenger.map(e => e.agent).join(", ") : wer(x.von)} · ${zeit(x.zeit_utc)}`), el("div", {}, x.kurz)))
+      el("div", { class: "wer" }, `${x.ich ? t("du") + " → " + x.empfaenger.map(e => e.agent).join(", ") : wer(x.von)} · ${zeit(x.zeit_utc)}`), el("div", {}, mitRefs(x.kurz))))
       : [el("div", { class: "sehrleise" }, t("nr_zu_leer"))]));
   }).catch(() => liste.replaceChildren(el("div", { class: "sehrleise" }, t("nr_zu_leer"))));
   return el("div", { class: "au-block nr-zu" }, kopf, liste,

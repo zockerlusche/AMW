@@ -316,7 +316,7 @@ function markdown(text) {
   const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*|__[^_]+__)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(!?\[[^\]]*\]\([^)\s]+\))/g;
     let pos = 0, m;
     while ((m = re.exec(s))) {
-      if (m.index > pos) teile.push(s.slice(pos, m.index));
+      if (m.index > pos) teile.push(...mitRefs(s.slice(pos, m.index)));       /* A2115: Nummern im Text öffnen das Ding */
       const x = m[0];
       if (m[1]) teile.push(el("code", {}, x.slice(1, -1)));
       else if (m[2]) teile.push(el("strong", {}, ...inline(x.slice(2, -2))));
@@ -326,7 +326,7 @@ function markdown(text) {
           : ok ? el("a", { href: l[3], target: "_blank", rel: "noopener noreferrer" }, l[2] || l[3]) : l[2]); }
       pos = m.index + x.length;
     }
-    if (pos < s.length) teile.push(s.slice(pos));
+    if (pos < s.length) teile.push(...mitRefs(s.slice(pos)));
     return teile; };
   const zeilen = text.replace(/\r\n?/g, "\n").split("\n"), aus = el("div", { class: "md" });
   let i = 0;

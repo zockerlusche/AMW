@@ -3,9 +3,92 @@ async function suchen(q) {
   const m = rahmen(t("suche_titel"), el("span", { class: "leise" }, t("zitat", { x: q }))); let l; try { l = await holen("/api/suche?q=" + encodeURIComponent(q)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   for (const a of document.querySelectorAll("nav a")) a.classList.remove("an");
   if (!l.length) { m.append(el("div", { class: "leer" }, t("nichts_gefunden"))); return; }
-  m.append(el("div", { class: "liste" }, l.map(x => el("div", { class: "zeile", ...(x.art === "dokument" ? { style: "cursor:pointer", onclick: () => dokumentDialog(+x.ref.slice(1)) } : {}) },
-    el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, x.art),
-    el("span", {}, x.titel || ""), el("span", { class: "sehrleise mono" }, zeit(x.zeit))))));
+  const liste = (k, xs) => xs.length ? el("div", { class: k }, xs.map(x => { const auf = () => refOeffnen(x.ref, x.aufgabe);
+    return el("div", { class: "zeile klickbar", role: "button", tabindex: "0", "data-ref": x.ref, onclick: auf,
+        onkeydown: e => { if (e.key === "Enter") { e.preventDefault(); auf(); } } },
+      el("span", { class: "ref" }, x.ref), el("span", { class: "leise" }, t("sa_" + x.art)),
+      el("span", {}, x.titel || ""), el("span", { class: "sehrleise mono" }, x.zeit ? zeit(x.zeit) : "")); })) : null;
+  m.append(...[liste("liste suche-genau", l.filter(x => x.genau)), liste("liste", l.filter(x => !x.genau))].filter(Boolean));
+}
+/* --- A2115: jede Nummer öffnet das Ding selbst (Suche, Verweise im Text) – mit den Dialogen und Ansichten, die es dafür gibt --- */
+/* Eine Seite statt eines Dialogs: offene Dialoge gehen zu; steht darin schon Text, fragt die Seite vorher */
+function dialogeZu() {
+  const offen = [...document.querySelectorAll(".dialog-hg, .vb")];
+  const text = offen.some(d => [...d.querySelectorAll("textarea, input:not([type=checkbox]):not([type=radio])")].some(x => x.value !== x.defaultValue));
+  if (text && !confirm(t("dk_verwerfen"))) return false;
+  offen.forEach(d => d.remove());
+  return true;
+}
+/* Den Eintrag mit dieser Nummer auf der gezeigten Seite ins Bild holen; false = er steht nicht dort */
+function refInsBild(ref) {
+  const z = [...document.querySelectorAll("#inhalt .karte .ref")].find(e => e.textContent === ref)?.closest(".karte")
+    || document.querySelector(`#inhalt .tc-eintrag[data-ref="${ref}"]`);
+  if (!z) return false;
+  z.scrollIntoView({ block: "center" });
+  z.classList.remove("blink"); void z.offsetWidth; z.classList.add("blink");
+  return true;
+}
+const refFehlt = ref => toast(t("rf_nicht_da", { x: ref }), true);
+async function refOeffnen(ref, aufgabe) {
+  const m = /^(TH|[DAFBWMLP#])(\d+)$/.exec(ref); if (!m) return;
+  const [, art, zahl] = m, nr = +zahl;
+  try {
+    if (art === "D") return await dokumentDialog(nr);
+    if (art === "A") return await aufgabeDialog(nr);
+    if (art === "L") { if (!API) return await laufAusgabeDialog(nr); if (dialogeZu()) await zeige("betrieb"); return; }   /* die Ausgabe gibt es nur am PC */
+    if (art === "P") {                                   /* eine Prüfung steht auf der Karte ihrer Aufgabe */
+      const a = aufgabe === undefined ? (await abrufen("/api/suche?q=" + ref)).find(x => x.ref === ref)?.aufgabe : aufgabe;
+      return a ? await aufgabeDialog(a) : refFehlt(ref);
+    }
+    if (art === "M") {
+      const id = Object.entries(zustand.start?.bogen_nr || {}).find(([, n]) => n === nr)?.[0];
+      if (!id) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.planReiter = "zeitleiste"; await zeige("planung"); return await zuSchritt(null, +id);
+    }
+    if (art === "TH") {
+      if (!(await abrufen("/api/themen")).some(x => x.id === nr)) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.themaOffen = nr; return await zeige("themen");
+    }
+    if (art === "F") {
+      const alle = await abrufen("/api/fragen?alle=1"), f = alle.find(x => x.id === nr);
+      if (!f && !(await abrufen("/api/fragen?erledigt=1")).some(x => x.id === nr)) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.fragenSicht = f ? (f.geparkt_utc ? "geparkt" : "offen") : "erledigt"; await zeige("fragen");
+      return refInsBild(ref);
+    }
+    if (art === "B" || art === "W") {
+      const r = art === "B" ? "beschluesse" : "wortlaut";
+      if (!(await abrufen("/api/wissen?q=" + ref))[r].some(x => x.id === nr)) return refFehlt(ref);
+      if (!dialogeZu()) return;
+      zustand.wissenReiter = r; zustand.wissenQ = ref; await zeige("wissen");
+      return refInsBild(ref);
+    }
+    const d = await abrufen("/api/nachrichten");         /* „#“: an dich oder von dir – sonst zwischen Agenten (Team-Chat) */
+    const reiter = ["eingang", "gesendet"].find(k => d[k].some(x => x.id === nr));
+    const x = reiter && d[reiter].find(y => y.id === nr);
+    if (!x && !(await abrufen("/api/teamchat")).nachrichten.some(y => y.id === nr)) return refFehlt(ref);
+    if (!dialogeZu()) return;
+    if (!x) { await zeige("teamchat"); return refInsBild(ref) || refFehlt(ref); }
+    nrMerk = { reiter, gewaehlt: `${x.projekt || projekt}:${nr}`, projektWahl: "", nurOffen: { eingang: true, gesendet: false }, gesehen: [], links: 0, rechtsOben: 0, detail: true };
+    await zeige("nachrichten");
+  } catch (e) { toast(t("fehler", { x: e.message || e }), true); }
+}
+/* Nummern in einem Text als Verweise: [Text, Verweis, Text …]. Ab zwei Ziffern (F5, A4, M2 sind meist etwas anderes), nie
+   mitten in Wörtern, Pfaden und Versionsnummern. Ohne Lookbehind (ältere iPads). */
+function mitRefs(s) {
+  if (typeof s !== "string") return [s];
+  const aus = [], re = /(^|[^\p{L}\d_#&/.-])((?:TH|[DAFBWMLP]|#)[1-9]\d{1,6})(?![\p{L}\d_]|[.,]\d)/gu;
+  let pos = 0, m;
+  while ((m = re.exec(s))) {
+    const von = m.index + m[1].length, ref = m[2];
+    if (von > pos) aus.push(s.slice(pos, von));
+    aus.push(el("a", { href: "#", class: "verweis", "data-ref": ref, onclick: e => { e.preventDefault(); e.stopPropagation(); refOeffnen(ref); } }, ref));
+    pos = von + ref.length;
+  }
+  if (pos < s.length) aus.push(s.slice(pos));
+  return aus;
 }
 function haltDialog() {
   const agenten = (zustand.start?.agenten || []).filter(a => a.soll !== "aus").map(a => a.kennung);
