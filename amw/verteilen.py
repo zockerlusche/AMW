@@ -302,13 +302,19 @@ def _ruhe_min(con, pid):
         return RUHE_MIN
 
 
+def commit_muster(aid):
+    """Muster für git log -E --grep: A<aid> als ganzes Wort – nicht A<aid>0 oder XA<aid>. Ohne \\b (GNU-Erweiterung, nicht in jeder
+    git-Fassung) mit Zeichenklassen, die jede ERE kennt."""
+    return f"(^|[^0-9A-Za-z_])A{aid}([^0-9A-Za-z_]|$)"
+
+
 def _commit_zeit(con, pid, aid):
     """UTC-ISO des letzten Commits zur Aufgabe (Betreff nennt A<aid>, alle Zweige – auch die der Arbeitsbäume) oder None."""
     ordner = kern.projekt_ordner(con, pid)
     if not ordner:
         return None
     try:
-        r = subprocess.run(["git", "-C", ordner, "log", "--all", "-1", "--format=%ct", f"--grep=A{aid}\\b"], capture_output=True, text=True,
+        r = subprocess.run(["git", "-C", ordner, "log", "--all", "-1", "-E", "--format=%ct", f"--grep={commit_muster(aid)}"], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=30, stdin=subprocess.DEVNULL,
                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         t = r.stdout.strip()
@@ -317,16 +323,20 @@ def _commit_zeit(con, pid, aid):
         return None
 
 
-def letzte_aktivitaet(con, pid, a, s):
+def letzte_aktivitaet(con, pid, a, s, grenze=None):
     """A2160: (UTC-ISO, was) der jüngsten Aktivität am laufenden Paket `a` seines Agenten: Beginn, Commit zur Aufgabe, Lauf (Start
-    oder Ende), eigene Nachricht, Hook-Ereignis der Sitzung. Aktivität statt Schätzung (TH157)."""
+    oder Ende), eigene Nachricht, Hook-Ereignis der Sitzung. Aktivität statt Schätzung (TH157). grenze (UTC-ISO): ist eine der
+    billigen Aktivitäten jünger, fragt es git gar nicht (CCamwTL P788) – ein Commit kann sie dann nicht älter machen."""
     k = a["agent"]
     n = con.execute("SELECT max(zeit_utc) FROM nachricht WHERE projekt_id = ? AND von = ?", (pid, k)).fetchone()[0]
     l = con.execute("SELECT max(max(coalesce(angemeldet_utc, ''), coalesce(start_utc, ''), coalesce(ende_utc, ''))) FROM lauf"
                     " WHERE projekt_id = ? AND agent = ?", (pid, k)).fetchone()[0]
-    kandidaten = [(a["begonnen_utc"], "Beginn"), (_commit_zeit(con, pid, a["id"]), "Commit"), (l or None, "Lauf"), (n, "Nachricht"),
-                  (s["ereignis_utc"] if s is not None else None, "Sitzung")]
-    return max(((t, w) for t, w in kandidaten if t), default=(None, None))
+    billig = max(((t, w) for t, w in ((a["begonnen_utc"], "Beginn"), (l or None, "Lauf"), (n, "Nachricht"),
+                                      (s["ereignis_utc"] if s is not None else None, "Sitzung")) if t), default=(None, None))
+    if grenze and billig[0] and billig[0] > grenze:
+        return billig
+    c = _commit_zeit(con, pid, a["id"])
+    return max([x for x in (billig, (c, "Commit")) if x[0]], default=(None, None))
 
 
 def ruhig(con, pid, jetzt=None):
@@ -351,7 +361,7 @@ def ruhig(con, pid, jetzt=None):
                         " AND s.zustand = 'aktiv' ORDER BY s.id DESC LIMIT 1", (pid, k)).fetchone()
         if not s or arbeitet_gerade(s, jetzt):
             continue                                             # ohne lebende Sitzung greift der Ausfall; wer arbeitet, ist aktiv
-        zuletzt, was = letzte_aktivitaet(con, pid, a, s)
+        zuletzt, was = letzte_aktivitaet(con, pid, a, s, time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - grenze_min * 60)))
         if not zuletzt or (jetzt - wartegrund._sek(zuletzt)) / 60 < grenze_min:
             continue
         zeichen = f"ruhig:{k}:{a['id']}:{zuletzt}"

@@ -123,6 +123,39 @@ class Ruhig(unittest.TestCase):
         self.vorbereiten()
         self.assertTrue(any(x.startswith("Ruhig CC1") for x in verteilen.runde(self.con, self.uhr(95))))
 
+    def test_git_nur_wenn_alles_billige_aelter_als_die_frist_ist(self):
+        self.vorbereiten()
+        with mock.patch.object(verteilen, "_commit_zeit", return_value=None) as git:
+            self.assertEqual(verteilen.ruhig(self.con, self.pid, self.uhr(50)), [])               # Beginn ist jünger: kein git
+            self.assertEqual(git.call_count, 0)
+            self.assertEqual(len(verteilen.ruhig(self.con, self.pid, self.uhr(95))), 1)
+            self.assertEqual(git.call_count, 1)
+
+
+class Muster(unittest.TestCase):
+    """CCamwTL P788: A<n> trifft als ganzes Wort – nicht A<n>0, nicht XA<n> (git ohne -E kennt \\b nicht überall)."""
+
+    def test_nur_das_ganze_wort(self):
+        import os
+        import subprocess
+        import tempfile
+        ordner = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
+        self.addCleanup(ordner.cleanup)
+        git = lambda *a, t=None: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", ordner.name, *a], check=True,   # noqa: E731
+                                                capture_output=True, env={**os.environ, **({"GIT_COMMITTER_DATE": t} if t else {})})
+        git("init", "-q")
+        for betreff in ("A21600: andere Aufgabe", "XA2160 kein Verweis", "A2160x auch nicht"):
+            git("commit", "-q", "--allow-empty", "-m", betreff, t="2026-11-20T10:00:00Z")
+        con = db.anlegen(os.path.join(ordner.name, "t.db"))
+        self.addCleanup(con.close)
+        with db.schreiben(con):
+            pid = db.einfuegen(con, "projekt", name="P", angelegt_utc=db.jetzt())
+        kern.projekt_ordner_setzen(con, pid, ordner.name)
+        self.assertIsNone(verteilen._commit_zeit(con, pid, 2160))
+        git("commit", "-q", "--allow-empty", "-m", "A2160: das ist es", t="2026-11-21T09:30:00Z")
+        git("commit", "-q", "--allow-empty", "-m", "Nachtrag (A2160)", t="2026-11-22T08:15:00Z")
+        self.assertEqual(verteilen._commit_zeit(con, pid, 2160), "2026-11-22T08:15:00Z")
+
 
 if __name__ == "__main__":
     unittest.main()
