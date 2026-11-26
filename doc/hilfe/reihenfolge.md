@@ -19,5 +19,5 @@ Jeder Agent arbeitet seine Liste von oben nach unten ab und macht ein Stück fer
 
 ## Danach
 - Schlägt der Lead vor, etwas dazwischenzuschieben, bekommst du eine Frage mit „Ja“ und „Nein“. „Ja“ führt es aus.
-- Willst du zwischendurch selbst testen, setzt der Lead (oder du) hinter ein Paket einen Prüfpunkt: `amw aufgabe pruefpunkt <nr> --grund …`. Ein Agent packt den Stand, er steht unter „Für dich“, und die Pakete dahinter warten auf dein Ja. Alles andere läuft weiter.
+- Willst du zwischendurch selbst testen, setzt der Lead (oder du) hinter ein Paket einen Prüfpunkt: `amw aufgabe pruefpunkt <nr> --grund …`. Ein Agent packt den Stand, er steht unter „Für dich“, und die Pakete dahinter warten auf dein Ja. Alles andere läuft weiter. Auf der Seite geht das im Fenster des Pakets unter „Eingreifen“: „Prüfpunkt dahinter“ bzw. „Prüfpunkt wegnehmen“. Dort stehen auch „Früher“ und „Später“ – geht eine Richtung nicht, steht der Grund darunter (z. B. „braucht …“).
 - Deine eigenen Aufgaben (unter „Deine Aufgaben“) ordnest du frei.

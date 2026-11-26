@@ -208,12 +208,14 @@ function pmAnsicht(pa, art) {
 async function sichtPlanung() {
   if (!zustand.start) { try { await kopfAktualisieren(); } catch (e) {} }        /* A2089: bogenNr liest die Startdaten */
   let d; try { d = await holen("/api/planung"); } catch (e) { rahmen(t("n_planung")).append(el("div", { class: "leer" }, String(e))); return; }
+  let pa = null; try { pa = await holen("/api/pause"); } catch (e) { /* ohne Pause-Stand kein Knopf */ }           /* A2159 */
   const r = zustand.planReiter || (d.planansicht?.hat_themen ? "meilensteine" : "zeitleiste");   /* A1950: mit Themen zuerst die Meilensteine */
   const chip = (name, wert, grund) => el("span", { class: "signal", title: grund || "" }, el("span", { class: "punkt " + ampelKlasse(wert) }),
     `${t("pl_" + name)}: ${wert ? t("ampel_" + wert) : "–"}`);
   const m = rahmen(t("n_planung"), el("span", { style: "display:flex;gap:8px;flex-wrap:wrap" },
     chip("termin", d.status.termin, d.status.begruendung.termin), chip("risiko", d.status.risiko, d.status.begruendung.risiko),
     chip("qualitaet", d.status.qualitaet, d.status.begruendung.qualitaet)),
+    pauseKnopf(pa),                                                                                                  /* A2159: Pause für alles */
     el("button", { class: "knopf haupt kopf-aktion", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu")));   /* Hauptaktion oben, wie überall */
   /* was auf dich wartet, zuerst */
   const w = d.wartet, offen = w.spezifikationen.length + w.plaene.length;
@@ -968,6 +970,7 @@ async function aufgabeDialog(id) {
       fragenStand(nOffen, a.fragen.length))) : null,
     a.auftrag ? el("div", { class: "au-auftrag" }, markdown(a.auftrag)) : null,
     a.wartet_auf && offen ? el("p", { class: "bernstein-text" }, "⇢ " + a.wartet_auf) : null,
+    eingriffePaket(a, () => { hg.remove(); aufgabeDialog(a.id); }),                                               /* A2159 */
     block(t("au_wartegruende"), a.wartegruende.length, a.wartegruende.map(w => el("div", { class: "au-zeile" + (w.erledigt_utc ? " sehrleise" : "") },
       (w.erledigt_utc ? "✓ " : "⇢ ") + grundText(w.bezug) + ` · ${w.angelegt_von} ${zeit(w.angelegt_utc)}` + (w.erledigt_utc ? ` · ${w.erledigt_durch || ""}` : "")))),
     block(t("au_fragen", { n: a.fragen.length }), a.fragen.length, fr),

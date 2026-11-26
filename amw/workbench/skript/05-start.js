@@ -790,7 +790,7 @@ async function agentDialog(kennung, reiter) {
     abschnitt(t("k_meldungen"), d.meldungen, x => eintrag(x.art, `#${x.id}`, t("art_" + x.art) || x.art, seit(x.zeit_utc), x.kurz)),
   ];
   /* zwei Reiter: Übersicht (was macht er, was kommt) und Gespräch (das Protokoll, erst beim Öffnen geladen) */
-  const uebersicht = el("div", { role: "tabpanel" }, macht, zustandAbschnitt(d), aufwandAbschnitt(d),
+  const uebersicht = el("div", { role: "tabpanel" }, macht, zustandAbschnitt(d), eingriffeAgent(d, () => { hg.remove(); agentDialog(d.kennung); }), aufwandAbschnitt(d),   /* A2159 */
     el("div", { class: "agent-spalten" }, el("div", {}, ...links), el("div", {}, ...rechts)),
     d.offen_alt && d.an_ihn.length ? el("p", { class: "sehrleise", style: "margin-top:12px" }, t("k_alt", { n: d.offen_alt })) : null);
   const gespraech = el("div", { role: "tabpanel", hidden: true });

@@ -206,7 +206,24 @@ def daten_aufgabe(con, pid, aid):
     a["messung"] = messung.je_aufgabe(con, pid, a["id"])
     from . import empfehlung                          # Größe × Art → Modell/Denkaufwand, nur Empfehlung (A1611 E2)
     a["empfehlung"] = empfehlung.fuer_aufgabe(con, pid, a["id"])
+    a["eingriffe"] = eingriffe_paket(con, pid, a)
     return a
+
+
+def eingriffe_paket(con, pid, a):
+    """A2159: was der Mensch an diesem Paket tun kann – nur lesend, die Grenzen rechnen die Eingriffe selbst. schieben: je Richtung
+    {"geht", "art", "grund", "x"} (paket_schieben.moeglich); pruefpunkt: das offene Prüfpunkt-Paket dahinter (zum Wegnehmen);
+    ist_pruefpunkt: dieses Paket ist selbst einer. None bei fertigen und verworfenen."""
+    if a["status"] in ("fertig", "verworfen"):
+        return None
+    from . import paket_schieben, zwischenpruefung
+    try:
+        schieben = paket_schieben.moeglich(con, pid, a["id"])
+    except kern.AmwFehler:
+        schieben = None
+    offen = zwischenpruefung.offene(con, pid)
+    return {"schieben": schieben, "pruefpunkt": next((p["paket"] for p in offen if p["nach"] == a["id"]), None),
+            "ist_pruefpunkt": any(p["paket"] == a["id"] for p in offen)}
 
 
 # Was jede Sicht zeigt – ändert sich hier etwas (neue Zeile, neuer Stand), zeichnet die Workbench die offene Sicht neu.
@@ -986,7 +1003,7 @@ def daten_agent(con, pid, kennung):
         raise LookupError(kennung)
     alt = altbestand_bis(con, pid)
     aid = gerade(con, pid, kennung)[1]
-    from . import aufwand, empfehlung, gespraech, steuerung
+    from . import aufwand, empfehlung, gespraech, herausnehmen, steuerung
     try:
         steuern = {"profil": steuerung.profil(con, pid, kennung), "prozess_laeuft": steuerung.laeuft(con, pid, kennung),
                    "fortsetzbar": bool(steuerung.letzte_sitzung(con, pid, kennung))}
@@ -999,6 +1016,7 @@ def daten_agent(con, pid, kennung):
     return {
         **{k: v for k, v in dict(a).items() if k != "claude_sitzung"}, **steuern, **gerade_felder(con, pid, kennung),
         "co": kennung == kern.co_entwickler(con, pid),                       # A2019: angezeigt als „Co-Entwickler“
+        "heraus": herausnehmen.stand(con, pid).get(kennung),                # A2159: herausgenommen? (von, seit_utc, laufendes, grund)
         "aufwand": aufwand.je_agent(con, pid, kennung),
         "empfehlung": empfehlung.fuer_agent(con, pid, kennung),
         "naechste": zeilen(con.execute(
