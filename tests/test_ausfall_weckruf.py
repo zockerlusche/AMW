@@ -1,6 +1,7 @@
-"""A2147 (TH157 Ausfälle): Ein Agent (nicht Lead) mit lebender Sitzung und laufendem Paket beantwortet einen Weckruf nicht, sendet
-nichts und arbeitet nicht → der Dienst weckt ihn einmal erneut. Bleibt er danach `ausfall_min` still, geht sein Paket mit
-Übergabe-Notiz in den Pool, der Lead bekommt eine Meldung, der Mensch eine Frage. Kein Prozess wird beendet, nichts neu gestartet,
+"""A2147 (TH157 Ausfälle): Ein Agent (nicht Lead) mit lebender Sitzung und laufendem Paket reagiert nicht auf einen Weckruf (liest
+nicht selbst, sendet nichts, kein Hook-Ereignis) und arbeitet nicht → der Dienst weckt ihn einmal erneut. Bleibt er danach
+`ausfall_min` still: mit `verteilen = an` geht sein Paket mit Übergabe-Notiz in den Pool und der Lead bekommt eine Meldung, sonst
+bekommt der Lead nur einen Vorschlag (TL #33782); der Mensch bekommt keine Frage. Kein Prozess wird beendet, nichts neu gestartet,
 nichts im Halt oder in der Pause. Gegenproben: wer antwortet, liest oder arbeitet, behält sein Paket. Feste Uhr: jede Runde bekommt
 ihre Zeit (`jetzt`)."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
@@ -30,8 +31,9 @@ class Still(unittest.TestCase):
     def uhr(self, minuten):
         return self.t0 + minuten * 60
 
-    def vorbereiten(self, wer="CC1"):
+    def vorbereiten(self, wer="CC1", verteilen="an"):
         self.t0 = time.time()
+        kern.projekt_einstellen(self.con, self.pid, "TL", verteilen=verteilen)
         self.anmelden(wer)
         self.aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Speichern bauen", wer)
         kern.aufgabe_status(self.con, self.pid, wer, self.aid, "start")
@@ -64,9 +66,27 @@ class Still(unittest.TestCase):
         self.assertEqual(m["kurz"], f"Still: CC1 – A{self.aid} zurück in den Pool")
         self.assertIn(f"#{self.n}", m["text"])
         self.assertIn("die AMW startet nie selbst", m["text"])
-        self.assertTrue(self.con.execute("SELECT 1 FROM frage WHERE aufgabe_id = ? AND kurz LIKE 'CC1 antwortet nicht%'", (self.aid,)).fetchone())
+        self.assertIsNone(self.con.execute("SELECT 1 FROM frage WHERE aufgabe_id = ?", (self.aid,)).fetchone())   # keine Frage an den Menschen
         self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "aktiv")   # kein Prozess beendet
         self.assertEqual(verteilen.still(self.con, self.pid, self.uhr(80)), [])                  # nur einmal
+
+    def test_verteilen_vorschlag_nur_ein_vorschlag_an_den_lead(self):
+        self._nur_vorschlag("vorschlag")
+
+    def test_verteilen_aus_nur_ein_vorschlag_an_den_lead(self):
+        self._nur_vorschlag("aus")
+
+    def _nur_vorschlag(self, wie):
+        self.vorbereiten(verteilen=wie)
+        self.nachgeweckt()
+        self.assertEqual(verteilen.still(self.con, self.pid, self.uhr(42)), [f"Vorschlag: A{self.aid} von CC1 zurück in den Pool (CC1 still)"])
+        self.assertEqual(tuple(self.aufgabe()), ("CC1", "laeuft"))                     # nichts geändert
+        m = self.con.execute("SELECT n.art, n.text FROM nachricht n JOIN empfang e ON e.nachricht_id = n.id"
+                             " WHERE e.agent = 'TL' AND n.von = 'AMW' AND n.kurz LIKE 'Vorschlag: A%zurück in den Pool%'").fetchone()
+        self.assertEqual(m["art"], "frage")
+        self.assertIn(f"amw aufgabe aendern {self.aid} --agent", m["text"])
+        self.assertIsNone(self.con.execute("SELECT 1 FROM frage WHERE aufgabe_id = ?", (self.aid,)).fetchone())
+        self.assertEqual(verteilen.still(self.con, self.pid, self.uhr(80)), [])         # einmal
 
     def test_wer_antwortet_behaelt_sein_paket(self):
         self.vorbereiten()

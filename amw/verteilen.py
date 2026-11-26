@@ -293,9 +293,10 @@ def _laufende(con, pid):
                        (pid,)).fetchall()
 
 
-def _in_pool(con, pid, a, k, s, zeichen, lead, kurz, warum, frage, grund):
+def _in_pool(con, pid, a, k, s, zeichen, lead, kurz, warum, frage=None, grund=None):
     """Aufgabe `a` von Agent `k` ohne Bearbeiter zurück in den Pool: Ereignisse `ausfall` (zeichen) und `uebergabe` (Notiz),
-    Meldung an den Lead (`kurz`, `warum`), Frage an den Menschen (`frage`, `grund`). Kein Prozess wird beendet, nichts gestartet."""
+    Meldung an den Lead (`kurz`, `warum`), mit `frage` auch eine Frage an den Menschen (`grund`). Kein Prozess wird beendet,
+    nichts gestartet."""
     notiz = uebergabe(con, pid, a, s)
     with db.schreiben(con):
         con.execute("UPDATE aufgabe SET agent = NULL, status = 'wartet' WHERE id = ?", (a["id"],))
@@ -305,8 +306,11 @@ def _in_pool(con, pid, a, k, s, zeichen, lead, kurz, warum, frage, grund):
         if lead:
             kern._posten(con, pid, "AMW", lead, "meldung", kurz,
                          f"{warum} A{a['id']} „{a['titel'][:90]}“ lief bei {k} und steht jetzt ohne Bearbeiter im Pool.\nÜbergabe: {notiz}\n"
-                         f"Neu zuteilen: amw aufgabe aendern {a['id']} --agent <Agent>. {kern.entwickler_name(con, pid)} hat die"
-                         " Frage, ob die Sitzung neu starten soll – die AMW startet nie selbst.", aufgabe_id=a["id"])
+                         f"Neu zuteilen: amw aufgabe aendern {a['id']} --agent <Agent>. "
+                         + (f"{kern.entwickler_name(con, pid)} hat die Frage, ob die Sitzung neu starten soll – " if frage else "")
+                         + "die AMW startet nie selbst.", aufgabe_id=a["id"])
+    if not frage:
+        return
     try:
         kern.frage_neu(con, pid, "AMW", "entwickler", frage,
                        [("A", f"Ja – {k} in der Workbench › Agenten neu starten"), ("B", "Nein – die Aufgabe bekommt ein anderer")],
@@ -348,8 +352,8 @@ def still(con, pid, jetzt=None):
     """A2147 (TH157 Ausfälle): Ein Agent (nicht Lead) mit lebender Sitzung und laufendem Paket wurde geweckt, hat nicht geantwortet
     und wurde einmal nachgeweckt (Dienst.nachwecken, Ereignis „nachgeweckt“). Ist das Nachwecken `ausfall_min` her, die Nachricht
     noch ungelesen, hat er seit dem ersten Weckruf nichts gesendet und arbeitet er nicht gerade, geht sein Paket mit Übergabe-Notiz
-    in den Pool – wie beim Ausfall: Meldung an den Lead, Frage an den Menschen. Nie im Halt oder in der Pause; kein Prozess wird
-    beendet, nichts neu gestartet. Rückgabe: Texte fürs Protokoll."""
+    in den Pool mit Meldung an den Lead – aber nur mit `verteilen = an`; sonst bekommt der Lead einen Vorschlag (TL #33782; keine
+    Frage an den Menschen). Nie im Halt oder in der Pause; kein Prozess wird beendet, nichts neu gestartet. Rückgabe: Texte."""
     from . import pause
     from .dienst import arbeitet_gerade
     jetzt = jetzt or time.time()
@@ -376,14 +380,24 @@ def still(con, pid, jetzt=None):
         if not n or reagiert(s, n["geweckt_utc"]):
             continue
         zeichen = f"still:{k}:{s['id']}:{a['id']}"
-        if _schon(con, pid, "ausfall", zeichen):
+        warum = (f"{k} hat auf den Weckruf zu #{n['id']} „{(n['kurz'] or '')[:60]}“ ({n['geweckt_utc'][11:16]} UTC) und das Nachwecken"
+                 f" ({n['nachgeweckt'][11:16]} UTC) über {grenze_min} min nicht reagiert und arbeitet nicht.")
+        if einstellung(con, pid) == "an":                        # TL #33782: die AMW verteilt selbst – dann gibt sie auch zurück
+            if _schon(con, pid, "ausfall", zeichen):
+                continue
+            _in_pool(con, pid, a, k, s, zeichen, lead, f"Still: {k} – A{a['id']} zurück in den Pool", warum)
+            aus.append(f"Still {k}: A{a['id']} zurück in den Pool")
             continue
-        _in_pool(con, pid, a, k, s, zeichen, lead, f"Still: {k} – A{a['id']} zurück in den Pool",
-                 f"{k} hat auf den Weckruf zu #{n['id']} „{(n['kurz'] or '')[:60]}“ ({n['geweckt_utc'][11:16]} UTC) und das Nachwecken"
-                 f" ({n['nachgeweckt'][11:16]} UTC) über {grenze_min} min nicht geantwortet, nichts gesendet und arbeitet nicht.",
-                 f"{k} antwortet nicht – Sitzung neu starten? (A{a['id']} ging zurück in den Pool)",
-                 f"{k} hatte A{a['id']} in Arbeit, ist geweckt und nachgeweckt worden und blieb still; die Übergabe-Notiz liegt beim Lead.")
-        aus.append(f"Still {k}: A{a['id']} zurück in den Pool")
+        if _schon(con, pid, "ausfall_vorschlag", zeichen) or not lead:   # vorschlag (und aus): nur ein Vorschlag an den Lead
+            continue
+        with db.schreiben(con):
+            db.einfuegen(con, "plan_ereignis", projekt_id=pid, zeit_utc=db.jetzt(), von="AMW", art="ausfall_vorschlag", aufgabe_id=a["id"],
+                         text=zeichen)
+            kern._posten(con, pid, "AMW", lead, "frage", f"Vorschlag: A{a['id']} von {k} zurück in den Pool? – {k} ist still",
+                         f"{warum} A{a['id']} „{a['titel'][:90]}“ läuft bei {k}.\nÜbergabe, falls du neu zuteilst: {uebergabe(con, pid, a, s)}\n"
+                         f"Neu zuteilen: amw aufgabe aendern {a['id']} --agent <Agent> · die AMW selbst zurückgeben lassen:"
+                         " amw projekt einstellen verteilen=an. Die AMW beendet und startet keine Sitzung.", aufgabe_id=a["id"])
+        aus.append(f"Vorschlag: A{a['id']} von {k} zurück in den Pool ({k} still)")
     return aus
 
 

@@ -388,11 +388,13 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
   einer Nachricht geweckt worden und hat nach 10 min nicht reagiert – nicht selbst gelesen (was ganz im Weckruf stand, zählt
   nicht), nichts gesendet, kein Hook-Ereignis seiner Sitzung – und arbeitet nicht gerade,
   weckt der Dienst ihn einmal erneut („Nachgeweckt – …“, Ereignis `nachgeweckt`, wie beim Lead). Bleibt er danach
-  `ausfall_min` still (dieselbe Einstellung wie beim Ausfall), geht seine Aufgabe wie beim Ausfall mit Übergabe-Notiz in den
-  Pool: Meldung „Still: … zurück in den Pool“ an den Lead, Frage an den Menschen, Ereignisse `ausfall` und `uebergabe`. Wer
-  antwortet, die Nachricht liest oder arbeitet, behält seine Aufgabe. Nie im Halt oder in der Pause; kein Prozess wird
-  beendet, nichts neu gestartet.
-- Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `uebergabe`.
+  `ausfall_min` still (dieselbe Einstellung wie beim Ausfall), richtet sich das nach `verteilen`: mit `an` geht seine Aufgabe
+  mit Übergabe-Notiz in den Pool, und der Lead bekommt die Meldung „Still: … zurück in den Pool“ (Ereignisse `ausfall` und
+  `uebergabe`); mit `vorschlag` oder `aus` bekommt der Lead nur den Vorschlag „A… von … zurück in den Pool?“ mit der Notiz
+  und dem Befehl (Ereignis `ausfall_vorschlag`), und nichts ändert sich. Der Mensch bekommt keine Frage. Wer antwortet, die
+  Nachricht liest oder arbeitet, behält seine Aufgabe. Nie im Halt oder in der Pause; kein Prozess wird beendet, nichts neu
+  gestartet.
+- Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `ausfall_vorschlag`, `uebergabe`.
 
 ## Sperrliste je Projekt (A1919, TH160)
 
