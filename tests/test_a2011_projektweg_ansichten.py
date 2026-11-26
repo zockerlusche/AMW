@@ -72,6 +72,9 @@ class Seite(Rundgang):
         texte = self.tab.js("[...document.querySelectorAll('.pjw-gs > .pjw-gs-m')].map(m => m.innerText.replace(/\\s+/g, ' '))")
         self.assertTrue(any("Speichern" in x and "in Arbeit" in x and "1 von 4" in x for x in texte), texte)
         self.assertTrue(any("Kasse" in x and "geplant" in x for x in texte), texte)
+        kasse = self.tab.js("[...document.querySelectorAll('.pjw-gs > .pjw-gs-m')].find(m => m.innerText.includes('Kasse'))"
+                            ".querySelector('.pjw-gs-prog').textContent")
+        self.assertEqual(kasse, "nach Freigabe")                                   # Lead #34203: geplant – keine Prognose
         self.tab.js("document.querySelector('.pjw-gs-m > summary').click()")
         self.warten("document.querySelector('.pjw-gs-m[open] .pjw-gs-paket')")
 

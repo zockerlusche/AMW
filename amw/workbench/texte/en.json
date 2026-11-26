@@ -2665,5 +2665,6 @@
   "pjw_gs_fortschritt": "Progress",
   "pjw_gs_prognose": "Forecast",
   "pjw_gs_abgenommen": "{n} accepted milestones",
-  "pjw_gs_pakete": "{n} packages"
+  "pjw_gs_pakete": "{n} packages",
+  "pjw_gs_nach_freigabe": "after approval"
 }

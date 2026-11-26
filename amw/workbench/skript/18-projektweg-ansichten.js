@@ -110,7 +110,9 @@ async function pwGesamtplan(d) {
   const status = m => bei[m.nr]?.bei_dir ? pwChip(t("pjw_wartet_dich"), "bernstein") : pwChip(t("pjw_gs_" + (m.status === "aktiv" ? "arbeit" : m.status)));
   const fort = m => { const n = (m.pakete || []).length, f = (m.pakete || []).filter(p => p.status === "fertig").length;
     return el("span", { class: "pjw-gs-fort" }, el("span", { class: "pjw-balken" }, el("span", { style: `width:${n ? Math.round(100 * f / n) : 0}%` })), t("pjw_f_von_n", { f, n })); };
-  const prog = m => { const p = prognose[m.nr]; return p ? datumKurz(p.p50) : m.status === "aktiv" ? t("pjw_gs_offen") : "–"; };
+  /* Lead #34203: ein geplanter Meilenstein hat kein Datum – er wartet auf die Freigabe, sonst läse es sich wie „kommt übermorgen“ */
+  const prog = m => { if (m.status === "geplant") return t("pjw_gs_nach_freigabe");
+    const p = prognose[m.nr]; return p ? datumKurz(p.p50) : m.status === "aktiv" ? t("pjw_gs_offen") : "–"; };
   const zeile = m => {
     const pakete = (m.pakete || []).filter(p => p.status !== "fertig");
     const kopf = [el("span", { class: "pjw-gs-name" }, `M${m.nr} ${m.titel}`), status(m), fort(m), el("span", { class: "pjw-gs-prog" }, prog(m))];

@@ -2665,5 +2665,6 @@
   "pjw_gs_fortschritt": "Fortschritt",
   "pjw_gs_prognose": "Prognose",
   "pjw_gs_abgenommen": "{n} abgenommene Meilensteine",
-  "pjw_gs_pakete": "{n} Pakete"
+  "pjw_gs_pakete": "{n} Pakete",
+  "pjw_gs_nach_freigabe": "nach Freigabe"
 }
