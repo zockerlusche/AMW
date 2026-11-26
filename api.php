@@ -243,15 +243,29 @@ try {
         $z = ansicht_zeile('/api/suchindex');
         if (!$z) antwort(404, ['fehler' => 'Noch kein Suchindex vom PC – bitte in ein paar Minuten noch einmal.']);
         $eintraege = json_decode((string)gzuncompress(base64_decode(json_decode($z[0], true)['gepackt'] ?? '')), true) ?: [];
+        /* A2115: eine Nummer („D1714“, „1714“) findet das Ding selbst zuerst – wie am PC (amw/nummernsuche.py) */
+        $nummern = [];
+        if (preg_match('/^(TH|[DAFBWMLP#])\s*(\d{1,18})$/i', $such, $m)) $nummern = [strtoupper($m[1]) . (int)$m[2]];
+        elseif (preg_match('/^\d{1,18}$/', $such)) foreach (['D', 'A', 'F', 'M', 'B', 'W', 'TH', 'L', 'P', '#'] as $k) $nummern[] = $k . (int)$such;
+        $genau = [];
         $treffer = [];
         $je_art = [];
-        foreach ($eintraege as [$art, $ref, $titel, $text, $zusatz, $zeit]) {
+        foreach ($eintraege as $e) {
+            [$art, $ref, $titel, $text, $zusatz, $zeit] = $e;
+            if (in_array($ref, $nummern, true)) {
+                $genau[$ref] = ['art' => $art, 'ref' => $ref, 'titel' => $titel, 'zusatz' => $zusatz, 'zeit' => $zeit, 'genau' => true]
+                    + ($art === 'pruefung' ? ['aufgabe' => $e[6] ?? null] : []);
+                continue;
+            }
+            if (in_array($art, ['thema', 'lauf', 'pruefung'], true)) continue;      // nur über die Nummer, wie am PC
             if (($je_art[$art] ?? 0) >= 25) continue;
             if (mb_stripos((string)$titel . ' ' . (string)$text, $such) === false) continue;
             $je_art[$art] = ($je_art[$art] ?? 0) + 1;
             $treffer[] = ['art' => $art, 'ref' => $ref, 'titel' => $titel, 'zusatz' => $zusatz, 'zeit' => $zeit];
         }
-        antwort(200, $treffer);
+        $vorn = [];
+        foreach ($nummern as $n) if (isset($genau[$n])) $vorn[] = $genau[$n];
+        antwort(200, array_merge($vorn, $treffer));
     }
     if ($pfad === '/api/seit') {                           // „Seit du weg warst“: Zeitpunkte vom PC, gezählt ab dem Besuch dieses Geräts
         $ab = (string)($q['ab'] ?? '');
@@ -321,8 +335,8 @@ try {
     } elseif ($pfad === '/api/wissen' && trim((string)($q['q'] ?? '')) !== '') {
         $such = mb_strtolower(trim((string)$q['q']));
         $hat = fn(...$t) => str_contains(mb_strtolower(implode(' ', array_map('strval', $t))), $such);
-        $d['beschluesse'] = array_values(array_filter($d['beschluesse'], fn($b) => $hat($b['stichwort'], $b['regel'])));
-        $d['wortlaut'] = array_values(array_filter($d['wortlaut'], fn($w) => $hat($w['text'])));
+        $d['beschluesse'] = array_values(array_filter($d['beschluesse'], fn($b) => $hat($b['stichwort'], $b['regel']) || $such === 'b' . $b['id']));   // A2115
+        $d['wortlaut'] = array_values(array_filter($d['wortlaut'], fn($w) => $hat($w['text']) || $such === 'w' . $w['id']));
         $d['regeln'] = array_values(array_filter($d['regeln'], fn($r) => $hat($r['text'])));
     } elseif ($pfad === '/api/nachrichten') {          // Geschriebenes im Briefkasten steht schon im Gesendet („wird übertragen …“)
         $i = 0;
