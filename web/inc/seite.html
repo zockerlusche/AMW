@@ -1367,6 +1367,7 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 .pjw-verlauf { border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); padding: 10px 14px; position: sticky; top: 12px; max-height: calc(100vh - 140px); overflow-y: auto; }
 .pjw-eintrag { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--linie); font-size: 13px; }
 .pjw-eintrag:last-child { border-bottom: 0; }
+.pjw-eintrag.rueckgabe > span:last-child, .pjw-eintrag.rueckgabe summary { color: var(--bernstein); }   /* A2167 */
 .pjw-z { color: var(--sehrleise); font-variant-numeric: tabular-nums; }
 .pjw-wer { font-weight: 600; }
 .pjw-wer.du { color: var(--bernstein); }
@@ -1402,6 +1403,170 @@ button.pjw-karte:hover { background: var(--flaeche2); }
   .pjw-felder { grid-template-columns: minmax(0, 1fr); gap: 0; } .pjw-felder > span:nth-child(even) { margin-bottom: 8px; }
   .pjw-fenster { padding: 14px 16px 30px; }
 }
+/* A2006 (TH156 F10, Kleinprobe D1534 v4): der Leitstand. Ruhig, Farbe nur bei Handlungsbedarf (orange = über der Zeit, Verzug). */
+.ls-leiste { display: inline-flex; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; margin-left: auto; }
+.ls-leiste button { background: var(--flaeche); color: var(--text); border: 0; border-left: 1px solid var(--linie); padding: 8px 14px; font: 600 13.5px var(--titel); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; }
+.ls-leiste button:first-child { border-left: 0; }
+.ls-leiste button:hover { background: var(--flaeche2); }
+.ls-leiste .leise { font-weight: 400; }
+.ls-fort { margin: 4px 0 18px; }
+.ls-fort-zeile { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.ls-zahl { font: 600 30px var(--titel); }
+.ls-prognose { margin-left: auto; }
+.ls-spur { height: 6px; margin-top: 8px; }
+.ls-spur.ueber i { background: var(--bernstein); }
+.ls-fort.platz .ls-zahl { color: var(--sehrleise); }
+.ls-fuer { grid-template-columns: 1fr; margin-bottom: 18px; }
+.ls-lbl { font: 600 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); margin: 18px 0 8px; }
+.ls-lbl.ls-jetzt { color: var(--gruen); display: flex; align-items: center; gap: 10px; }
+.ls-lbl.ls-jetzt::after { content: ""; flex: 1; border-top: 1px solid color-mix(in srgb, var(--gruen) 45%, transparent); }
+.ls-agenten { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.ls-agent { text-align: left; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px; padding: 10px 12px; color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ls-agent b { display: flex; align-items: center; gap: 7px; font: 600 14.5px var(--titel); }
+.ls-agent span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-agent:hover, .ls-karte:hover, .ls-zeile:hover { border-color: var(--linie2); }
+.ls-ressourcen { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 10px 0; margin: 14px 0 4px; border-top: 1px solid var(--linie); border-bottom: 1px solid var(--linie); font-size: 13.5px; }
+.ls-linie { border-left: 1px solid var(--linie2); margin-left: 6px; padding-left: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ls-zeile { text-align: left; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px; padding: 9px 12px; color: var(--text); font: inherit; cursor: pointer; width: 100%; }
+.ls-zeile .leise { font-size: 13px; margin-top: 2px; }
+.ls-raster { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ls-karte { text-align: left; background: var(--flaeche); border: 1px solid color-mix(in srgb, var(--gruen) 55%, var(--linie)); border-radius: 8px; padding: 10px 12px; color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ls-karte.ueber { border-color: var(--bernstein); }
+.ls-karte-kopf { display: flex; align-items: center; gap: 8px; }
+.ls-karte-kopf b { font: 600 14.5px var(--titel); }
+.ls-karte .chip, .ls-zeile .chip { border: 1px solid var(--linie); border-radius: 999px; padding: 0 8px; font-size: 11.5px; color: var(--leise); }
+.ls-titel { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.8em; line-height: 1.4; font-size: 14px; }
+.ls-karte-fuss { display: flex; justify-content: space-between; font-size: 12px; color: var(--leise); }
+.ls-gleichzeitig { display: flex; flex-direction: column; gap: 6px; }
+.ls-ablauf > div { margin-bottom: 6px; }
+.ls-ablauf .verweis { display: inline-block; margin-top: 8px; font-size: 13.5px; }
+.ls-frueher { align-self: flex-start; background: none; border: 0; padding: 0; margin: 0 0 2px !important; color: var(--leise); cursor: pointer; }
+.ls-zeitplan { display: flex; flex-direction: column; gap: 8px; }
+.ls-zp-zeile { display: grid; grid-template-columns: minmax(120px, 220px) 1fr minmax(120px, 200px); gap: 14px; align-items: center; font-size: 13.5px; }
+.ls-zp-zeile > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-zp-spur { position: relative; height: 10px; }
+.ls-zp-spur i { position: absolute; top: 3px; height: 4px; border-radius: 2px; background: var(--gruen); }
+.ls-zp-spur i.ueber { background: var(--bernstein); }
+.ls-zp-spur b { position: absolute; top: 0; width: 2px; height: 10px; background: var(--leise); }
+.ls-entscheidungen { display: flex; flex-direction: column; }
+.ls-ent { display: grid; grid-template-columns: 52px minmax(80px, 120px) 1fr; gap: 12px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--linie); padding: 7px 0; color: var(--text); font: inherit; font-size: 13.5px; cursor: pointer; }
+.ls-leer { padding: 18px; border: 1px dashed var(--linie2); border-radius: 8px; margin: 6px 0 18px; display: flex; flex-direction: column; gap: 6px; }
+.ls-platz { min-height: 120px; }
+@media (max-width: 1100px) { .ls-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .ls-leiste { display: flex; width: 100%; margin: 8px 0 0; }
+  .ls-leiste button { flex: 1; justify-content: center; padding: 8px 6px; }
+  .ls-leiste .leise { display: none; }
+  .ls-raster { grid-template-columns: 1fr; }
+  .ls-prognose { margin-left: 0; }
+  .ls-zp-zeile { grid-template-columns: 1fr; gap: 2px; }
+  .ls-ent { grid-template-columns: 52px 1fr; }
+  .ls-ent > span:nth-child(2) { display: none; }
+}
+/* A2011 (Kleinprobe D1481 v4): Reiter und Unteransichten im Projektweg – Reihenfolge, Zeitplan, Gesamtplan. Ruhig; Bernstein nur bei
+   Handlungsbedarf (blockiert, wartet auf dich). */
+.pjw-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; margin: 4px 0 14px auto; align-self: flex-end; }
+.pjw-seg button { background: var(--flaeche); color: var(--leise); border: 0; border-left: 1px solid var(--linie); padding: 8px 16px; font: 500 13.5px var(--titel); cursor: pointer; min-height: 38px; flex: 1 1 auto; min-width: 0; }
+.pjw-seg button:first-child { border-left: 0; }
+.pjw-seg button.an { background: var(--flaeche2); color: var(--text); font-weight: 700; }
+.pjw-unter { min-height: 120px; container-type: inline-size; }   /* schmal nach eigener Breite (iPad: neben dem Verlauf) */
+.pjw-chip-s { display: inline-block; border: 1px solid var(--linie2); border-radius: 999px; padding: 0 9px; font-size: 12px; color: var(--leise); white-space: nowrap; justify-self: end; }
+.pjw-chip-s.an { color: var(--text); border-color: var(--text); }
+.pjw-chip-s.bernstein { color: var(--bernstein); border-color: var(--bernstein); }
+.pjw-rf { border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
+.pjw-rf-zeile { display: grid; grid-template-columns: 28px 46px minmax(0, 1fr) minmax(0, 150px) minmax(0, 120px) auto; gap: 10px; align-items: center; width: 100%; text-align: left;
+  background: var(--flaeche); color: var(--text); border: 0; border-top: 1px solid var(--linie); padding: 9px 12px; font: inherit; font-size: 14px; cursor: pointer; }
+.pjw-rf-zeile:first-child { border-top: 0; }
+.pjw-rf-zeile:hover { background: var(--flaeche2); }
+.pjw-rf-titel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pjw-zp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 160px); border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; }
+.pjw-zp-links { min-width: 0; overflow: hidden; }   /* die Jetzt-Linie bleibt im Zeitplan */
+.pjw-zp-kopf, .pjw-zp-zeile { display: grid; grid-template-columns: 96px 1fr; border-bottom: 1px solid var(--linie); }
+.pjw-zp-zeile > b { padding: 10px 12px; font: 600 14px var(--titel); align-self: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pjw-zp-achse { position: relative; height: 30px; border-left: 1px solid var(--linie); }
+.pjw-zp-achse span { position: absolute; top: 8px; font-size: 11.5px; color: var(--leise); padding-left: 4px; border-left: 1px solid var(--linie); height: 22px; white-space: nowrap; }
+.pjw-zp-jetzt { position: absolute; top: 0; bottom: -400px; width: 2px; background: var(--leise); opacity: .6; pointer-events: none; }
+.pjw-zp-spuren { border-left: 1px solid var(--linie); padding: 6px 0; display: flex; flex-direction: column; gap: 6px; }
+.pjw-zp-spur { position: relative; height: 28px; }
+.pjw-zp-balken { position: absolute; top: 0; height: 28px; border: 1px solid var(--linie2); border-radius: 5px; background: var(--flaeche2); color: var(--text);
+  font: 12px var(--text-font, inherit); padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; text-align: left; }
+.pjw-zp-balken.laeuft { border-color: var(--text); }
+.pjw-zp-ohne { border-left: 1px solid var(--linie); padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+.pjw-zp-ohne-k { background: var(--flaeche); border: 1px solid var(--linie2); border-radius: 5px; padding: 5px 8px; color: var(--text); font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.pjw-zp-ohne-t { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35; }
+.pjw-zp-ohne-k.bernstein { border-color: var(--bernstein); color: var(--bernstein); }
+.pjw-gs { display: flex; flex-direction: column; }
+.pjw-gs-zeile { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 140px) minmax(0, 170px) minmax(0, 90px); gap: 12px; align-items: center; padding: 9px 8px; border-bottom: 1px solid var(--linie); font-size: 14px; }
+.pjw-gs-titel { font: 600 11.5px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); }
+.pjw-gs-titel > :last-child, .pjw-gs-prog { text-align: right; }
+.pjw-gs-m > summary { list-style: none; cursor: pointer; }
+.pjw-gs-m > summary::-webkit-details-marker { display: none; }
+.pjw-gs-m > summary .pjw-gs-name::before { content: "▸ "; color: var(--leise); }
+.pjw-gs-m[open] > summary .pjw-gs-name::before { content: "▾ "; }
+.pjw-gs-m > .pjw-gs-zeile .pjw-gs-name, .pjw-gs-m > summary .pjw-gs-name { font-weight: 600; }
+.pjw-gs-paket { width: 100%; text-align: left; background: none; border-left: 0; border-right: 0; border-top: 0; color: var(--text); font: inherit; font-size: 13.5px; padding-left: 26px; cursor: pointer; }
+.pjw-gs-alt > summary { color: var(--leise); }
+.pjw-gs-fort { display: flex; align-items: center; gap: 8px; color: var(--leise); }
+.pjw-gs-fort .pjw-balken { width: 80px; flex: none; margin: 0; }
+@media (max-width: 760px) {
+  .pjw-seg { align-self: stretch; margin-left: 0; }
+  .pjw-seg button { flex: 1; padding: 8px 6px; }
+}
+@container (max-width: 620px) {
+  .pjw-rf-zeile { grid-template-columns: 24px minmax(0, 1fr) auto; }
+  .pjw-rf-zeile > :nth-child(2), .pjw-rf-zeile > :nth-child(4) { display: none; }
+  .pjw-rf-zeile > :nth-child(5) { grid-column: 2; font-size: 12.5px; }
+  .pjw-zp { grid-template-columns: minmax(0, 1fr); }
+  .pjw-zp-ohne { border-left: 0; border-top: 1px solid var(--linie); }
+  .pjw-zp-kopf, .pjw-zp-zeile { grid-template-columns: 84px minmax(0, 1fr); }
+  .pjw-zp-zeile > b { padding: 10px 8px; font-size: 13px; }
+  .pjw-gs-zeile { grid-template-columns: minmax(0, 1fr) auto; }
+  .pjw-gs-zeile > :nth-child(3) { grid-column: 1; }
+  .pjw-gs-zeile > :nth-child(4) { grid-column: 2; grid-row: 2; }
+  .pjw-gs-titel > :nth-child(2), .pjw-gs-titel > :nth-child(3) { display: none; }
+  .pjw-gs-fort .pjw-balken { width: 60px; }
+}
+/* A2014 (Kleinprobe A2010, D1904): Kopfzeile – Projektknopf neben der Marke, Projektliste mit „für dich“, Gesamtsicht als Karten,
+   Treffer der Suche unter dem Feld. Farbe nur am Zähler „für dich“. */
+#projektwahl { display: none; }
+.projekt-chip { display: inline-flex; align-items: center; gap: 9px; margin-left: 18px; min-height: 36px; padding: 4px 12px; border: 1px solid var(--linie2);
+  border-radius: 4px; background: var(--flaeche); color: var(--tinte); font: 600 15px var(--titel); letter-spacing: .02em; cursor: pointer; flex: none; max-width: 46vw; }
+.projekt-chip[hidden] { display: none; }
+.projekt-chip .pk-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.projekt-chip .pw-farbe { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+.kz-zahl { border: 1px solid var(--bernstein); color: var(--bernstein); border-radius: 11px; padding: 1px 9px; font-size: 13px; font-weight: 600; white-space: nowrap; }
+.pw-eintrag .kz-zahl { justify-self: end; }
+.pw-eintrag.kz-alle { border-bottom: 1px solid var(--linie); border-radius: 3px 3px 0 0; }
+.kz-karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 12px; margin-bottom: 8px; }
+.kz-karte { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--linie); border-radius: 8px; background: var(--flaeche); padding: 14px 16px;
+  text-align: left; color: var(--tinte); font: inherit; cursor: pointer; min-width: 0; }
+.kz-karte:hover { background: var(--flaeche2); }
+.kz-oben { display: flex; gap: 10px; align-items: center; }
+.kz-oben b { font: 600 19px var(--titel); flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.kz-oben i { width: 12px; height: 12px; border-radius: 2px; flex: none; }
+.kz-zl { color: var(--leise); font-size: 13.5px; }
+.kz-balken { height: 6px; background: var(--flaeche2); border-radius: 3px; overflow: hidden; }
+.kz-balken i { display: block; height: 100%; background: var(--leise); }
+.kz-treffer { position: fixed; z-index: 40; width: min(560px, calc(100vw - 24px)); max-height: 70vh; overflow-y: auto; background: var(--flaeche2);
+  border: 1px solid var(--linie2); border-radius: 6px; box-shadow: 0 16px 40px -12px rgba(0,0,0,.5); padding: 4px 0; }
+.kz-gr { font: 600 12px var(--titel); letter-spacing: .08em; text-transform: uppercase; color: var(--sehrleise); padding: 10px 14px 4px; }
+.kz-tr { display: grid; grid-template-columns: 62px minmax(0, 1fr) auto; gap: 10px; width: 100%; text-align: left; border: 0; background: none; color: var(--tinte);
+  font: inherit; font-size: 14px; padding: 8px 14px; min-height: 40px; align-items: center; cursor: pointer; }
+.kz-tr:hover, .kz-tr.an { background: var(--flaeche); }
+.kz-tr .ref { font: 600 13px var(--titel); color: var(--leise); }
+.kz-tr .kz-titel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kz-tr .kz-wo { color: var(--sehrleise); font-size: 12.5px; white-space: nowrap; }
+.kz-tr mark { background: none; color: inherit; font-weight: 700; }
+.kz-leer { color: var(--sehrleise); padding: 18px 16px; }
+@media (max-width: 760px) {
+  .projekt-chip { margin-left: 0; font-size: 14px; }
+  .kz-tr { grid-template-columns: 50px minmax(0, 1fr); }
+  .kz-tr .kz-titel { white-space: normal; }
+  .kz-tr .kz-wo { grid-column: 2; }
+}
+/* die Liste ist ein Dialog: auch am PC Überschrift und ✕ (wie am Handy), schließt außerdem mit Klick daneben */
+.pw-liste h3 { display: block; font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin: 6px 10px 8px; }
+.pw-liste .dialog-zu { display: block; position: absolute; top: 4px; right: 6px; margin: 0; }
 </style>
 </head>
 <body>
@@ -1451,7 +1616,7 @@ const $ = (s, w = document) => w.querySelector(s);
 /* --- Sprachen: alle festen Texte der Oberfläche; Inhalte aus der Datenbank bleiben in ihrer Sprache. --- */
 const TEXTE = {
   de: {
-    marke: "Agenten Management Workbench", suche: "Aufgaben, Beschlüsse, Fragen, deine Worte, Nachrichten durchsuchen", g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
+    marke: "Agenten Management Workbench", suche: "Suche über alles", g_fuerdich: "Für dich", g_arbeit: "Arbeit", g_wissen: "Wissen", g_betrieb: "Betrieb",
     n_start: "Leitstand", n_nachrichten_kurz: "Nachrichten", rb_themen: "Themen", rb_beschluesse: "Beschlüsse", rb_regeln: "Regeln", rb_wortlaut: "Deine Worte",
     rb_notizen: "Notizen", n_fragen: "Fragen", n_aufgaben: "Aufgaben", n_aufgaben_kurz: "Arbeit", n_releases: "Versionshinweise", n_releases_kurz: "Versionen",
     n_mehr: "Mehr", n_wissen: "Wissen", n_betrieb: "Betrieb", thema: "Hell / Dunkel", halt: "Alle anhalten", halt_an: "Angehalten",
@@ -1880,10 +2045,30 @@ const TEXTE = {
     egr_ag_kein_pool: "Keine wartenden Pakete", egr_ag_bleibt: "Bleiben, weil schon gebaut: {x}", egr_ag_raus_ok: "{x} ist herausgenommen", egr_ag_ist: "Herausgenommen seit {x}", egr_ag_frei: "Wieder freigeben", egr_ag_frei_frage: "{x} wieder freigeben? Die AMW teilt dann wieder Pakete zu.",
     egr_ag_frei_ok: "{x} ist wieder frei", egr_pa: "Pause für alles", egr_pa_an: "Pausiert · weiter", egr_pa_bis: "Pausiert bis {x} · weiter", egr_pa_aus_ok: "Pause aufgehoben – es geht weiter", egr_pa_titel: "Pause für alles",
     egr_pa_erkl: "Niemand beginnt etwas Neues, kein Headless-Paket startet. Was läuft, läuft zu Ende. Zeitplan und Prognose rechnen die Pause ein.", egr_pa_grund: "Grund", egr_pa_ende: "Ende (optional)", egr_pa_bis_ph: "HH:MM, 2h oder 90min", egr_pa_ende_h: "Ohne Ende gilt die Pause, bis du sie aufhebst.", egr_pa_setzen: "Pause setzen",
-    egr_pa_ok: "Pause gesetzt", egr_pa_ok_bis: "Pause bis {x}", egr_pp_keiner: "dahinter wartet kein Paket – am Ende des Meilensteins testest du bei der Abnahme", egr_pp_wartet: "Danach warten {n} Pakete auf dein Ja.",
+    egr_pa_ok: "Pause gesetzt", egr_pa_ok_bis: "Pause bis {x}", egr_pp_keiner: "dahinter wartet kein Paket – am Ende des Meilensteins testest du bei der Abnahme", egr_pp_wartet: "Danach warten {n} Pakete auf dein Ja.", lst_laeuft: "Läuft", lst_pausiert: "Pausiert",
+    lst_pausieren: "pausieren", lst_weiter: "weiter", lst_pause_h: "Alle Agenten anhalten: sie beenden ihren Schritt und fangen nichts Neues an", lst_weiter_h: "Den Halt aufheben – die Agenten arbeiten weiter", lst_details: "Projektdetails", lst_von_paketen: "{f} von {g} Paketen",
+    lst_fertig_vor: "fertig voraussichtlich {x}", lst_spaeter: "{n} Tag(e) später als geplant", lst_frueher: "{n} Tag(e) früher als geplant", lst_wie_geplant: "wie geplant", lst_agenten: "Agenten", lst_aus: "aus",
+    lst_frei: "frei", lst_wartet_auf: "wartet auf {x}", lst_r_fenster: "Fenster", lst_r_headless: "Headless", lst_r_lauf: "Lauf", lst_r_speicher: "Arbeitsspeicher",
+    lst_r_schirm: "Bildschirm", lst_r_woche: "Wochenlimit", lst_laufen: "{n} laufen", lst_schirm_frei: "für Agenten frei", lst_schirm_dir: "bei dir", lst_art_fenster: "Fenster",
+    lst_art_headless: "Headless", lst_art_lauf: "Lauf", lst_laedt: "Lädt …", lst_zuletzt: "Zuletzt", lst_jetzt: "Jetzt · {x} · {n} gleichzeitig", lst_nichts_laeuft: "Gerade läuft nichts.",
+    lst_naechstes: "Als Nächstes", lst_gleichzeitig: "ab {x} · gleichzeitig", lst_frei_paket: "noch ohne Agent", lst_ab: "ab {x}", lst_nach: "nach {x}", lst_ganze_reihenfolge: "Ganze Reihenfolge im Projektweg →",
+    lst_zeitplan: "Zeitplan", lst_ziel: "Ziel {x}", lst_bereit: "bereit zur Abnahme", lst_entscheidungen: "Entscheidungen der AMW", lst_wann: "Wann", lst_leer_neu: "Noch nichts zu tun – das Konzept ist in Arbeit.",
+    lst_leer_fertig: "Alles fertig – keine offenen Pakete.", lst_zum_konzept: "Zum Konzept im Projektweg →", lst_erledigt: "Erledigt", lst_voraus: "Voraussichtlich fertig", lst_ziel_k: "Ziel", lst_fragen_offen: "Offene Fragen an dich",
+    lst_kosten_heute: "Kosten heute", lst_termine: "Termine je Meilenstein", lst_zum_projektweg: "Zum Projektweg →", lst_min: "{n} min", lst_h: "{n} h", lst_laeuft1: "1 läuft",
+    lst_dich: "dich", lst_frueher_n: "{n} frühere zeigen", lst_themen_n: "({n} von {g} Themen freigegeben)", lst_schritt: "Schritt jetzt", lst_themen: "Themen", lst_themen_frei: "{n} von {g} freigegeben",
+    lst_wartet_dich: "wartet auf dich", lst_wartet_grund: "wartet: {x}", lst_pruefung_x: "Prüfung {x}", pjw_t_feinplan: "Feinplan", pjw_t_gesamtplan: "Gesamtplan", pjw_t_pakete: "Pakete",
+    pjw_t_reihenfolge: "Reihenfolge", pjw_t_zeitplan: "Zeitplan", pjw_laedt: "Lädt …", pjw_ohne_agent: "noch ohne Agent", pjw_bis: "bis {x}", pjw_ab: "ab {x}",
+    pjw_rf_leer: "Nichts geplant – keine offenen Pakete in aktiven Meilensteinen.", pjw_n_weitere: "{n} weitere", pjw_rf_laeuft: "Läuft · {n}", pjw_rf_naechstes: "Als Nächstes · {n}", pjw_ohne_zeit: "ohne Zeit", pjw_gs_arbeit: "in Arbeit",
+    pjw_gs_geplant: "geplant", pjw_gs_fertig: "abgenommen", pjw_gs_offen: "offen", pjw_gs_meilenstein: "Meilenstein", pjw_gs_status: "Status", pjw_gs_fortschritt: "Fortschritt",
+    pjw_gs_prognose: "Prognose", pjw_gs_abgenommen: "{n} abgenommene Meilensteine", pjw_gs_pakete: "{n} Pakete", pjw_gs_nach_freigabe: "nach Freigabe", kz_alle: "Alle Projekte", kz_fuer_dich: "{n} für dich",
+    kz_keine: "Noch kein Projekt.", kz_fern: "auf einem anderen Rechner", kz_ms_keiner: "kein Meilenstein", kz_ms1: "Meilenstein {m} · {a} von {b} Paketen", kz_ms_n: "{n} Meilensteine · {a} von {b} Paketen", kz_ms1_alle: "Meilenstein {m} · alle {b} Pakete fertig",
+    kz_ms_n_alle: "{n} Meilensteine · alle {b} Pakete fertig", kz_fertig_etwa: "fertig etwa {d}", kz_spaeter: ", {n} Tage später als geplant", kz_bereit: "bereit zur Abnahme", kz_arbeiten: "{n} Agenten arbeiten", kz_arbeitet1: "1 Agent arbeitet",
+    kz_nichts_laeuft: "nichts läuft", kz_in: "In {x}", kz_andere: "Andere Projekte", kz_zuletzt: "Zuletzt gesucht", kz_s_laeuft: "läuft", kz_s_wartet: "wartet",
+    kz_s_blockiert: "blockiert", kz_s_fertig: "fertig", kz_s_verworfen: "verworfen", kz_s_aktiv: "in Arbeit", kz_s_geplant: "geplant", kz_s_offen: "offen",
+    kz_s_beantwortet: "beantwortet", kz_s_freigegeben: "freigegeben",
   },
   en: {
-    marke: "Agent Management Workbench", suche: "Search tasks, decisions, questions, your words, messages", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
+    marke: "Agent Management Workbench", suche: "Search everything", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
     n_start: "Control room", n_nachrichten_kurz: "Messages", rb_themen: "Topics", rb_beschluesse: "Decisions", rb_regeln: "Rules", rb_wortlaut: "Your words",
     rb_notizen: "Notes", n_fragen: "Questions", n_aufgaben: "Tasks", n_aufgaben_kurz: "Tasks", n_releases: "Release notes", n_releases_kurz: "Releases",
     n_mehr: "More", n_wissen: "Knowledge", n_betrieb: "Operations", thema: "Light / Dark", halt: "Pause all", halt_an: "Paused",
@@ -2312,7 +2497,27 @@ const TEXTE = {
     egr_ag_kein_pool: "No waiting packages", egr_ag_bleibt: "Stay, already built: {x}", egr_ag_raus_ok: "{x} is taken out", egr_ag_ist: "Taken out since {x}", egr_ag_frei: "Release again", egr_ag_frei_frage: "Release {x} again? AMW will assign packages again.",
     egr_ag_frei_ok: "{x} is free again", egr_pa: "Pause everything", egr_pa_an: "Paused · resume", egr_pa_bis: "Paused until {x} · resume", egr_pa_aus_ok: "Pause lifted – work goes on", egr_pa_titel: "Pause everything",
     egr_pa_erkl: "Nobody starts anything new, no headless package starts. What is running runs to the end. Schedule and forecast include the pause.", egr_pa_grund: "Reason", egr_pa_ende: "End (optional)", egr_pa_bis_ph: "HH:MM, 2h or 90min", egr_pa_ende_h: "Without an end the pause lasts until you lift it.", egr_pa_setzen: "Set pause",
-    egr_pa_ok: "Pause set", egr_pa_ok_bis: "Paused until {x}", egr_pp_keiner: "no package waits after it – you test at the end of the milestone, at the acceptance", egr_pp_wartet: "Then {n} packages wait for your yes.",
+    egr_pa_ok: "Pause set", egr_pa_ok_bis: "Paused until {x}", egr_pp_keiner: "no package waits after it – you test at the end of the milestone, at the acceptance", egr_pp_wartet: "Then {n} packages wait for your yes.", lst_laeuft: "Running", lst_pausiert: "Paused",
+    lst_pausieren: "pause", lst_weiter: "resume", lst_pause_h: "Stop all agents: they finish their step and start nothing new", lst_weiter_h: "Lift the stop – the agents carry on", lst_details: "Project details", lst_von_paketen: "{f} of {g} packages",
+    lst_fertig_vor: "expected to finish {x}", lst_spaeter: "{n} day(s) later than planned", lst_frueher: "{n} day(s) earlier than planned", lst_wie_geplant: "as planned", lst_agenten: "Agents", lst_aus: "off",
+    lst_frei: "free", lst_wartet_auf: "waiting for {x}", lst_r_fenster: "Window", lst_r_headless: "Headless", lst_r_lauf: "Run", lst_r_speicher: "Memory",
+    lst_r_schirm: "Screen", lst_r_woche: "Weekly limit", lst_laufen: "{n} running", lst_schirm_frei: "free for agents", lst_schirm_dir: "with you", lst_art_fenster: "Window",
+    lst_art_headless: "Headless", lst_art_lauf: "Run", lst_laedt: "Loading …", lst_zuletzt: "Recently", lst_jetzt: "Now · {x} · {n} at the same time", lst_nichts_laeuft: "Nothing is running right now.",
+    lst_naechstes: "Next", lst_gleichzeitig: "from {x} · at the same time", lst_frei_paket: "no agent yet", lst_ab: "from {x}", lst_nach: "after {x}", lst_ganze_reihenfolge: "Full order in the project path →",
+    lst_zeitplan: "Schedule", lst_ziel: "Target {x}", lst_bereit: "ready for acceptance", lst_entscheidungen: "AMW decisions", lst_wann: "When", lst_leer_neu: "Nothing to do yet – the concept is being worked on.",
+    lst_leer_fertig: "All done – no open packages.", lst_zum_konzept: "To the concept in the project path →", lst_erledigt: "Done", lst_voraus: "Expected to finish", lst_ziel_k: "Target", lst_fragen_offen: "Open questions for you",
+    lst_kosten_heute: "Costs today", lst_termine: "Dates per milestone", lst_zum_projektweg: "To the project path →", lst_min: "{n} min", lst_h: "{n} h", lst_laeuft1: "1 running",
+    lst_dich: "you", lst_frueher_n: "show {n} earlier", lst_themen_n: "({n} of {g} topics approved)", lst_schritt: "Current step", lst_themen: "Topics", lst_themen_frei: "{n} of {g} approved",
+    lst_wartet_dich: "waiting for you", lst_wartet_grund: "waiting: {x}", lst_pruefung_x: "review {x}", pjw_t_feinplan: "Detailed plan", pjw_t_gesamtplan: "Overall plan", pjw_t_pakete: "Packages",
+    pjw_t_reihenfolge: "Order", pjw_t_zeitplan: "Schedule", pjw_laedt: "Loading …", pjw_ohne_agent: "no agent yet", pjw_bis: "until {x}", pjw_ab: "from {x}",
+    pjw_rf_leer: "Nothing planned – no open packages in active milestones.", pjw_n_weitere: "{n} more", pjw_rf_laeuft: "Running · {n}", pjw_rf_naechstes: "Next · {n}", pjw_ohne_zeit: "no time", pjw_gs_arbeit: "in progress",
+    pjw_gs_geplant: "planned", pjw_gs_fertig: "accepted", pjw_gs_offen: "open", pjw_gs_meilenstein: "Milestone", pjw_gs_status: "Status", pjw_gs_fortschritt: "Progress",
+    pjw_gs_prognose: "Forecast", pjw_gs_abgenommen: "{n} accepted milestones", pjw_gs_pakete: "{n} packages", pjw_gs_nach_freigabe: "after approval", kz_alle: "All projects", kz_fuer_dich: "{n} for you",
+    kz_keine: "No project yet.", kz_fern: "on another computer", kz_ms_keiner: "no milestone", kz_ms1: "Milestone {m} · {a} of {b} packages", kz_ms_n: "{n} milestones · {a} of {b} packages", kz_ms1_alle: "Milestone {m} · all {b} packages done",
+    kz_ms_n_alle: "{n} milestones · all {b} packages done", kz_fertig_etwa: "done around {d}", kz_spaeter: ", {n} days later than planned", kz_bereit: "ready for acceptance", kz_arbeiten: "{n} agents working", kz_arbeitet1: "1 agent working",
+    kz_nichts_laeuft: "nothing running", kz_in: "In {x}", kz_andere: "Other projects", kz_zuletzt: "Recent searches", kz_s_laeuft: "running", kz_s_wartet: "waiting",
+    kz_s_blockiert: "blocked", kz_s_fertig: "done", kz_s_verworfen: "dropped", kz_s_aktiv: "in progress", kz_s_geplant: "planned", kz_s_offen: "open",
+    kz_s_beantwortet: "answered", kz_s_freigegeben: "approved",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -2571,27 +2776,38 @@ function projektwahlZeigen(p) {
     el("span", { class: "pw-pfeil" }, "▾"));
   $("#projektwahl").replaceChildren(knopf);
   const chip = $("#projekt-chip"); chip.hidden = false;
-  chip.replaceChildren(el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }), el("span", {}, p.name + " ▾"));
+  const alle = zustand.sicht === "projekte";                              /* A2014: Gesamtsicht – der Knopf sagt „Alle Projekte“ */
+  chip.replaceChildren(el("span", { class: "pw-farbe", style: `background:${alle ? "var(--leise)" : farbe(p)}` }),
+    el("span", { class: "pk-name" }, alle ? t("kz_alle") : p.name), el("span", { class: "pw-pfeil" }, "▾"));
   chip.onclick = e => projektListe(e.currentTarget);
-  chip.setAttribute("aria-label", `${t("pw_projekt")}: ${p.name}`);
+  chip.setAttribute("aria-label", `${t("pw_projekt")}: ${alle ? t("kz_alle") : p.name}`);
 }
 function projektListe(anker) {
   const r = anker.getBoundingClientRect();
   const mehrRechner = new Set(projekte.map(x => x.rechner).filter(Boolean)).size > 1;
   /* fremd = Projekt eines anderen Rechners: am PC über die Online-Seite (dort auch dirigierbar), online wie jedes andere */
-  const oeffnen = p => { hg.remove(); if (p.uid === projekt) return;
+  const oeffnen = p => { hg.remove(); if (p.uid === projekt) { if (zustand.sicht === "projekte") zeige("start"); return; }
     if (!p.fern) projektWechseln(p.uid);
     else if (p.online) window.open(p.online, "_blank", "noopener");
     else toast(t("pw_fern_ohne_link"), true); };
-  const eintrag = p => el("button", { class: "pw-eintrag" + (p.uid === projekt ? " an" : ""), type: "button", onclick: () => oeffnen(p) },
+  /* A2014 (Kleinprobe A2010, D1904): je Projekt Name und „für dich“ – Farbe nur bei einer Zahl; Rechner/Halt/nicht erreichbar nur,
+     wenn es zutrifft */
+  const zahl = n => n ? el("span", { class: "kz-zahl", title: t("kz_fuer_dich", { n }) }, String(n)) : el("span");
+  const fuer = p => p.fuer_dich ?? p.fragen ?? 0;                           /* online aus dem Verzeichnis: die offenen Fragen */
+  const eintrag = p => el("button", { class: "pw-eintrag" + (p.uid === projekt && zustand.sicht !== "projekte" ? " an" : ""), type: "button",
+      "data-uid": p.uid, onclick: () => oeffnen(p) },
     el("span", { class: "pw-farbe", style: `background:${farbe(p)}` }),
-    el("span", {}, el("b", {}, p.name, p.fern ? " ↗" : ""), el("small", {}, [mehrRechner ? p.rechner : null,
-      t(p.agenten === 1 ? "pw_agent1" : "pw_agenten", { n: p.agenten }), p.halt ? t("pw_halt") : null,
-      p.erreichbar === false ? t("pw_weg") : null].filter(Boolean).join(" · "))),
-    p.fragen ? el("span", { class: "pw-zahl", title: t("pw_fragen", { n: p.fragen }) }, `${p.fragen} ?`) : el("span"));
+    el("span", {}, el("b", {}, p.name, p.fern ? " ↗" : ""), [mehrRechner ? p.rechner : null, p.halt ? t("pw_halt") : null,
+      p.erreichbar === false ? t("pw_weg") : null].some(Boolean) ? el("small", {}, [mehrRechner ? p.rechner : null, p.halt ? t("pw_halt") : null,
+      p.erreichbar === false ? t("pw_weg") : null].filter(Boolean).join(" · ")) : null),
+    zahl(fuer(p)));
+  const alleZeile = projekte.length > 1 ? el("button", { class: "pw-eintrag kz-alle" + (zustand.sicht === "projekte" ? " an" : ""), type: "button",
+      onclick: () => { hg.remove(); zeige("projekte"); } },
+    el("span", { class: "pw-farbe", style: "background:var(--leise)" }), el("span", {}, el("b", {}, t("kz_alle"))),
+    zahl(projekte.reduce((s, p) => s + (fuer(p) || 0), 0))) : null;
   const liste = el("div", { class: "pw-liste karte", style: `left:${Math.round(r.left)}px;top:${Math.round(r.bottom + 6)}px`, role: "dialog",
       "aria-label": t("pw_waehlen") },
-    el("h3", {}, t("pw_waehlen")), ...projekte.map(eintrag),
+    el("h3", {}, t("pw_waehlen")), alleZeile, ...projekte.map(eintrag),
     el("div", { class: "pw-fuss" }, el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_nur_ansicht")),
       el("span", { style: "display:flex;gap:6px;align-items:center;flex-wrap:wrap" },
         API ? el("span", { class: "sehrleise", style: "font-size:12px" }, t("pw_neu_pc"))
@@ -2723,16 +2939,17 @@ async function kopfLaden() {
       spracheGewaehlt = true; sprache = d.sprache_vorgabe; feste_texte(); if (zustand.sicht) zeige(zustand.sicht, true); }   /* A1907: neu zeichnen, kein Wechsel */
     const wv = d.online?.web_version;
     $("#version").textContent = d.version ? `v${d.version}` + (wv && wv !== d.version ? ` · Web v${wv}` : "") : "";
-    const sollen = d.agenten.filter(a => a.soll === "an" && !a.chat), lebend = sollen.filter(a => a.zustand === "aktiv").length;
     const extra = d.agenten.filter(a => a.soll !== "an" && a.zustand === "aktiv").length;     /* laufen, ohne zu sollen */
     const sp = d.speicher.frei;
     $("#signale").replaceChildren(...[
-      d.online ? el("span", { class: "signal" + (d.online.pc_frisch ? " unwichtig" : "") }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
-        t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : ""))
-        : (() => { const [f, x] = dienstLage(d); return el("span", { class: "signal" + (f === "gruen" ? " unwichtig" : ""), title: pcHinweis() },
+      d.online ? (d.online.pc_frisch && !d.online.briefkasten ? null : el("span", { class: "signal" }, el("span", { class: "punkt " + (d.online.pc_frisch ? "gruen" : "bernstein") }),
+        t(d.online.pc_frisch ? "s_pc" : "s_pc_weg", { x: seit(d.online.pc_gesehen_utc) }) + (d.online.briefkasten ? " · " + t("s_briefkasten", { n: d.online.briefkasten }) : "")))
+        : (() => { const [f, x] = dienstLage(d); return f === "gruen" ? null : el("span", { class: "signal", title: pcHinweis() },
             el("span", { class: "punkt " + f }), t({ gruen: "s_dienst", bernstein: "s_dienst", rot: "s_dienst_stoerung", "": "s_dienst_aus" }[f])); })(),
-      el("span", { class: "signal" }, el("span", { class: "punkt " + (lebend ? "gruen" : "") }), t("s_agenten", { a: lebend, b: sollen.length }) + (extra ? " · " + t("s_extra", { n: extra }) : "")),
-      el("span", { class: "signal unwichtig", title: pcHinweis() }, el("span", { class: "punkt " + (sp == null ? "" : sp < 8 ? "bernstein" : "gruen") }), sp == null ? t("s_speicher_unb") : t("s_speicher", { n: Math.round(sp) })),
+      /* A2014 (Kleinprobe A2010, D1429): keine zweite Statusleiste – Agenten und Speicher stehen im Leitstand (Ressourcen); hier nur,
+         was vom Normalfall abweicht */
+      extra ? el("span", { class: "signal" }, el("span", { class: "punkt bernstein" }), t("s_extra", { n: extra })) : null,
+      sp != null && sp < 8 ? el("span", { class: "signal", title: pcHinweis() }, el("span", { class: "punkt bernstein" }), t("s_speicher", { n: Math.round(sp) })) : null,
       /* Steuern geschieht in der Steuerung (Leitstand, unter den Agenten); hier steht nur, was vom Normalfall abweicht – Klick führt hin */
       d.halt.length ? el("span", { class: "signal knopflich", title: t("ls_hin"), onclick: zurSteuerung }, el("span", { class: "punkt rot" }), t("halt_an")) : null,
       d.schirm?.frei ? el("span", { class: "signal knopflich", title: [d.schirm.grund, t("ls_hin")].filter(Boolean).join(" · "), onclick: zurSteuerung },
@@ -2786,6 +3003,7 @@ const wissenExtern = () => [["nachrichten", "n_nachrichten"], ["dokumente", "n_d
   el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
 function zeige(sicht, still = false) {
   if (sicht === "steuerung") return zurSteuerung();                     /* A2018: Adresse #steuerung */
+  if (PW_ADRESSEN[sicht]) return pwAdresse(sicht);                      /* A2011: #reihenfolge, #zeitplan, #gesamtplan → Reiter im Projektweg */
   if (!still) { wechselNr++; seitenNr++; }                              /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
   ruhig = still;
   const pos = [$("#inhalt").scrollTop, window.scrollY];
@@ -2799,7 +3017,8 @@ function zeige(sicht, still = false) {
   $("#mehr")?.classList.toggle("an", !!document.querySelector(`nav a.im-mehr[data-sicht="${bereich}"]`));
   try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
-  const fertig = ({ start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  kzKnopf();                                                            /* A2014: „Alle Projekte“ im Kopf nur in der Gesamtsicht */
+  const fertig = ({ projekte: sichtProjekte, start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return fertig; }
   return Promise.resolve(fertig).then(() => {
     if (offen?.size) for (const s of $("#inhalt").querySelectorAll("details > summary")) if (offen.has(s.textContent)) s.parentElement.open = true;
@@ -3023,57 +3242,13 @@ function uebersichtKarten(d) {
       aelterIds.length ? el("button", { class: "klein-knopf", type: "button", onclick: async () => {
         try { await schicken("/api/gelesen", { ids: aelterIds }); kopfAktualisieren(); zeige("start", true); } catch (x) { toast(t("fehler", { x: x.message }), true); } } },
         t("an_dich_alt_weg")) : null) : null);
-  /* Läuft gerade */
-  const aktiv = (d.agenten || []).filter(a => a.zustand === "aktiv");
-  const laeufe = u.laeufe || [], r = d.rechner || {}, fremd = Math.max(0, (r.warten || 0) - (r.eigene_warten || 0));
-  const laeuft = ueKarte("uk_laeuft", 0, aktiv.length || laeufe.length || r.warten ? el("div", { class: "ue-liste" },
-    aktiv.map(a => el("div", { class: "ue-zeile klickbar", onclick: () => agentDialog(a.kennung) }, el("span", { class: "punkt bernstein" }),
-      el("b", {}, a.kennung), el("span", { class: "ue-text leise" }, "→ " + (a.gerade_aufgabe ? `A${a.gerade_aufgabe} ` : "") + kurz(a.gerade || t("tm_keine"), 90)))),
-    laeufe.map(l => el("div", { class: "ue-zeile klickbar", onclick: () => zeige("betrieb") }, el("span", { class: "punkt gruen" }),
-      el("b", {}, `L${l.id}`), el("span", { class: "ue-text leise" }, [l.agent, kurz(l.beschreibung, 70), t("uk_seit", { x: seit(l.start_utc) })].filter(Boolean).join(" · ")))),
-    r.warten ? el("div", { class: "ue-zeile" }, el("b", {}, t(r.warten === 1 ? "uk_wartet1" : "uk_warten", { n: r.warten })),
-      el("span", { class: "ue-text leise" }, fremd ? t("uk_warten_fremd", { n: fremd }) : t("uk_warten_eigen"))) : null)
-    : el("p", { class: "ue-leer" }, t("uk_ruhig")));
-  /* Stand */
-  const boegen = u.boegen || [];
-  const stand = ueKarte("uk_stand", 0, boegen.length ? el("div", { class: "ue-liste" }, boegen.map(b => {
-      const g = b.gesamt - (b.verworfen || 0), f = b.fertig || 0;
-      return el("div", { class: "ue-bogen klickbar", onclick: () => zuSchritt(null, b.id) },
-        el("div", { class: "ue-zeile" }, el("span", { class: "ref" }, bogenRef(b.id)), el("b", { class: "ue-text" }, b.titel),
-          b.zieldatum ? el("span", { class: "sehrleise" }, t("uk_ziel", { x: datumKurz(b.zieldatum) })) : null),
-        el("div", { class: "ue-spur" }, el("i", { style: `width:${g ? Math.round(100 * f / g) : 0}%` })),
-        el("div", { class: "sehrleise" }, t("sj_fertig", { f, g }))); }))
-    : el("p", { class: "ue-leer" }, t("sj_kein_aktiv")),
-    el("div", { class: "ue-fuss" }, u.ohne_bogen ? el("span", { class: "sehrleise" }, t(u.ohne_bogen === 1 ? "uk_ohne1" : "uk_ohne", { n: u.ohne_bogen })) : null,
-      el("a", { class: "verweis", onclick: () => { zustand.planReiter = "zeitleiste"; zeige("planung"); } }, t("uk_zur_planung"))));
-  /* Zustand */
-  const kachel = (farbe, titel, wert, tun) => el("div", { class: "ue-kachel" + (tun ? " klickbar" : ""), onclick: tun || null },
-    el("div", { class: "leise" }, el("span", { class: "punkt " + farbe }), titel), el("b", {}, wert));
-  const dienstRot = (d.dienst_rot || []).length, online = d.online;
-  const pl = (r.platte || [])[0], sp = d.speicher?.frei;
-  const sy = u.sync;
-  const probleme = (d.warnungen || []).length + dienstRot + (pl ? 1 : 0);
-  const tk = d.token;
-  const zust = ueKarte("uk_zustand", 0,
-    el("div", { class: "ue-kacheln" },
-      online ? kachel(online.pc_frisch ? "gruen" : "bernstein", t("uk_pc"), online.pc_frisch ? t("uk_pc_da") : seit(online.pc_gesehen_utc))
-        : (() => { const [f, x] = dienstLage(d); return kachel(f, t("uk_dienst"), x, () => zeige("betrieb")); })(),
-      sp == null ? null : kachel(sp < 4 ? "rot" : sp < 8 ? "bernstein" : "gruen", t("uk_speicher"), t("uk_gb_frei", { n: zahlKurz(sp) })),
-      kachel(pl ? (pl.stufe === "rot" ? "rot" : "bernstein") : "gruen", pl ? t("uk_platte_x", { x: pl.laufwerk }) : t("uk_platte"),
-        pl ? t("uk_prozent_frei", { p: zahlKurz(pl.frei_prozent) }) : t("uk_platte_ok"), () => zeige("einstellungen")),
-      kachel(!sy ? "" : sy.zustand === "rot" ? "rot" : sy.zustand === "gelb" ? "bernstein" : "gruen", t("uk_sync"),
-        !sy ? t("uk_sync_aus") : typeof sy === "string" ? t("uk_sync_" + (sy === "rot" ? "stoerung" : "an")) : seit(sy.zeit_utc))),
-    el("div", { class: "ue-fuss sehrleise" }, [u.kosten_heute != null ? t("uk_kosten", { x: dollar(u.kosten_heute) }) : null,
-      tk?.wert != null ? t("uk_woche", { p: Math.round(tk.wert) }) : null,
-      probleme ? t(probleme === 1 ? "uk_problem1" : "uk_probleme", { n: probleme }) : t("uk_keine_probleme")].filter(Boolean).join(" · "),
-      el("a", { class: "verweis", style: "margin-left:auto", onclick: () => zeige("betrieb") }, t("uk_zum_betrieb"))));
-  return el("div", { class: "ue-raster" }, fuer, laeuft, stand, zust);
+  return el("div", { class: "ue-raster ls-fuer" }, fuer);                /* A2006: im Leitstand nur noch „Für dich“ */
 }
 async function sichtStart() {
   await kopfAktualisieren(); const d = zustand.start;
   if (!d) { if (zustand.startFehler) rahmen(t("n_start")).append(el("div", { class: "leer" }, zustand.startFehler)); return; }   /* A1998 */
   const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })),
-    el("button", { class: "knopf still kopf-aktion", type: "button", id: "zur-steuerung", onclick: zurSteuerung }, t("ls_titel")));   /* A2018 (TH156): Eingriffe über den Knopf „Steuerung“ */
+    lsKopfLeiste(d));                                       /* A2006: Zustand · Projektdetails · Steuerung (A2018: Eingriffe über „Steuerung“) */
   /* „Seit du weg warst“: letzter Besuch je Gerät (localStorage); in dieser Sitzung bleibt der Wert stehen */
   let seitBesuch = null;
   try {
@@ -3130,10 +3305,12 @@ async function sichtStart() {
     d.warnungen.map(w => el("div", { class: "band-zeile" }, el("span", {}, w.text),     /* je Warnung ein Sprung zu dem, den sie betrifft */
       w.an && (d.agenten || []).some(a => a.kennung === w.an)
         ? el("button", { class: "klein-knopf", type: "button", title: t("band_ansehen_h", { x: w.an }), onclick: () => agentDialog(w.an) }, t("band_ansehen", { x: w.an })) : null))));
-  m.append(uebersichtKarten(d));                          /* A1657: Für dich · Läuft gerade · Stand · Zustand */
-  m.append(el("h2", {}, t("tm_titel")));
-  m.append(teamAnsicht(d));
-  m.append(el("h2", { id: "steuerung-titel" }, t("ls_titel")), steuerung(d));
+  const unten = el("div");                                /* A2006: Leitstand; die Steuerung bleibt darunter (Knopf „Steuerung“) */
+  m.append(unten);
+  unten.append(el("h2", { id: "steuerung-titel" }, t("ls_titel")), steuerung(d));
+  const oben = el("div", { class: "ls-seite" });
+  unten.before(oben);
+  await sichtLeitstand(d, oben);
 
 }
 /* Aktionsmenü – ein Baustein: eintraege = Liste aus { titel } (Überschrift), "-" (Trennlinie) oder
@@ -3194,7 +3371,7 @@ function menue(knopf, eintraege) {
   setTimeout(() => { document.addEventListener("click", ausserhalb, true); document.addEventListener("keydown", taste); $("#inhalt").addEventListener("scroll", zu, { passive: true }); }, 0);
   m.querySelector("button:not([disabled])")?.focus();
 }
-/* Befehle zu einem Agenten: schreiben/lesen – steuern (anhalten überall; Sitzung starten/beenden nur am PC) – Profil */
+/* Menü eines Agenten (bis A2006 an der Team-Kachel, jetzt im Kopf des Agenten-Dialogs): Nachricht, Gespräch, Starten, Sichern … */
 function agentMenue(a, knopf) {
   const d = zustand.start || {}, k = a.kennung, lebt = a.zustand === "aktiv", ruht = a.zustand === "ruht";
   const eigenerHalt = (d.halt || []).some(h => h.gilt_fuer === k), ende = (d.ende || []).some(x => x.kennung === k);
@@ -3285,28 +3462,6 @@ function rechnerFeld(r, feld) {
 }
 function zurSteuerung() { Promise.resolve(zustand.sicht === "start" && $("#steuerung-titel") ? null : zeige("start"))   /* A2018: auch beim frischen Laden mit #steuerung */
   .then(() => setTimeout(() => $("#steuerung-titel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60)); }
-/* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
-function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
-/* Kachel: Zustand, was er gerade macht (eigene Angabe › laufende Aufgabe › Aufgabe aus der letzten Meldung),
-   letzte Meldung, neue offene Nachrichten (Altbestand aus dem alten Bus getrennt). Klick → Übersicht. */
-/* Alter der eigenen Angabe (amw taetigkeit): ab 2 h in Bernstein – vielleicht veraltet */
-function taetigkeitAlter(utc) {
-  const alt = (Date.now() - new Date(utc)) / 1000 > 7200;
-  return el("span", { class: alt ? "bernstein-text" : "sehrleise", style: "font-size:11px;white-space:nowrap", title: alt ? t("t_alt") : "" },
-    " · " + t("t_seit", { x: seit(utc) }) + (alt ? " ⚠" : ""));
-}
-/* Zustand eines Agenten in Worten: [Farbe, Text, seit]. Läuft er, genauer aus den Hooks (arbeitet / frei / wartet auf
-   Freigabe oder Eingabe / Fehler). Ohne Arbeitsordner ist er ein Chat: Er wird nie gestartet und fehlt darum auch nie. */
-function agentZustand(a) {
-  const lebt = a.zustand === "aktiv", soll = a.soll === "an";
-  const ez = { arbeitet: ["gruen", t("z_arbeitet")], frei: ["gruen", t("z_frei")], wartet_freigabe: ["bernstein", t("z_freigabe")],
-               wartet_eingabe: ["bernstein", t("z_eingabe")], fehler: ["rot", t("z_fehler")] }[a.ereignis];
-  const dauer = lebt && ez && ["wartet_freigabe", "wartet_eingabe", "fehler"].includes(a.ereignis) && a.ereignis_utc ? seit(a.ereignis_utc) : null;
-  if (a.chat && !ez) return [lebt ? "gruen" : "", lebt ? t("tm_chat_da") : a.letzter_puls_utc ? t("tm_chat_zuletzt", { x: zeit(a.letzter_puls_utc) }) : t("tm_chat"), null];   /* A1831 */
-  const z = lebt ? (ez || ["gruen", t("laeuft")]) : a.zustand === "ruht" ? ["bernstein", t("abgemeldet")]
-    : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
-  return [z[0], z[1], dauer];
-}
 /* Kleine Zeichen der Team-Ansicht (als Elemente gebaut, nicht als Text eingesetzt) */
 const TM_ZEICHEN = { sitzung: [["rect", { x: 1.5, y: 2.5, width: 13, height: 11, rx: 1.5 }], ["path", { d: "M4.5 6l2.5 2-2.5 2M8.500 10.500h3" }]],
   chat: [["path", { d: "M2 3.5h12v7.5H7l-3 2.5V11H2z" }]], desktop: [["rect", { x: 1.5, y: 2.5, width: 13, height: 8.5, rx: 1.5 }], ["path", { d: "M5.5 14h5M8 11v3" }]], mensch: [["circle", { cx: 8, cy: 5, r: 2.6 }], ["path", { d: "M2.800 14c.6-3 2.600-4.400 5.200-4.400s4.600 1.400 5.200 4.400" }]] };
@@ -3316,163 +3471,10 @@ function tmZeichen(art, titel) {
   for (const [tag, attr] of TM_ZEICHEN[art]) { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attr)) e.setAttribute(k, v); svg.append(e); }
   return el("span", { class: "tm-zeichen", title: titel }, svg);
 }
-const tmWeise = a => tmZeichen(a.arbeitsweise === "chat" || a.chat ? "chat" : a.arbeitsweise === "desktop" ? "desktop" : "sitzung",
-  t(a.arbeitsweise === "chat" || a.chat ? "tm_w_chat" : a.arbeitsweise === "desktop" ? "tm_w_desktop" : "tm_w_sitzung"));
 /* Lead ist ein Schalter, das Fachgebiet ein eigenes Feld: „Lead“ bzw. das Fachgebiet; fehlt beides, bleibt die Marke weg */
 const tmFach = a => a.rolle === "lead" ? el("span", { class: "tm-fach lead", title: a.fachgebiet || null }, t("lead") + (a.fachgebiet ? " · " + a.fachgebiet : ""))
   : a.fachgebiet ? el("span", { class: "tm-fach" }, a.fachgebiet) : null;
-const tmKurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
 const agentName = a => a.co ? [t("co_entwickler"), el("span", { class: "sehrleise tm-kennung" }, " " + a.kennung)] : a.kennung;   /* A2019 */
-const tmMehr = a => el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
-  onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯");
-const tmOffen = (a, kurz) => a.offen ? el("span", { class: "tm-offen" + (a.offen > 10 ? " viel" : ""), title: t("k_offen_n", { n: a.offen }) + " – " + t("k_offen_h", { n: a.offen_alt || 0 }) },
-  kurz ? "✉ " + a.offen : t("k_offen_n", { n: a.offen })) : null;
-const tmZustand = a => { const [farbe, text, dauer] = agentZustand(a);
-  return el("div", { class: "tm-zustand", title: a.zustand === "aktiv" ? t("k_puls_seit", { t: seit(a.letzter_puls_utc) }) : null }, el("span", { class: "punkt " + farbe }),
-    el("span", { class: farbe === "bernstein" ? "bernstein-text" : farbe === "rot" && a.zustand === "aktiv" ? "rot-text" : "" }, text), dauer ? el("span", { class: "sehrleise" }, dauer) : null); };
-const tmAufgabe = (a, n) => a.gerade ? [el("span", { class: "sehrleise" }, t("k_gerade") + " "),   /* A1953: Quelle und Alter im Tooltip, veraltet grau */
-    el("span", { class: a.gerade_veraltet ? "sehrleise" : "", title: t("k_quelle_" + a.gerade_quelle) + (a.gerade_seit ? " · " + seit(a.gerade_seit) : "")
-      + (a.gerade_veraltet ? " · " + t("k_veraltet_h") : "") }, tmKurz(a.gerade, n)), a.gerade_veraltet ? el("span", { class: "bernstein-text" }, " " + t("k_veraltet")) : null]
-  : [el("span", { class: "sehrleise" }, a.soll === "an" && !a.chat ? t("k_unbekannt") : (a.zustaendig || t("tm_keine")))];
-/* Mit wem er gerade arbeitet (offene Prüfung) oder worauf er wartet – eine Zeile, der Rest steht in der Übersicht */
-function tmNeben(a, d) {
-  const ende = (d.ende || []).find(x => x.kennung === a.kennung);
-  if (ende) return el("div", { class: "tm-neben bernstein-text" }, t("k_endet", { x: zeit(ende.bis_utc) }));
-  const wp = a.warteplatz;
-  if (wp) { const x = wp.auf?.[0], wer = x ? (x.projekt ? `${x.projekt} / ${x.agent || "–"}` : t("tm_fremd")) : null;
-    return el("div", { class: "tm-neben bernstein-text", title: wp.grund ? `L${wp.lauf}: ${wp.grund}` : t("tm_warteplatz_h") },
-      "⏳ " + t(wer ? "tm_platz_hinter" : "tm_platz", { p: wp.platz ?? "–", n: wp.von, x: wer })); }
-  const z = (d.team?.zusammen || []).find(x => x.von === a.kennung || x.mit === a.kennung);
-  if (z) return el("div", { class: "tm-neben tm-mit", title: t("tm_mit_h") }, "⇄ " + (z.von === a.kennung ? z.mit : z.von) + " · " + t("tm_pruefung") + (z.aufgabe ? ` A${z.aufgabe}` : ""));
-  const w = a.wartet || [];
-  return w.length ? el("div", { class: "tm-neben bernstein-text" }, t("k_wartet", { a: `A${w[0].aufgabe}`, x: (w[0].auf || "").split(", ").map(grundText).join(", ") }) + (w.length > 1 ? ` +${w.length - 1}` : "")) : null;
-}
-const tmFuss = a => [tmWeise(a), a.zustand === "aktiv" && a.kontext_prozent != null
-  ? el("span", { class: "tm-balken" + (a.kontext_prozent > 85 ? " voll" : a.kontext_prozent > 60 ? " hoch" : ""), title: `${t("b_kontext")} ${Math.round(a.kontext_prozent)} %` }, el("span", { style: `width:${Math.min(100, a.kontext_prozent)}%` }))
-  : el("span", { class: "tm-balken ohne" }), el("span", { class: "tm-liste-n", title: (a.fuehrt || []).length ? t("k_fuehrt", { x: a.fuehrt.join(", ") }) : null },
-    (a.liste_n ? (a.liste_lauf ? t("tm_liste_lauf", { p: a.liste_lauf, n: a.liste_n }) : t("k_liste_n", { n: a.liste_n })) : "") + ((a.fuehrt || []).length ? " ◆" : ""))];
-const teamArt = () => { const g = gemerkt("amw-team"); return g === "baum" || g === "liste" ? g : (matchMedia("(max-width: 760px)").matches ? "liste" : "baum"); };
-/* Team auf der Startseite: Baum (du → Lead → Agenten; gestrichelte Bögen = arbeiten gerade zusammen) oder kompakte Liste */
-function teamAnsicht(d) {
-  const art = teamArt(), rang = a => (a.soll === "an" ? 0 : a.zustand === "aktiv" ? 1 : 2);
-  const leads = d.agenten.filter(a => a.rolle === "lead"), rest = d.agenten.filter(a => a.rolle !== "lead").sort((x, y) => rang(x) - rang(y));
-  const huelle = el("div", { class: "team", id: "team" });
-  huelle.append(el("div", { class: "tm-schalter" }, ["baum", "liste"].map(x => el("button", { class: "klein-knopf" + (x === art ? " an" : ""), type: "button", title: t("tm_" + x + "_h"),
-    onclick: () => { try { localStorage.setItem(ablage("amw-team"), x); } catch (e) {} huelle.replaceWith(teamAnsicht(d)); } }, t("tm_" + x)))),
-    art === "baum" ? teamBaum(d, leads, rest) : teamListe(d, leads, rest));
-  return huelle;
-}
-const tmDu = d => { const pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] }, frei = pw.spezifikationen.length + pw.plaene.length;
-  return [[pw.eigene.length, "tm_schritte"], [d.fragen.length, "tm_fragen"], [frei, "tm_freigaben"]].filter(([n]) => n); };
-function tmLeadInfo(a, d) {
-  const b = d.team?.bogen, takt = d.team?.takt_min;
-  return [[t("tm_plant"), b ? t("tm_bogen", { nr: b.nr, x: tmKurz(b.titel, 70), f: b.fertig, n: b.n }) + (b.zieldatum ? " · " + t("tm_ziel", { x: datumKurz(b.zieldatum) }) : "") : t("tm_kein_bogen")],
-    [t("tm_takt"), takt ? t("tm_takt_min", { n: takt }) : t("tm_takt_hand")],
-    a.zuletzt ? [t("k_zuletzt"), `${seit(a.zuletzt_utc)}: ${tmKurz(a.zuletzt, 110)}`] : null].filter(Boolean);
-}
-function teamBaum(d, leads, rest) {
-  let zeiger = "maus";
-  const fokus = k => { if ((baum.dataset.fokus || "") === k) return; if (k) baum.dataset.fokus = k; else delete baum.dataset.fokus; zeichnen(); };
-  const karte = (a, klasse, ...inhalt) => { const k = el("div", { class: `tm-knoten ${klasse} klickbar`, "data-k": a.kennung, title: t("k_details"), tabindex: 0 }, inhalt);
-    k.addEventListener("pointerdown", e => { zeiger = e.pointerType; });
-    k.addEventListener("click", () => { if (zeiger === "touch" && baum.dataset.fokus !== a.kennung) { fokus(a.kennung); return; } agentDialog(a.kennung); });
-    k.addEventListener("mouseenter", () => fokus(a.kennung)); k.addEventListener("mouseleave", () => fokus(""));
-    k.addEventListener("focusin", () => fokus(a.kennung)); k.addEventListener("focusout", () => fokus(""));
-    k.addEventListener("keydown", e => { if (e.key === "Enter") agentDialog(a.kennung); });
-    return k; };
-  const du = el("div", { class: "tm-knoten tm-du", "data-k": "*du" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du")), el("span", { class: "leise" }, t("tm_leitet")),
-    tmDu(d).map(([n, k]) => el("span", { class: "tm-zahl" }, el("b", {}, n), " " + t(k))));
-  const lead = a => karte(a, "tm-lead" + (agentZustand(a)[0] === "rot" ? " tot" : ""),
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, agentName(a)), tmFach(a), tmZustand(a)),
-    el("dl", {}, tmLeadInfo(a, d).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
-    el("div", { class: "tm-rechts" }, el("span", { class: "tm-zeile" }, tmOffen(a), tmMehr(a)), el("span", { class: "tm-zeile sehrleise" }, tmWeise(a), tmFuss(a)[2])));
-  const agent = a => karte(a, "tm-agent" + (agentZustand(a)[0] === "rot" && a.zustand !== "aktiv" ? " tot" : "") + (a.soll !== "an" ? " aus" : ""),
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, agentName(a)), tmFach(a),
-      (a.wartet_auf || []).includes("Entwickler") ? el("span", { class: "tm-auf-dich", title: t("tm_wartet_du_h") }, "\u23f3 " + t("tm_wartet_du"))
-        : (a.wartet_auf || []).length ? el("span", { class: "tm-auf-andere", title: t("tm_wartet_andere_h") }, "\u23f3 " + t("wartet_auf_x", { x: a.wartet_auf.slice(0, 2).join(", ") }))
-        : null,                                                   /* A1860: „wartet auf dich“ nur, wenn du wirklich dran bist */
-      el("span", { class: "tm-zeile tm-ende" }, tmMehr(a))),
-    tmZustand(a), el("div", { class: "tm-auf" }, tmAufgabe(a, 80)), tmNeben(a, d) || el("div", { class: "tm-neben" }, "\u00a0"), el("div", { class: "tm-fuss" }, tmFuss(a), tmOffen(a, true)));
-  const strich = art => { const ns2 = "http://www.w3.org/2000/svg", g = document.createElementNS(ns2, "svg"), l = document.createElementNS(ns2, "path");
-    g.setAttribute("viewBox", "0 0 34 10"); l.setAttribute("d", "M1 5 H26"); l.setAttribute("class", "tm-" + art);
-    const sp = document.createElementNS(ns2, "path"); sp.setAttribute("d", "M24 0 L34 5 L24 10 z"); sp.setAttribute("class", "tm-spitze-" + art); g.append(l, sp); return g; };
-  const legende = el("div", { class: "tm-legende sehrleise" }, el("span", {}, strich("ast"), t("tm_leg_ast")),
-    el("span", { class: "tm-leg-mehr" }, strich("bogen"), t("tm_leg_bogen")), el("span", { class: "tm-leg-mehr" }, strich("warten"), t("tm_leg_warten")),
-    el("span", {}, t("tm_leg_fokus")));
-  const baum = el("div", { class: "tm-baum" }, du, leads.length ? el("div", { class: "tm-leads" }, leads.map(lead)) : null, el("div", { class: "tm-ebene" }, rest.map(agent)), legende);
-  const ns = "http://www.w3.org/2000/svg", linien = document.createElementNS(ns, "svg"); linien.setAttribute("class", "tm-linien"); baum.prepend(linien);
-  function zeichnen() { tmLinien(baum, linien, d); }
-  requestAnimationFrame(zeichnen); setTimeout(zeichnen, 60); new ResizeObserver(zeichnen).observe(baum);   /* setTimeout: falls der Browser Animationen aussetzt (Tab im Hintergrund) */
-  return baum;
-}
-/* Linien des Baums: rechtwinklige Äste von oben nach unten; gestrichelte, ebenfalls rechtwinklige Verbindung unter zwei Agenten
-   derselben Reihe, die zusammenarbeiten – keine Bögen */
-function tmLinien(baum, svg, d) {
-  if (!baum.isConnected) return;
-  const ns = "http://www.w3.org/2000/svg", o = baum.getBoundingClientRect();
-  const ort = e => { const r = e.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, oben: r.top - o.top, unten: r.bottom - o.top }; };
-  const knoten = k => baum.querySelector(`[data-k="${CSS.escape(k)}"]`);
-  const teile = [], pfad = (klasse, dd) => { const p = document.createElementNS(ns, "path"); p.setAttribute("class", klasse); p.setAttribute("d", dd);
-    p.setAttribute("marker-end", `url(#tm-spitze-${klasse.split(" ")[0].slice(3)})`); teile.push(p); return p; };
-  const defs = document.createElementNS(ns, "defs");
-  for (const art of ["ast", "bogen", "warten"]) {         /* Pfeilspitze: Aufträge laufen zum Pfeil, Arbeit geht zur Prüfung, wartet auf */
-    const m = document.createElementNS(ns, "marker"), sp = document.createElementNS(ns, "path");
-    for (const [k, v] of Object.entries({ id: "tm-spitze-" + art, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 11, markerHeight: 11,
-      markerUnits: "userSpaceOnUse", orient: "auto-start-reverse" })) m.setAttribute(k, v);
-    sp.setAttribute("d", "M0 0 L10 5 L0 10 z"); sp.setAttribute("class", "tm-spitze-" + art); m.append(sp); defs.append(m); }
-  teile.push(defs);
-  const du = ort(knoten("*du")), leads = [...baum.querySelectorAll(".tm-lead")].map(ort), agenten = [...baum.querySelectorAll(".tm-agent")];
-  const stamm = leads.length ? { x: leads.reduce((s, l) => s + l.x, 0) / leads.length, unten: Math.max(...leads.map(l => l.unten)) } : du;
-  for (const l of leads) pfad("tm-ast", `M${du.x} ${du.unten} V${(du.unten + l.oben) / 2} H${l.x} V${l.oben - 1}`);
-  const reihen = new Map(); for (const a of agenten) { const q = ort(a); const y = Math.round(q.oben); if (!reihen.has(y)) reihen.set(y, []); reihen.get(y).push(q); }
-  const ys = [...reihen.keys()].sort((a, b) => a - b);
-  for (const y of ys) { const xs = reihen.get(y).map(q => q.x), quer = y - 12;
-    pfad("tm-ast", `M${Math.min(...xs, stamm.x)} ${quer} H${Math.max(...xs, stamm.x)}`).removeAttribute("marker-end");
-    for (const x of xs) pfad("tm-ast", `M${x} ${quer} V${y - 1}`); }
-  if (ys.length) pfad("tm-ast", `M${stamm.x} ${stamm.unten} V${ys[ys.length - 1] - 12}`).removeAttribute("marker-end");
-  /* Prüfungen und Wartebeziehungen nur für die Karte im Fokus (Maus, Tastatur, erstes Antippen) – sonst überlagern sich die
-     Linien. Jede Beziehung in eigener Spur mit festem Abstand; „wartet auf dich“ steht als Markierung an der Karte. */
-  const f = baum.dataset.fokus || "";
-  baum.querySelectorAll(".tm-knoten").forEach(k => k.classList.remove("im-fokus", "im-bezug"));
-  if (f) {
-    const bez = [];
-    for (const z of d.team?.zusammen || []) if (z.von === f || z.mit === f) bez.push({ art: "bogen", von: z.von, nach: z.mit });
-    for (const a of d.agenten || []) for (const ziel of a.wartet_auf || []) {
-      if (ziel !== "Entwickler" && (a.kennung === f || ziel === f)) bez.push({ art: "warten", von: a.kennung, nach: ziel }); }
-    const gesehen = new Set(), liste = bez.filter(b => { const s_ = b.art + b.von + ">" + b.nach; if (gesehen.has(s_)) return false; gesehen.add(s_); return true; });
-    knoten(f)?.classList.add("im-fokus");
-    liste.forEach((b, i) => {
-      const a = knoten(b.von), z = knoten(b.nach); if (!a || !z) return;
-      a.classList.add("im-bezug"); z.classList.add("im-bezug");
-      const p = ort(a), q = ort(z), ver = (i - (liste.length - 1) / 2) * 16;     // eigene Spur: Ein- und Ausgang versetzt
-      if (Math.abs(p.unten - q.unten) <= 4) {                                     // gleiche Reihe: unter den Karten, je Beziehung tiefer
-        const y = Math.max(p.unten, q.unten) + 12 + 12 * i;
-        pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.unten} V${y} H${q.x + ver} V${q.unten + 1}`);
-      } else if (q.unten < p.oben) {                                              // nach oben (Lead)
-        const zr = z.getBoundingClientRect(), x = p.x + ver + 30;                // senkrecht hinein, wenn die Karte darüber liegt
-        if (x > zr.left - o.left + 8 && x < zr.right - o.left - 8) pfad("tm-" + b.art + " stark", `M${x} ${p.oben} V${q.unten + 1}`);
-        else { const y = p.oben - 6 - 6 * i; pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.oben} V${y} H${q.x + ver} V${q.unten + 1}`); }
-      } else {                                                                    // nach unten (vom Lead zum Agenten)
-        const x = q.x + ver + 30, ar = a.getBoundingClientRect();
-        if (x > ar.left - o.left + 8 && x < ar.right - o.left - 8) pfad("tm-" + b.art + " stark", `M${x} ${p.unten} V${q.oben - 1}`);
-        else { const y = q.oben - 6 - 6 * i; pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.unten} V${y} H${q.x + ver} V${q.oben - 1}`); }
-      }
-    });
-  }
-  svg.replaceChildren(...teile);
-}
-function teamListe(d, leads, rest) {
-  const zeile = (a, ast, klasse) => { const z = el("div", { class: `tm-z ${klasse || ""} klickbar` + (a.soll !== "an" ? " aus" : ""), "data-k": a.kennung, title: t("k_details") },
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-astz" }, ast), tmWeise(a), el("span", { class: "tm-name" }, agentName(a)), tmOffen(a)), el("span", {}, tmFach(a)), tmZustand(a),
-    el("div", { class: "tm-auf" }, a.rolle === "lead" && d.team?.bogen ? [el("span", { class: "sehrleise" }, t("tm_plant") + ": "), tmLeadInfo(a, d)[0][1]] : tmAufgabe(a, 120)),
-    tmNeben(a, d) || el("span", {}), el("span", { class: "tm-fuss" }, tmFuss(a).slice(1)), tmMehr(a));
-    z.addEventListener("click", () => agentDialog(a.kennung)); return z; };
-  return el("div", { class: "tm-liste" },
-    el("div", { class: "tm-z tm-kopfz" }, ["tm_k_agent", "tm_k_fach", "tm_k_zustand", "tm_k_auf", "tm_k_mit", "tm_k_liste"].map(k => el("span", {}, t(k))), el("span", {})),
-    el("div", { class: "tm-z tm-du" }, el("div", { class: "tm-wer" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du"))), el("span", { class: "leise" }, t("tm_leitet")), el("span", {}),
-      el("div", { class: "tm-auf" }, tmDu(d).flatMap(([n, k], i) => [i ? " · " : "", el("b", {}, n), " " + t(k)])), el("span", {}), el("span", {}), el("span", {})),
-    leads.map(a => zeile(a, "└", "tm-lead")), rest.map((a, i) => zeile(a, "\u00a0\u00a0" + (i === rest.length - 1 ? "└" : "├"))));
-}
 /* Starten / Fortsetzen / Neu / Beenden – nur am PC (online gibt es keine Knöpfe), immer mit Rückfrage */
 function steuerKnoepfe(d, schliessen) {
   if (API || !d.profil) return [];
@@ -3741,7 +3743,10 @@ async function agentDialog(kennung, reiter) {
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
         el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),
           d.claude_link ? el("a", { class: "knopf", href: d.claude_link, target: "_blank", rel: "noopener noreferrer", title: t("g_claude_h") }, t("g_claude")) : null,
-          el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")))),
+          el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")),
+          (() => { const a = (zustand.start?.agenten || []).find(x => x.kennung === d.kennung);   /* A2006: das Menü der früheren Team-Kachel */
+            return a ? el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
+              onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯") : null; })())),
       tabs, uebersicht, gespraech));
   document.body.append(hg);
   if (reiter === "gespraech") wechseln("gespraech");
@@ -4957,7 +4962,7 @@ async function sichtProjektweg() {
       el("span", { class: "pjw-name" }, el("span", { class: "pjw-zeichen" }, s.zeichen), `${i + 1} · ${t("pjw_s_" + s.schritt)}`),
       el("span", { class: "pjw-wert" + (s.bei_dir ? " dran" : "") }, pwWert(d, i) + (s.bei_dir ? " · " + t("pjw_wartet_dich") : ""))); }));
   pwHaupt = null;
-  const inhalt = [pwKonzept, pwGrob, pwFein, pwUmsetzung, pwAbschluss][v](d).filter(Boolean);
+  const inhalt = pwMitReitern(v, d).filter(Boolean);                     /* A2011: Feinplanung und Umsetzung mit Reitern */
   const nochNicht = d.schritte[v].zustand === "offen" && !inhalt.some(x => !x.classList?.contains("leer"));
   const wie = el("div", { class: "pjw-wie" }, el("span", { class: "pjw-lbl" }, t("pjw_wie")), el("ol", {}, t("pjw_wie_" + v).split("|").map(x => el("li", {}, x))));
   const ansicht = el("div", { class: "pjw-ansicht" },
@@ -4972,7 +4977,7 @@ async function sichtProjektweg() {
   /* A2063 (Marcel 24.11.): der Verlauf gehört zum gewählten Schritt – oben umschaltbar auf „alle Schritte“; je Eintrag eine Zeile,
      Langes auf Klick. */
   const wer = e => el("span", { class: "pjw-wer" + (e.rolle === "mensch" ? " du" : "") }, e.rolle === "agent" ? e.von : t("pjw_r_" + e.rolle));
-  const eintrag = e => el("div", { class: "pjw-eintrag" }, el("span", { class: "pjw-z" }, wann(e.zeit)),
+  const eintrag = e => el("div", { class: "pjw-eintrag" + (e.art === "rueckgabe" ? " rueckgabe" : "") },   /* A2167: nur die Rückgabe in den Pool hervorgehoben */ el("span", { class: "pjw-z" }, wann(e.zeit)),
     e.lang ? el("details", { class: "pjw-lang" }, el("summary", {}, wer(e), " ", e.zeile), el("div", { class: "leise" }, e.lang))
       : el("span", {}, wer(e), " ", e.zeile || e.text));
   const alle = !!zustand.pwVerlaufAlle;
@@ -7203,7 +7208,7 @@ async function weiterGeben() {
 }
 if (API) { const b = $("#abmelden"); b.hidden = false; b.addEventListener("click", async () => {
   await fetch("index.php?abmelden=1", { method: "POST", headers: { "X-AMW-Token": TOKEN } }).catch(() => {}); location.reload(); }); }
-$("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });
+$("#suche").addEventListener("keydown", e => { if (e.key === "Enter" && kzAuswahl < 0 && e.target.value.trim().length > 1) suchen(e.target.value.trim()); });   /* A2014: ein gewählter Treffer öffnet sich selbst */
 for (const a of document.querySelectorAll("nav a[data-sicht]")) a.addEventListener("click", () => zeige(a.dataset.sicht));
 /* Handy: unten Start, Fragen, Plan, Arbeit und „Mehr“ (48-px-Ziele statt neun schmaler). „Mehr“ öffnet ein Blatt von unten mit
    den übrigen Bereichen, Hell/Dunkel und Sprache – so ist am Handy alles erreichbar, auch der Verlauf. */
@@ -7712,8 +7717,194 @@ projekteLaden().then(() => {
   let startSicht = gemerkt("amw-sicht") || "start";
   if (location.hash.length > 1) startSicht = location.hash.slice(1);
   const s = seitenNr;                                    /* A1907: nur einem echten Wechsel weichen – nicht dem Takt, der still „start“ zeichnet */
-  return kopfLaden().then(() => { if (s === seitenNr) zeige(startSicht); });
+  return kopfLaden().then(() => { if (s === seitenNr) return Promise.resolve(zeige(startSicht)).then(kzNachWechsel); });   /* A2014: Treffer aus einem anderen Projekt */
 });
+/* A2006 (TH156 F10, Kleinprobe D1534 v4): der Leitstand – die Startseite. Von oben nach unten: Kopf (Zustand · Projektdetails ·
+   Steuerung), Bänder nur bei Anlass, Fortschritt, Für dich, Agenten, Ressourcen, Zuletzt · Jetzt · Als Nächstes, Zeitplan,
+   Entscheidungen der AMW, darunter die Steuerung. Sofort aus /api/start; was /api/leitstand liefert (Prognose, Zeitplan …), kommt
+   in feste Plätze nach (kein Springen der Höhe) und wird nur bei neuem Stempel von arbeit/planung neu geholt (Lead #34060). */
+const LS_ALTER_MS = 5 * 60 * 1000;                 /* Zeiten in der Prognose: spätestens alle 5 min neu, auch ohne Änderung */
+function lsStempel(d) { return `${d?.stand?.arbeit || ""}|${d?.stand?.planung || ""}|${projekt || ""}`; }
+async function lsDaten(d) {
+  const c = zustand.leitstand, s = lsStempel(d);
+  if (c && c.stempel === s && Date.now() - c.um < LS_ALTER_MS) return c.daten;
+  const daten = await holen("/api/leitstand");
+  zustand.leitstand = { stempel: s, um: Date.now(), daten };
+  return daten;
+}
+const lsMin = iso => Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+const lsDauer = m => m == null ? "–" : m < 90 ? t("lst_min", { n: m }) : t("lst_h", { n: zahlKurz(m / 60) });
+const lsUhr = iso => new Date(iso).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" });
+/* Seitenfenster wie im Projektweg (A2091): am PC fest rechts, am Handy über die ganze Breite; Esc und der Schleier schließen */
+function lsFenster(titel, felder, ...teile) {
+  document.getElementById("ls-fenster")?.remove();
+  const zu = () => document.getElementById("ls-fenster")?.remove();
+  $("#inhalt").append(el("div", { id: "ls-fenster" }, el("div", { class: "pjw-schleier", onclick: zu }),
+    el("div", { class: "pjw-fenster", role: "dialog" },
+      el("div", { class: "pjw-kopf" }, el("h3", {}, titel), el("button", { class: "knopf still pjw-zu", type: "button", onclick: zu, "aria-label": t("pjw_schliessen") }, "✕")),
+      felder.length ? el("div", { class: "pjw-felder" }, felder.filter(Boolean).flatMap(([k, v]) => [el("span", {}, k), el("span", {}, v ?? "–")])) : null,
+      ...teile)));
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape") document.getElementById("ls-fenster")?.remove(); });
+function lsKopfLeiste(d) {
+  const pause = (d.halt || []).length > 0;
+  return el("div", { class: "ls-leiste" },
+    el("button", { type: "button", class: "ls-zustand", title: t(pause ? "lst_weiter_h" : "lst_pause_h"), onclick: () => pause ? weiterGeben() : haltDialog() },
+      el("span", { class: "punkt " + (pause ? "bernstein" : "gruen") }), el("b", {}, t(pause ? "lst_pausiert" : "lst_laeuft")),
+      el("span", { class: "leise" }, " · " + t(pause ? "lst_weiter" : "lst_pausieren"))),
+    el("button", { type: "button", onclick: () => lsProjektdetails(d) }, t("lst_details")),
+    el("button", { type: "button", id: "zur-steuerung", onclick: zurSteuerung }, t("ls_titel")));
+}
+function lsFortschritt(f) {
+  if (!f) return el("div", { class: "ls-fort platz" }, el("div", { class: "ls-zahl" }, "…"), el("div", { class: "ue-spur" }, el("i")));
+  const v = f.verzug_tage;
+  return el("div", { class: "ls-fort" },
+    el("div", { class: "ls-fort-zeile" }, el("span", { class: "ls-zahl" }, `${f.prozent} %`),
+      el("span", { class: "leise" }, t("lst_von_paketen", { f: f.fertig, g: f.gesamt })),
+      f.p50 ? el("span", { class: "ls-prognose leise" }, t("lst_fertig_vor", { x: datumKurz(f.p50) }),
+        v == null ? null : el("span", { class: v > 0 ? "bernstein-text" : "" }, " · " + (v > 0 ? t("lst_spaeter", { n: v }) : v < 0 ? t("lst_frueher", { n: -v }) : t("lst_wie_geplant")))) : null),
+    el("div", { class: "ue-spur ls-spur" + (v > 0 ? " ueber" : "") }, el("i", { style: `width:${f.prozent}%` })));
+}
+function lsAgenten(d) {
+  const a = d.agenten || [];
+  if (!a.length) return null;
+  return el("section", { class: "ls-block" }, el("h2", { class: "ls-lbl" }, t("lst_agenten")),
+    el("div", { class: "ls-agenten", id: "team" }, a.map(x => {        /* id/data-k wie die frühere Team-Ansicht: Einstieg der Agenten-Wege */
+      const lebt = x.zustand === "aktiv", wartet = (x.wartet_auf || []).length;
+      return el("button", { type: "button", class: "ls-agent", "data-k": x.kennung, onclick: () => agentDialog(x.kennung) },
+        el("b", {}, el("span", { class: "punkt " + (lebt ? "gruen" : "") }), x.kennung),
+        el("span", { class: "leise" }, [x.co ? t("co_entwickler") : x.rolle === "lead" ? t("lead") : x.fachgebiet, x.modell].filter(Boolean).join(" · ") || " "),
+        el("span", {}, x.gerade_aufgabe ? `A${x.gerade_aufgabe}` + (x.gerade_seit ? " · " + lsDauer(lsMin(x.gerade_seit)) : "")
+          : wartet ? t("lst_wartet_auf", { x: x.wartet_auf.map(w => w === "Entwickler" ? t("lst_dich") : w).join(", ") }) : t(lebt ? "lst_frei" : x.soll === "an" ? "beendet_soll" : "lst_aus")),
+        el("span", { class: "ls-auf sehrleise", title: x.gerade || x.zustaendig || "" }, (x.gerade || x.zustaendig || t("tm_keine")) + (x.gerade && x.gerade_veraltet ? " · " + t("k_veraltet") : "")));   /* wie die frühere Kachel */
+    })));
+}
+function lsRessourcen(d, l) {
+  const n = art => l ? l.jetzt.filter(j => j.art === art).length : null, s = d.schirm, tk = d.token?.wert, sp = d.speicher?.frei;
+  const laufen = x => x == null ? "…" : t(x === 1 ? "lst_laeuft1" : "lst_laufen", { n: x });
+  const teil = (k, w) => w == null ? null : el("span", {}, el("span", { class: "leise" }, k + " "), el("b", {}, w));
+  return el("div", { class: "ls-ressourcen" },
+    teil(t("lst_r_fenster"), laufen(n("fenster"))),
+    teil(t("lst_r_headless"), laufen(n("headless"))),
+    teil(t("lst_r_lauf"), laufen(n("lauf"))),
+    sp == null ? null : teil(t("lst_r_speicher"), t("uk_gb_frei", { n: zahlKurz(sp) })),
+    s ? teil(t("lst_r_schirm"), t(s.frei ? "lst_schirm_frei" : "lst_schirm_dir")) : null,
+    tk == null ? null : teil(t("lst_r_woche"), `${Math.round(tk)} %`));
+}
+function lsKarteOeffnen(x) {
+  const nr = x.nummer || "";
+  if (/^A\d+$/.test(nr)) return aufgabeDialog(+nr.slice(1));
+  if (/^L\d+$/.test(nr)) return API ? zeige("betrieb") : laufAusgabeDialog(+nr.slice(1));
+  if (x.wer && (zustand.start?.agenten || []).some(a => a.kennung === x.wer)) return agentDialog(x.wer);
+}
+function lsJetztKarte(j) {
+  const min = lsMin(j.seit_utc), erw = j.erwartet_min, ueber = erw != null && min > erw;
+  const anteil = erw ? Math.min(1, min / erw) : 0;
+  return el("button", { type: "button", class: "ls-karte" + (ueber ? " ueber" : ""), "data-ref": j.nummer || "", onclick: () => lsKarteOeffnen(j) },
+    el("div", { class: "ls-karte-kopf" }, el("b", {}, j.wer || "–"), el("span", { class: "chip" }, t("lst_art_" + j.art))),
+    el("div", { class: "ls-titel" }, j.nummer ? el("span", { class: "ref" }, j.nummer + " ") : null, j.titel || ""),
+    el("div", { class: "ue-spur ls-spur" + (ueber ? " ueber" : "") }, el("i", { style: `width:${Math.round(anteil * 100)}%` })),
+    el("div", { class: "ls-karte-fuss mono" }, el("span", {}, erw ? `${min} / ≈ ${erw} min` : lsDauer(min)),
+      ueber ? el("span", { class: "bernstein-text" }, `+${min - erw} min`) : null));
+}
+function lsZeile(x, unten, warten) {
+  return el("button", { type: "button", class: "ls-zeile", "data-ref": x.nummer || "", onclick: () => lsKarteOeffnen(x) },
+    el("div", {}, x.nummer ? el("span", { class: "ref" }, x.nummer + " ") : null, x.titel || ""),
+    el("div", { class: "leise" }, unten, warten ? [" · ", warten] : null));
+}
+/* A2162: „wartet auf dich“ nur bei Gründen beim Menschen (Bernstein – Handlungsbedarf); sonst ruhig „wartet: <Grund kurz>“ */
+function lsWartet(p) {
+  if (p.wartet_mensch) return el("span", { class: "bernstein-text ls-wartet-dich" }, t("lst_wartet_dich"));
+  if (!p.wartet_grund) return null;
+  const m = /^pruefung:(P\d+)$/i.exec(p.wartet_grund);
+  return el("span", { class: "ls-wartet" }, t("lst_wartet_grund", { x: m ? t("lst_pruefung_x", { x: m[1] }) : p.wartet_grund }));
+}
+/* Zuletzt: die jüngsten drei direkt vor „Jetzt“ (älteste oben); die früheren hinter einem leisen Link – wie in der Kleinprobe */
+const LS_ZULETZT = 3;
+function lsZuletzt(zuletzt) {
+  const zeile = z => lsZeile(z, [z.wer, seit(z.zeit_utc)].filter(Boolean).join(" · "));
+  const frueher = zuletzt.slice(0, Math.max(0, zuletzt.length - LS_ZULETZT)), linie = el("div", { class: "ls-linie" });
+  const mehr = frueher.length ? el("button", { type: "button", class: "verweis ls-frueher", onclick: () => { mehr.remove(); linie.prepend(...frueher.map(zeile)); } },
+    t("lst_frueher_n", { n: frueher.length })) : null;
+  linie.append(...[mehr, ...zuletzt.slice(-LS_ZULETZT).map(zeile)].filter(Boolean));
+  return linie;
+}
+function lsAblauf(l) {
+  if (!l) return el("section", { class: "ls-block ls-platz" }, el("div", { class: "leise" }, t("lst_laedt")));
+  const zuletzt = l.zuletzt || [], jetzt = l.jetzt || [], naechst = l.als_naechstes || [];
+  return el("section", { class: "ls-ablauf" },
+    zuletzt.length ? el("div", {}, el("h2", { class: "ls-lbl" }, t("lst_zuletzt")), lsZuletzt(zuletzt)) : null,
+    el("h2", { class: "ls-lbl ls-jetzt" }, t("lst_jetzt", { x: lsUhr(new Date().toISOString()), n: jetzt.length })),
+    jetzt.length ? el("div", { class: "ls-raster" }, jetzt.map(lsJetztKarte)) : el("p", { class: "leise" }, t("lst_nichts_laeuft")),
+    naechst.length ? el("div", {}, el("h2", { class: "ls-lbl" }, t("lst_naechstes")),
+      el("div", { class: "ls-linie" }, naechst.map(g => g.pakete.length > 1
+        ? el("div", { class: "ls-gleichzeitig" }, el("div", { class: "leise" }, t("lst_gleichzeitig", { x: lsUhr(g.start_utc) })),
+            el("div", { class: "ls-raster" }, g.pakete.map(p => lsZeile(p, [p.wer || t("lst_frei_paket"), lsDauer(p.dauer_min)].join(" · "), lsWartet(p)))))
+        : lsZeile(g.pakete[0], [g.pakete[0].wer || t("lst_frei_paket"), lsDauer(g.pakete[0].dauer_min), t("lst_ab", { x: lsUhr(g.start_utc) }),
+            g.pakete[0].wartet_auf ? t("lst_nach", { x: g.pakete[0].wartet_auf }) : null].filter(Boolean).join(" · "), lsWartet(g.pakete[0])))),
+      el("a", { class: "verweis", href: "#projektweg", onclick: e => { e.preventDefault(); zeige("projektweg"); } }, t("lst_ganze_reihenfolge"))) : null);
+}
+function lsZeitplan(l) {
+  const z = l?.zeitplan || [];
+  if (!z.length) return null;
+  const tag = x => Date.parse(x + "T12:00:00Z"), von = Math.min(...z.map(m => tag(m.start || m.p50))),
+    bis = Math.max(...z.map(m => Math.max(tag(m.p85 || m.p50), m.ziel ? tag(m.ziel) : 0))), weit = Math.max(1, bis - von);
+  const pos = x => `${Math.round(100 * (tag(x) - von) / weit)}%`;
+  return el("section", { class: "ls-block" }, el("h2", { class: "ls-lbl" }, t("lst_zeitplan")),
+    el("div", { class: "ls-zeitplan" }, z.map(m => el("div", { class: "ls-zp-zeile" },
+      el("span", {}, `M${m.nr} ${m.titel}`),
+      el("span", { class: "ls-zp-spur" },
+        el("i", { class: m.verzug_tage > 0 ? "ueber" : "", style: `left:${pos(m.start || m.p50)};width:calc(${pos(m.p50)} - ${pos(m.start || m.p50)} + 4px)` }),
+        m.ziel ? el("b", { title: t("lst_ziel", { x: datumKurz(m.ziel) }), style: `left:${pos(m.ziel)}` }) : null),
+      el("span", { class: "leise" }, m.bereit ? t("lst_bereit") : [datumKurz(m.p50), m.verzug_tage == null ? null : m.verzug_tage > 0
+        ? t("lst_spaeter", { n: m.verzug_tage }) : m.verzug_tage < 0 ? t("lst_frueher", { n: -m.verzug_tage }) : t("lst_wie_geplant")].filter(Boolean).join(" · "))))));
+}
+function lsEntscheidungen(l) {
+  const e = l?.entscheidungen || [];
+  if (!e.length) return null;
+  return el("section", { class: "ls-block" }, el("h2", { class: "ls-lbl" }, t("lst_entscheidungen")),
+    el("div", { class: "ls-entscheidungen" }, e.map(x => el("button", { type: "button", class: "ls-ent", "data-ref": x.nummer || "",
+      onclick: () => x.projekt === (projekte.find(p => p.uid === projekt) || {}).name ? lsKarteOeffnen(x) : lsFenster(x.projekt, [[t("lst_wann"), zeit(x.zeit_utc)]], el("p", {}, x.text)) },
+      el("span", { class: "mono leise" }, lsUhr(x.zeit_utc)), el("span", { class: "leise" }, x.projekt), el("span", {}, x.text)))));
+}
+function lsLeer(l, pw) {                            /* neues Projekt ohne Pakete (Themen aus dem Projektweg) · alles fertig */
+  const f = l?.fortschritt;
+  if (!f || f.gesamt) return null;
+  const fertig = (l.zeitplan || []).length === 0 && (l.zuletzt || []).length > 0, k = pw?.konzept;
+  return el("div", { class: "ls-leer" }, el("b", {}, t(fertig ? "lst_leer_fertig" : "lst_leer_neu")
+      + (!fertig && k?.g ? " " + t("lst_themen_n", { n: k.n, g: k.g }) : "")),
+    fertig ? null : el("a", { class: "verweis", href: "#projektweg", onclick: e => { e.preventDefault(); zeige("projektweg"); } }, t("lst_zum_konzept")));
+}
+async function lsProjektdetails(d) {
+  const l = zustand.leitstand?.daten, f = l?.fortschritt, u = d.uebersicht || {};
+  const felder = [[t("lst_erledigt"), f ? t("lst_von_paketen", { f: f.fertig, g: f.gesamt }) : null],
+    [t("lst_voraus"), f?.p50 ? `${datumKurz(f.p50)} – ${datumKurz(f.p85)}` : null], [t("lst_ziel_k"), f?.ziel ? datumKurz(f.ziel) : null],
+    [t("lst_fragen_offen"), String(d.fragen_anzahl ?? 0)], u.kosten_heute != null ? [t("lst_kosten_heute"), dollar(u.kosten_heute)] : null];
+  let pw = null; try { pw = await holen("/api/projektweg"); } catch (e) {}   /* nur beim Öffnen – kostet die Startseite nichts */
+  const schritt = pw?.schritte?.find(s => s.schritt === pw.dran), k = pw?.konzept;
+  felder.push(schritt ? [t("lst_schritt"), t("pjw_s_" + schritt.schritt)] : null, k?.g ? [t("lst_themen"), t("lst_themen_frei", { n: k.n, g: k.g })] : null);
+  const termine = (l?.zeitplan || []).map(m => [`M${m.nr} ${m.titel}`, (m.ziel ? t("lst_ziel", { x: datumKurz(m.ziel) }) + " · " : "") + t("lst_fertig_vor", { x: datumKurz(m.p50) })]);
+  lsFenster(t("lst_details"), felder, termine.length ? el("div", {}, el("h4", {}, t("lst_termine")),
+    el("div", { class: "pjw-felder" }, termine.flatMap(([k, v]) => [el("span", {}, k), el("span", {}, v)]))) : null,
+    el("a", { class: "verweis", href: "#projektweg", onclick: e => { e.preventDefault(); document.getElementById("ls-fenster")?.remove(); zeige("projektweg"); } }, t("lst_zum_projektweg")));
+}
+/* Bänder (Halt, Dienst, Bildschirm, nächster Test, nicht angemeldet, Achtung): nur bei Anlass – wie bisher, aus startBaender */
+async function sichtLeitstand(d, m) {
+  const fort = el("div", { class: "ls-fort-platz" }, lsFortschritt(null)), leer = el("div"), ress = el("div", {}, lsRessourcen(d, null));
+  const ablauf = el("div", {}, lsAblauf(null)), rest = el("div");
+  m.append(fort, leer, uebersichtKarten(d), lsAgenten(d) || "", ress, ablauf, rest);
+  let l = null;
+  try { l = await lsDaten(d); } catch (e) { ablauf.replaceChildren(el("p", { class: "leise" }, t("fehler", { x: e.message || e }))); return; }
+  if (zustand.sicht !== "start") return;
+  let pw = null;                                    /* nur ohne Pakete: der Projektweg nennt die Themen (x von y) */
+  if (!l.fortschritt?.gesamt) { try { pw = await holen("/api/projektweg"); } catch (e) {} }
+  if (zustand.sicht !== "start") return;
+  fort.replaceChildren(...(l.fortschritt?.gesamt ? [lsFortschritt(l.fortschritt)] : []));
+  leer.replaceChildren(...[lsLeer(l, pw)].filter(Boolean));
+  ress.replaceChildren(lsRessourcen(d, l));
+  ablauf.replaceChildren(lsAblauf(l));
+  rest.replaceChildren(...[lsZeitplan(l), lsEntscheidungen(l)].filter(Boolean));
+}
 /* A2159 (Abschlussprüfung M16, D1994; Probe D1481 v4): die vorhandenen Eingriffe als Knöpfe – ohne neue Logik, die Grenzen rechnet
    die AMW (paket_schieben, herausnehmen, zwischenpruefung, pause). Paket: Früher/Später mit der gesperrten Stelle und ihrem Grund,
    Prüfpunkt „Marcel testet“ dahinter bzw. wegnehmen (in aufgabeDialog). Agent: herausnehmen mit Vorschau der Folgen, wieder freigeben
@@ -7812,6 +8003,253 @@ function pauseDialog() {
       el("button", { class: "knopf", type: "button", onclick: () => hg.remove() }, t("abbrechen"))));
   grund.focus();
   return hg;
+}
+/* A2011 (Kleinprobe A2007, D1481 v4, TH156): Unteransichten im Projektweg – Schritt 3 · Feinplanung „Feinplan · Gesamtplan“,
+   Schritt 4 · Umsetzung „Pakete · Reihenfolge · Zeitplan“. „Feinplan“ und „Pakete“ sind die bisherigen Ansichten (pwFein,
+   pwUmsetzung). Reihenfolge und Zeitplan rechnet /api/zeitplan (A2045), der Gesamtplan nimmt die Meilensteine des Projektwegs und
+   die Prognose je Meilenstein aus /api/leitstand. Beides wird erst beim Öffnen des Reiters geholt. */
+const PW_REITER = { 2: ["feinplan", "gesamtplan"], 3: ["pakete", "reihenfolge", "zeitplan"] };
+const PW_REIHE_ERST = 14;
+/* A2011 (Lead #34150): eigene Adressen der drei Ansichten – Schritt (Index wie PW_SCHRITTE) und Reiter */
+const PW_ADRESSEN = { reihenfolge: [3, "reihenfolge"], zeitplan: [3, "zeitplan"], gesamtplan: [2, "gesamtplan"] };
+function pwAdresse(sicht) {
+  const [schritt, wahl] = PW_ADRESSEN[sicht];
+  zustand.pwSicht = schritt; zustand.pwOffen = true; zustand.pwReiter = { ...(zustand.pwReiter || {}), [schritt]: wahl };
+  pwStand = null;
+  return zeige("projektweg");
+}                         /* so viele Pakete „als Nächstes“, der Rest hinter „n weitere“ */
+function pwReiterWahl(v) {
+  const r = PW_REITER[v];
+  if (!r) return null;
+  const w = (zustand.pwReiter || {})[v];
+  return r.includes(w) ? w : r[0];
+}
+function pwMitReitern(v, d) {
+  const alt = [pwKonzept, pwGrob, pwFein, pwUmsetzung, pwAbschluss][v];
+  const r = PW_REITER[v];
+  if (!r) return alt(d);
+  const wahl = pwReiterWahl(v);
+  const reiter = el("div", { class: "pjw-seg", role: "tablist" }, r.map(k => el("button", { type: "button", role: "tab", "data-reiter": k,
+    class: k === wahl ? "an" : "", "aria-selected": k === wahl ? "true" : "false",
+    onclick: () => { zustand.pwReiter = { ...(zustand.pwReiter || {}), [v]: k }; pwStand = null; zeige("projektweg", true); } }, t("pjw_t_" + k))));
+  if (wahl === r[0]) return [reiter, ...alt(d)];
+  const platz = el("div", { class: "pjw-unter", "data-ansicht": wahl }, el("div", { class: "sehrleise" }, t("pjw_laedt")));
+  (wahl === "gesamtplan" ? pwGesamtplan(d) : pwZeitplanDaten().then(z => wahl === "reihenfolge" ? pwReihenfolge(d, z) : pwZeitplan(d, z)))
+    .then(x => platz.replaceChildren(...[].concat(x)))
+    .catch(e => platz.replaceChildren(el("div", { class: "leer" }, t("fehler", { x: e.message || e }))));
+  return [reiter, platz];
+}
+async function pwZeitplanDaten() { return holen("/api/zeitplan"); }
+/* Pakete aller Meilensteine des Projektwegs: Nummer → {status, bogen-Nr} – für M… und „blockiert“ */
+function pwPaketInfo(d) {
+  const info = {};
+  for (const m of [...(d.fein?.meilensteine || []), ...(d.umsetzung?.meilensteine || [])])
+    for (const p of m.pakete || []) info[p.id] = { status: p.status, nr: m.nr, aktiv: m.status === "aktiv" };
+  return info;
+}
+const pwWoTag = iso => new Date(iso).toLocaleString(gebiet(), { weekday: "short", hour: "2-digit", minute: "2-digit" });
+const pwChip = (text, art) => el("span", { class: "pjw-chip-s" + (art ? " " + art : "") }, text);
+/* Reihenfolge: was läuft und was als Nächstes kommt, in der Reihenfolge des Zeitplans */
+/* nur Pakete aktiver Meilensteine – was erst geplant ist, kommt nicht gleich (wie im Leitstand, Lead #34119) */
+const pwNurAktiv = (info, z) => (z.pakete || []).filter(p => info[p.aid]?.aktiv);
+function pwReihenfolge(d, z) {
+  const info = pwPaketInfo(d), pakete = pwNurAktiv(info, z);
+  const zeile = (p, i) => {
+    const s = info[p.aid]?.status, blockiert = s === "blockiert", ohne = !!p.hinweis;
+    return el("button", { type: "button", class: "pjw-rf-zeile", "data-ref": `A${p.aid}`, onclick: () => aufgabeDialog(p.aid) },
+      el("span", { class: "sehrleise" }, String(i + 1)), el("span", { class: "leise" }, info[p.aid] ? `M${info[p.aid].nr}` : ""),
+      el("span", { class: "pjw-rf-titel" }, p.titel),
+      el("span", { class: "leise" }, p.art === "headless" ? "Headless" : (p.agent || t("pjw_ohne_agent"))),
+      el("span", { class: "leise" }, blockiert || ohne ? "–" : t(p.zustand === "laeuft" ? "pjw_bis" : "pjw_ab", { x: pwWoTag(p.zustand === "laeuft" ? p.ende_utc : p.start_utc) })),
+      p.zustand === "laeuft" ? pwChip(t("laeuft"), "an") : blockiert ? pwChip(t("blockiert"), "bernstein") : pwChip(t("pjw_wartet")));
+  };
+  const laeuft = pakete.filter(p => p.zustand === "laeuft"), danach = pakete.filter(p => p.zustand !== "laeuft");
+  if (!pakete.length) return el("div", { class: "leer" }, t("pjw_rf_leer"));
+  const liste = el("div", { class: "pjw-rf" }, danach.slice(0, PW_REIHE_ERST).map((p, i) => zeile(p, laeuft.length + i)));
+  const mehr = danach.length > PW_REIHE_ERST ? el("button", { type: "button", class: "knopf", onclick: () => {
+    liste.append(...danach.slice(PW_REIHE_ERST).map((p, i) => zeile(p, laeuft.length + PW_REIHE_ERST + i))); mehr.remove(); } },
+    t("pjw_n_weitere", { n: danach.length - PW_REIHE_ERST })) : null;
+  return [laeuft.length ? el("div", { class: "pjw-lbl" }, t("pjw_rf_laeuft", { n: laeuft.length })) : null,
+    laeuft.length ? el("div", { class: "pjw-rf" }, laeuft.map(zeile)) : null,
+    danach.length ? el("div", { class: "pjw-lbl" }, t("pjw_rf_naechstes", { n: danach.length })) : null, liste, mehr].filter(Boolean);
+}
+/* Zeitplan: je Agent bzw. Headless-Platz eine Spur, Balken von Start bis Ende; was keine Zeit hat (blockiert, ohne Agent oder
+   Platz), steht rechts unter „ohne Zeit“. Kurze Balken ohne Text – der Titel kommt beim Darüberfahren und im Dialog. */
+function pwZeitplan(d, z) {
+  const info = pwPaketInfo(d), pakete = pwNurAktiv(info, z);
+  if (!pakete.length) return el("div", { class: "leer" }, t("pjw_rf_leer"));
+  const mitZeit = pakete.filter(p => !p.hinweis && info[p.aid]?.status !== "blockiert"), ohne = pakete.filter(p => !mitZeit.includes(p));
+  const von = Math.min(Date.parse(z.jetzt), ...mitZeit.map(p => Date.parse(p.start_utc))), bis = Math.max(von + 3600e3, ...mitZeit.map(p => Date.parse(p.ende_utc)));
+  const pos = iso => 100 * (Date.parse(iso) - von) / (bis - von);
+  const spuren = {};
+  for (const p of mitZeit) (spuren[p.art === "headless" ? "Headless" : (p.agent || "–")] ??= []).push(p);
+  const stunden = [];
+  for (let h = Math.ceil(von / 7200e3) * 7200e3; h < bis; h += 7200e3) stunden.push(h);
+  const achse = el("div", { class: "pjw-zp-achse" }, stunden.map(h => el("span", { style: `left:${100 * (h - von) / (bis - von)}%` },
+    new Date(h).toLocaleTimeString(gebiet(), { hour: "2-digit" }))), el("i", { class: "pjw-zp-jetzt", style: `left:${pos(z.jetzt)}%` }));
+  const balken = p => el("button", { type: "button", class: "pjw-zp-balken" + (p.zustand === "laeuft" ? " laeuft" : ""), title: `A${p.aid} ${p.titel}`,
+    "data-ref": `A${p.aid}`, style: `left:${pos(p.start_utc)}%;width:${Math.max(0.6, pos(p.ende_utc) - pos(p.start_utc))}%`, onclick: () => aufgabeDialog(p.aid) },
+    el("span", {}, p.titel));
+  const zeilen = Object.entries(spuren).map(([wer, ps]) => {           /* Headless: so viele Reihen wie gleichzeitig laufen */
+    const reihen = [];
+    for (const p of ps.sort((a, b) => a.start_utc.localeCompare(b.start_utc))) {
+      const r = reihen.find(x => x.ende <= p.start_utc) || (reihen.push({ ende: "", ps: [] }), reihen[reihen.length - 1]);
+      r.ps.push(p); r.ende = p.ende_utc;
+    }
+    return el("div", { class: "pjw-zp-zeile" }, el("b", {}, wer), el("div", { class: "pjw-zp-spuren" }, reihen.map(r => el("div", { class: "pjw-zp-spur" }, r.ps.map(balken)))));
+  });
+  const rechts = el("div", { class: "pjw-zp-ohne" }, el("div", { class: "pjw-lbl" }, t("pjw_ohne_zeit")),
+    ohne.length ? ohne.map(p => el("button", { type: "button", class: "pjw-zp-ohne-k" + (info[p.aid]?.status === "blockiert" ? " bernstein" : ""),
+      "data-ref": `A${p.aid}`, title: p.hinweis || t("blockiert"), onclick: () => aufgabeDialog(p.aid) }, el("span", { class: "pjw-zp-ohne-t" }, p.titel))) : el("div", { class: "sehrleise" }, "–"));
+  const zp = el("div", { class: "pjw-zp" }, el("div", { class: "pjw-zp-links" }, el("div", { class: "pjw-zp-kopf" }, el("span"), achse), ...zeilen), rechts);
+  requestAnimationFrame(() => zp.querySelectorAll(".pjw-zp-balken").forEach(b => { if (b.clientWidth < 80) b.querySelector("span").textContent = ""; }));
+  return zp;
+}
+/* Gesamtplan: alle Meilensteine mit Status, Fortschritt und Prognose; offene zuerst (jüngste oben), aufklappbar bis zu den offenen
+   Paketen; abgenommene eingeklappt unten. */
+async function pwGesamtplan(d) {
+  let prognose = {};
+  try { prognose = Object.fromEntries(((await holen("/api/leitstand")).zeitplan || []).map(m => [m.nr, m])); } catch (e) {}
+  const bei = Object.fromEntries((d.abschluss || []).map(a => [a.nr, a]));
+  const ms = [...(d.fein?.meilensteine || [])].sort((a, b) => b.nr - a.nr);
+  const offen = ms.filter(m => m.status !== "fertig"), fertig = ms.filter(m => m.status === "fertig");
+  const status = m => bei[m.nr]?.bei_dir ? pwChip(t("pjw_wartet_dich"), "bernstein") : pwChip(t("pjw_gs_" + (m.status === "aktiv" ? "arbeit" : m.status)));
+  const fort = m => { const n = (m.pakete || []).length, f = (m.pakete || []).filter(p => p.status === "fertig").length;
+    return el("span", { class: "pjw-gs-fort" }, el("span", { class: "pjw-balken" }, el("span", { style: `width:${n ? Math.round(100 * f / n) : 0}%` })), t("pjw_f_von_n", { f, n })); };
+  /* Lead #34203: ein geplanter Meilenstein hat kein Datum – er wartet auf die Freigabe, sonst läse es sich wie „kommt übermorgen“ */
+  const prog = m => { if (m.status === "geplant") return t("pjw_gs_nach_freigabe");
+    const p = prognose[m.nr]; return p ? datumKurz(p.p50) : m.status === "aktiv" ? t("pjw_gs_offen") : "–"; };
+  const zeile = m => {
+    const pakete = (m.pakete || []).filter(p => p.status !== "fertig");
+    const kopf = [el("span", { class: "pjw-gs-name" }, `M${m.nr} ${m.titel}`), status(m), fort(m), el("span", { class: "pjw-gs-prog" }, prog(m))];
+    return pakete.length ? el("details", { class: "pjw-gs-m", "data-nr": m.nr }, el("summary", { class: "pjw-gs-zeile" }, ...kopf),
+        pakete.map(p => el("button", { type: "button", class: "pjw-gs-zeile pjw-gs-paket", "data-ref": `A${p.id}`, onclick: () => aufgabeDialog(p.id) },
+          el("span", { class: "pjw-gs-name" }, p.titel), pwChip(t(p.status === "laeuft" ? "laeuft" : p.status === "blockiert" ? "blockiert" : "pjw_wartet"), p.status === "laeuft" ? "an" : ""),
+          el("span", { class: "leise" }, p.wer || p.agent || t("pjw_ohne_agent")), el("span"))))
+      : el("div", { class: "pjw-gs-m pjw-gs-zeile", "data-nr": m.nr }, ...kopf);
+  };
+  return el("div", { class: "pjw-gs" }, el("div", { class: "pjw-gs-zeile pjw-gs-titel" }, ...["pjw_gs_meilenstein", "pjw_gs_status", "pjw_gs_fortschritt", "pjw_gs_prognose"].map(k => el("span", {}, t(k)))),
+    ...offen.map(zeile),
+    fertig.length ? el("details", { class: "pjw-gs-m pjw-gs-alt" }, el("summary", { class: "pjw-gs-zeile" }, el("span", { class: "pjw-gs-name" }, t("pjw_gs_abgenommen", { n: fertig.length })),
+      el("span"), el("span", { class: "leise" }, t("pjw_gs_pakete", { n: fertig.reduce((s, m) => s + (m.pakete || []).length, 0) })), el("span")),
+      fertig.map(m => el("div", { class: "pjw-gs-zeile pjw-gs-paket", "data-nr": m.nr }, el("span", { class: "pjw-gs-name" }, `M${m.nr} ${m.titel}`), pwChip(t("pjw_gs_fertig")), fort(m), el("span")))) : null);
+}
+/* --- A2014: Kopfzeile nach Kleinprobe A2010 (D1904/D1905, TL #33873) – Projektwechsel mit „für dich“, Gesamtsicht über alle Projekte,
+   Suche über alles beim Tippen: erst das eigene Projekt, dann die anderen; eine Nummer findet das Ding selbst, ein Klick öffnet es (A2115).
+   Keine Tor-Leiste, keine zweite Statusleiste; Farbe nur am Zähler „für dich“. --------------------------------------------------- */
+function kzKnopf() {
+  const p = projekte.find(x => x.uid === projekt);
+  if (p) projektwahlZeigen(p);
+}
+
+/* Gesamtsicht (#projekte): je Projekt eine Karte – für dich, Meilenstein und Pakete, Balken, Prognose mit Verzug, wer arbeitet.
+   Online gibt es nur die Projektliste (ohne Fortschritt): dann Name und „für dich“. Klick wechselt ins Projekt (Leitstand). */
+async function sichtProjekte() {
+  const m = rahmen(t("kz_alle")), nr = wechselNr;                           /* rahmen zählt den Wechsel selbst */
+  let d = null;
+  try { d = await abrufen("/api/gesamtsicht"); } catch (e) { d = null; }
+  if (nr !== wechselNr) return;
+  const liste = d?.projekte || projekte.map(p => ({ ...p, fuer_dich: p.fuer_dich ?? p.fragen, fortschritt: null }));
+  if (!liste.length) { m.append(el("div", { class: "leer" }, t("kz_keine"))); return; }
+  m.append(el("div", { class: "kz-karten" }, liste.map(kzKarte)));
+}
+function kzKarte(p) {
+  const f = p.fortschritt, ms = p.meilensteine || [], vor = projekte.find(x => x.uid === p.uid) || p;
+  const zeile1 = !f ? (vor.fern ? t("kz_fern") : null)
+    : !ms.length ? t("kz_ms_keiner")
+    : f.gesamt && f.fertig === f.gesamt ? t(ms.length === 1 ? "kz_ms1_alle" : "kz_ms_n_alle", { m: ms[0], n: ms.length, b: f.gesamt })
+    : t(ms.length === 1 ? "kz_ms1" : "kz_ms_n", { m: ms[0], n: ms.length, a: f.fertig, b: f.gesamt });
+  const bereit = f && f.gesamt > 0 && f.fertig === f.gesamt;
+  const prog = !f ? null : bereit ? t("kz_bereit") : f.p50 ? t("kz_fertig_etwa", { d: datumKurz(f.p50) }) + (f.verzug_tage > 0 ? t("kz_spaeter", { n: f.verzug_tage }) : "") : null;
+  const wer = !f ? null : p.arbeiten ? t(p.arbeiten === 1 ? "kz_arbeitet1" : "kz_arbeiten", { n: p.arbeiten }) : t("kz_nichts_laeuft");
+  const oeffnen = () => {
+    if (p.uid === projekt) return zeige("start");
+    if (vor.fern) { if (vor.online) window.open(vor.online, "_blank", "noopener"); else toast(t("pw_fern_ohne_link"), true); return; }
+    try { localStorage.setItem(`amw-sicht:${p.uid}`, "start"); } catch (e) {}     /* aus der Gesamtsicht in den Leitstand des Projekts */
+    projektWechseln(p.uid);
+  };
+  return el("button", { class: "kz-karte", type: "button", "data-uid": p.uid, onclick: oeffnen },
+    el("div", { class: "kz-oben" }, el("i", { style: `background:${farbe(vor)}` }), el("b", {}, p.name, vor.fern ? " ↗" : ""),
+      p.fuer_dich ? el("span", { class: "kz-zahl" }, t("kz_fuer_dich", { n: p.fuer_dich })) : null),
+    zeile1 ? el("div", { class: "kz-zl" }, zeile1) : null,
+    f && f.gesamt ? el("div", { class: "kz-balken" }, el("i", { style: `width:${f.prozent}%` })) : null,
+    prog || wer ? el("div", { class: "kz-zl" }, [prog, wer].filter(Boolean).join(" · ")) : null);
+}
+
+/* Suche beim Tippen: Treffer unter dem Feld, gruppiert „In <Projekt>“ / „Andere Projekte“; leeres Feld: zuletzt gesucht.
+   Enter öffnet die ganze Trefferliste wie bisher (suchen). */
+const KZ_ZULETZT = 3;
+let kzSuchNr = 0, kzAuswahl = -1;
+const kzZuletzt = () => { try { return JSON.parse(localStorage.getItem("amw-zuletzt-gesucht") || "[]"); } catch (e) { return []; } };
+function kzMerken(q) {
+  const l = [q, ...kzZuletzt().filter(x => x.toLowerCase() !== q.toLowerCase())].slice(0, KZ_ZULETZT);
+  try { localStorage.setItem("amw-zuletzt-gesucht", JSON.stringify(l)); } catch (e) {}
+}
+function kzZu() { $("#kz-treffer")?.remove(); kzAuswahl = -1; }
+function kzKasten() {
+  let k = $("#kz-treffer");
+  if (!k) { k = el("div", { id: "kz-treffer", class: "kz-treffer", role: "listbox" }); document.body.append(k); }
+  const r = $("#suche").getBoundingClientRect();
+  k.style.top = Math.round(r.bottom + 6) + "px";
+  if (window.matchMedia("(max-width: 760px)").matches) { k.style.left = "12px"; k.style.right = "12px"; k.style.width = ""; }
+  else { k.style.right = Math.max(12, Math.round(window.innerWidth - r.right)) + "px"; k.style.left = ""; }
+  return k;
+}
+const kzMark = (text, q) => {                              /* das Gesuchte fett – als Element, nie als HTML */
+  const s = String(text || ""), i = q ? s.toLowerCase().indexOf(q.toLowerCase()) : -1;
+  return i < 0 ? [s] : [s.slice(0, i), el("mark", {}, s.slice(i, i + q.length)), s.slice(i + q.length)];
+};
+const kzWort = z => z && TEXTE.de["kz_s_" + z] ? t("kz_s_" + z) : "";
+function kzOeffnen(x, q) {
+  kzMerken(q); kzZu();
+  if (!x.projekt || x.projekt === projekt) return refOeffnen(x.ref, x.aufgabe);
+  try { sessionStorage.setItem("amw-oeffnen", x.ref); } catch (e) {}            /* nach dem Wechsel öffnet die Seite das Ding */
+  projektWechseln(x.projekt);
+}
+async function kzSuchen() {
+  const q = $("#suche").value.trim(), k = kzKasten(), nr = ++kzSuchNr;
+  if (q.length < 2) {
+    const l = kzZuletzt();
+    if (!l.length) return kzZu();
+    k.replaceChildren(el("div", { class: "kz-gr" }, t("kz_zuletzt")), ...l.map(x => el("button", { class: "kz-tr", type: "button",
+      onclick: () => { $("#suche").value = x; kzSuchen(); $("#suche").focus(); } }, el("span", { class: "ref" }, "⌕"), el("span", {}, x))));
+    return;
+  }
+  let l;
+  try { l = await abrufen("/api/suche?alle=1&q=" + encodeURIComponent(q)); } catch (e) { if (nr === kzSuchNr) k.replaceChildren(el("div", { class: "kz-leer" }, String(e.message || e))); return; }
+  if (nr !== kzSuchNr || !$("#kz-treffer")) return;                             /* inzwischen weitergetippt oder geschlossen */
+  if (!l.length) { k.replaceChildren(el("div", { class: "kz-leer" }, t("nichts_gefunden"))); return; }
+  const name = projekte.find(x => x.uid === projekt)?.name || "";
+  const zeile = (x, fremd) => el("button", { class: "kz-tr", type: "button", role: "option", "data-ref": x.ref, onclick: () => kzOeffnen(x, q) },
+    el("span", { class: "ref" }, ...kzMark(x.ref, q)), el("span", { class: "kz-titel" }, ...kzMark(x.titel, q)),
+    el("span", { class: "kz-wo" }, [t("sa_" + x.art), kzWort(x.zusatz), fremd ? x.projekt_name : ""].filter(Boolean).join(" · ")));
+  const eigen = l.filter(x => !x.projekt), andere = l.filter(x => x.projekt);
+  k.replaceChildren(...(eigen.length ? [el("div", { class: "kz-gr" }, t("kz_in", { x: name })), ...eigen.slice(0, 12).map(x => zeile(x, false))] : []),
+    ...(andere.length ? [el("div", { class: "kz-gr" }, t("kz_andere")), ...andere.slice(0, 8).map(x => zeile(x, true))] : []));
+  kzAuswahl = -1;
+}
+(() => {
+  const s = $("#suche");
+  let warte = null;
+  s.addEventListener("input", () => { clearTimeout(warte); warte = setTimeout(kzSuchen, 180); });
+  s.addEventListener("focus", () => kzSuchen());
+  s.addEventListener("keydown", e => {
+    const zeilen = [...document.querySelectorAll("#kz-treffer .kz-tr")];
+    if (e.key === "Escape") { kzZu(); s.blur(); return; }
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && zeilen.length) {
+      e.preventDefault(); kzAuswahl = (kzAuswahl + (e.key === "ArrowDown" ? 1 : -1) + zeilen.length) % zeilen.length;
+      zeilen.forEach((z, i) => z.classList.toggle("an", i === kzAuswahl)); zeilen[kzAuswahl].scrollIntoView({ block: "nearest" }); return;
+    }
+    if (e.key === "Enter" && kzAuswahl >= 0 && zeilen[kzAuswahl]) { e.preventDefault(); e.stopImmediatePropagation(); zeilen[kzAuswahl].click(); return; }
+    if (e.key === "Enter" && s.value.trim().length > 1) { kzMerken(s.value.trim()); kzZu(); }   /* die ganze Liste (suchen) */
+  });
+  document.addEventListener("click", e => { if (!e.target.closest("#kz-treffer, #suche")) kzZu(); });
+  window.addEventListener("resize", () => { if ($("#kz-treffer")) kzKasten(); });
+})();
+/* nach einem Wechsel aus der Suche: das gefundene Ding im neuen Projekt öffnen */
+async function kzNachWechsel() {
+  let ref = null; try { ref = sessionStorage.getItem("amw-oeffnen"); sessionStorage.removeItem("amw-oeffnen"); } catch (e) {}
+  if (ref) await refOeffnen(ref);
 }
 </script>
 </body>
