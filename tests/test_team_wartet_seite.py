@@ -25,22 +25,18 @@ class TeamWartet(Rundgang):
             db.einfuegen(self.con, "wartegrund", projekt_id=self.pid, aufgabe_id=self.frage_aufgabe, art="frage", bezug=f"F{fid}",
                          angelegt_utc=db.jetzt(), angelegt_von="TL")
 
-    BAUM = "[...document.querySelectorAll('.tm-schalter button')][0].click()"
-    BEREIT = "document.querySelector('#team')"
+    BEREIT = "document.querySelector('#team [data-k=CCamw]')"
 
     def karte(self, k):
-        return self.tab.js(f"document.querySelector('.tm-knoten[data-k={k}] .tm-wer').textContent")
+        return self.tab.js(f"document.querySelector('#team [data-k={k}]').innerText")
 
     def test_etikett_je_karte(self):
+        """A2006: die Kachel der Agenten-Leiste nennt, auf wen ein Agent wartet – den Lead beim Namen, den Menschen als „dich“."""
         self.oeffnen("start", self.BEREIT)
-        self.tab.js(self.BAUM)
-        self.warten("document.querySelector('.tm-baum .tm-knoten[data-k=CCamw]')")
         self.assertIn("wartet auf TL", self.karte("CCamw"))
         self.assertNotIn("wartet auf dich", self.karte("CCamw"))
         self.assertIn("wartet auf dich", self.karte("CCamw2"))
-        self.assertTrue(self.tab.js("!!document.querySelector('.tm-knoten[data-k=CCamw] .tm-auf-andere')"))
 
     def test_rundgang(self):
         self.ueberall("start", "team-wartet", bereit=self.BEREIT,
-                      tun=self.BAUM + "; document.getElementById('team').scrollIntoView({block: 'start'})",
-                      danach="document.querySelector('.tm-baum .tm-knoten[data-k=CCamw]')")
+                      tun="document.getElementById('team').scrollIntoView({block: 'start'})", danach=self.BEREIT)

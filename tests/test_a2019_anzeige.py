@@ -50,18 +50,17 @@ class TeamSeite(Rundgang):
         aid = kern.aufgabe_neu(self.con, self.pid, "TL", "Lauf-Schlange mit Zeitfenster", agent="CC1")
         kern.posten(self.con, self.pid, "Co", "TL", "info", f"A{aid} freigegeben", aufgabe_id=aid)
 
-    NAME = "[...document.querySelectorAll('#team .tm-name')].map(e => e.textContent).join('|')"
+    NAME = "[...document.querySelectorAll('#team .ls-agent')].map(e => e.innerText.replace(/\\s+/g, ' ')).join('|')"
 
     def test_team_zeigt_co_entwickler_ohne_fremde_aufgabe(self):
         for g in ("pc", "handy"):
             for th in ("hell", "dunkel"):
-                self.assertEqual(self.besuchen("start", "team-a2019", bereit="document.querySelector('#team .tm-name')", g=g, t=th,
+                self.assertEqual(self.besuchen("start", "team-a2019", bereit="document.querySelector('#team .ls-agent')", g=g, t=th,
                                                tun="document.querySelector('#team').scrollIntoView()", danach="true"), [], f"{g} {th}")   # Bild zeigt das Team
-                self.assertIn("Co-Entwickler Co", self.tab.js(self.NAME))
+                self.assertIn("Co Co-Entwickler", self.tab.js(self.NAME))                    # A2006: Name, darunter die Rolle
                 co = "[...document.querySelectorAll('#team [data-k=\"Co\"]')].map(e => e.textContent).join(' ')"
                 self.assertNotIn("Lauf-Schlange", self.tab.js(co))                            # nicht „arbeitet an A…“
-                cc1 = "[...document.querySelectorAll('#team [data-k=\"CC1\"] .tm-liste-n')].map(e => e.textContent).join(' ')"
-                self.assertIn("Arbeitsliste: 1", self.tab.js(cc1))                           # (3) nicht als „Plätze 1/1“ lesbar
+                self.assertNotIn("Plätze", self.tab.js("document.querySelector('#team').innerText"))   # (3) nie als „Plätze 1/1“ lesbar
         self.groesse("pc")
         self.tab.js("agentDialog('Co')")
         self.warten("document.querySelector('.agent-kopf h3')")

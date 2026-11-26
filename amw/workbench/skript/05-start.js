@@ -92,57 +92,13 @@ function uebersichtKarten(d) {
       aelterIds.length ? el("button", { class: "klein-knopf", type: "button", onclick: async () => {
         try { await schicken("/api/gelesen", { ids: aelterIds }); kopfAktualisieren(); zeige("start", true); } catch (x) { toast(t("fehler", { x: x.message }), true); } } },
         t("an_dich_alt_weg")) : null) : null);
-  /* Läuft gerade */
-  const aktiv = (d.agenten || []).filter(a => a.zustand === "aktiv");
-  const laeufe = u.laeufe || [], r = d.rechner || {}, fremd = Math.max(0, (r.warten || 0) - (r.eigene_warten || 0));
-  const laeuft = ueKarte("uk_laeuft", 0, aktiv.length || laeufe.length || r.warten ? el("div", { class: "ue-liste" },
-    aktiv.map(a => el("div", { class: "ue-zeile klickbar", onclick: () => agentDialog(a.kennung) }, el("span", { class: "punkt bernstein" }),
-      el("b", {}, a.kennung), el("span", { class: "ue-text leise" }, "→ " + (a.gerade_aufgabe ? `A${a.gerade_aufgabe} ` : "") + kurz(a.gerade || t("tm_keine"), 90)))),
-    laeufe.map(l => el("div", { class: "ue-zeile klickbar", onclick: () => zeige("betrieb") }, el("span", { class: "punkt gruen" }),
-      el("b", {}, `L${l.id}`), el("span", { class: "ue-text leise" }, [l.agent, kurz(l.beschreibung, 70), t("uk_seit", { x: seit(l.start_utc) })].filter(Boolean).join(" · ")))),
-    r.warten ? el("div", { class: "ue-zeile" }, el("b", {}, t(r.warten === 1 ? "uk_wartet1" : "uk_warten", { n: r.warten })),
-      el("span", { class: "ue-text leise" }, fremd ? t("uk_warten_fremd", { n: fremd }) : t("uk_warten_eigen"))) : null)
-    : el("p", { class: "ue-leer" }, t("uk_ruhig")));
-  /* Stand */
-  const boegen = u.boegen || [];
-  const stand = ueKarte("uk_stand", 0, boegen.length ? el("div", { class: "ue-liste" }, boegen.map(b => {
-      const g = b.gesamt - (b.verworfen || 0), f = b.fertig || 0;
-      return el("div", { class: "ue-bogen klickbar", onclick: () => zuSchritt(null, b.id) },
-        el("div", { class: "ue-zeile" }, el("span", { class: "ref" }, bogenRef(b.id)), el("b", { class: "ue-text" }, b.titel),
-          b.zieldatum ? el("span", { class: "sehrleise" }, t("uk_ziel", { x: datumKurz(b.zieldatum) })) : null),
-        el("div", { class: "ue-spur" }, el("i", { style: `width:${g ? Math.round(100 * f / g) : 0}%` })),
-        el("div", { class: "sehrleise" }, t("sj_fertig", { f, g }))); }))
-    : el("p", { class: "ue-leer" }, t("sj_kein_aktiv")),
-    el("div", { class: "ue-fuss" }, u.ohne_bogen ? el("span", { class: "sehrleise" }, t(u.ohne_bogen === 1 ? "uk_ohne1" : "uk_ohne", { n: u.ohne_bogen })) : null,
-      el("a", { class: "verweis", onclick: () => { zustand.planReiter = "zeitleiste"; zeige("planung"); } }, t("uk_zur_planung"))));
-  /* Zustand */
-  const kachel = (farbe, titel, wert, tun) => el("div", { class: "ue-kachel" + (tun ? " klickbar" : ""), onclick: tun || null },
-    el("div", { class: "leise" }, el("span", { class: "punkt " + farbe }), titel), el("b", {}, wert));
-  const dienstRot = (d.dienst_rot || []).length, online = d.online;
-  const pl = (r.platte || [])[0], sp = d.speicher?.frei;
-  const sy = u.sync;
-  const probleme = (d.warnungen || []).length + dienstRot + (pl ? 1 : 0);
-  const tk = d.token;
-  const zust = ueKarte("uk_zustand", 0,
-    el("div", { class: "ue-kacheln" },
-      online ? kachel(online.pc_frisch ? "gruen" : "bernstein", t("uk_pc"), online.pc_frisch ? t("uk_pc_da") : seit(online.pc_gesehen_utc))
-        : (() => { const [f, x] = dienstLage(d); return kachel(f, t("uk_dienst"), x, () => zeige("betrieb")); })(),
-      sp == null ? null : kachel(sp < 4 ? "rot" : sp < 8 ? "bernstein" : "gruen", t("uk_speicher"), t("uk_gb_frei", { n: zahlKurz(sp) })),
-      kachel(pl ? (pl.stufe === "rot" ? "rot" : "bernstein") : "gruen", pl ? t("uk_platte_x", { x: pl.laufwerk }) : t("uk_platte"),
-        pl ? t("uk_prozent_frei", { p: zahlKurz(pl.frei_prozent) }) : t("uk_platte_ok"), () => zeige("einstellungen")),
-      kachel(!sy ? "" : sy.zustand === "rot" ? "rot" : sy.zustand === "gelb" ? "bernstein" : "gruen", t("uk_sync"),
-        !sy ? t("uk_sync_aus") : typeof sy === "string" ? t("uk_sync_" + (sy === "rot" ? "stoerung" : "an")) : seit(sy.zeit_utc))),
-    el("div", { class: "ue-fuss sehrleise" }, [u.kosten_heute != null ? t("uk_kosten", { x: dollar(u.kosten_heute) }) : null,
-      tk?.wert != null ? t("uk_woche", { p: Math.round(tk.wert) }) : null,
-      probleme ? t(probleme === 1 ? "uk_problem1" : "uk_probleme", { n: probleme }) : t("uk_keine_probleme")].filter(Boolean).join(" · "),
-      el("a", { class: "verweis", style: "margin-left:auto", onclick: () => zeige("betrieb") }, t("uk_zum_betrieb"))));
-  return el("div", { class: "ue-raster" }, fuer, laeuft, stand, zust);
+  return el("div", { class: "ue-raster ls-fuer" }, fuer);                /* A2006: im Leitstand nur noch „Für dich“ */
 }
 async function sichtStart() {
   await kopfAktualisieren(); const d = zustand.start;
   if (!d) { if (zustand.startFehler) rahmen(t("n_start")).append(el("div", { class: "leer" }, zustand.startFehler)); return; }   /* A1998 */
   const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })),
-    el("button", { class: "knopf still kopf-aktion", type: "button", id: "zur-steuerung", onclick: zurSteuerung }, t("ls_titel")));   /* A2018 (TH156): Eingriffe über den Knopf „Steuerung“ */
+    lsKopfLeiste(d));                                       /* A2006: Zustand · Projektdetails · Steuerung (A2018: Eingriffe über „Steuerung“) */
   /* „Seit du weg warst“: letzter Besuch je Gerät (localStorage); in dieser Sitzung bleibt der Wert stehen */
   let seitBesuch = null;
   try {
@@ -199,10 +155,12 @@ async function sichtStart() {
     d.warnungen.map(w => el("div", { class: "band-zeile" }, el("span", {}, w.text),     /* je Warnung ein Sprung zu dem, den sie betrifft */
       w.an && (d.agenten || []).some(a => a.kennung === w.an)
         ? el("button", { class: "klein-knopf", type: "button", title: t("band_ansehen_h", { x: w.an }), onclick: () => agentDialog(w.an) }, t("band_ansehen", { x: w.an })) : null))));
-  m.append(uebersichtKarten(d));                          /* A1657: Für dich · Läuft gerade · Stand · Zustand */
-  m.append(el("h2", {}, t("tm_titel")));
-  m.append(teamAnsicht(d));
-  m.append(el("h2", { id: "steuerung-titel" }, t("ls_titel")), steuerung(d));
+  const unten = el("div");                                /* A2006: Leitstand; die Steuerung bleibt darunter (Knopf „Steuerung“) */
+  m.append(unten);
+  unten.append(el("h2", { id: "steuerung-titel" }, t("ls_titel")), steuerung(d));
+  const oben = el("div", { class: "ls-seite" });
+  unten.before(oben);
+  await sichtLeitstand(d, oben);
 
 }
 /* Aktionsmenü – ein Baustein: eintraege = Liste aus { titel } (Überschrift), "-" (Trennlinie) oder
@@ -263,7 +221,7 @@ function menue(knopf, eintraege) {
   setTimeout(() => { document.addEventListener("click", ausserhalb, true); document.addEventListener("keydown", taste); $("#inhalt").addEventListener("scroll", zu, { passive: true }); }, 0);
   m.querySelector("button:not([disabled])")?.focus();
 }
-/* Befehle zu einem Agenten: schreiben/lesen – steuern (anhalten überall; Sitzung starten/beenden nur am PC) – Profil */
+/* Menü eines Agenten (bis A2006 an der Team-Kachel, jetzt im Kopf des Agenten-Dialogs): Nachricht, Gespräch, Starten, Sichern … */
 function agentMenue(a, knopf) {
   const d = zustand.start || {}, k = a.kennung, lebt = a.zustand === "aktiv", ruht = a.zustand === "ruht";
   const eigenerHalt = (d.halt || []).some(h => h.gilt_fuer === k), ende = (d.ende || []).some(x => x.kennung === k);
@@ -354,28 +312,6 @@ function rechnerFeld(r, feld) {
 }
 function zurSteuerung() { Promise.resolve(zustand.sicht === "start" && $("#steuerung-titel") ? null : zeige("start"))   /* A2018: auch beim frischen Laden mit #steuerung */
   .then(() => setTimeout(() => $("#steuerung-titel")?.scrollIntoView({ behavior: "smooth", block: "start" }), 60)); }
-/* „1204 · A1204 Titel“ → „A1204 Titel“ (alte Titel tragen die Nummer schon) */
-function ohneDoppel(x) { const [nr, ...rest] = x.split(" · "); const titel = rest.join(" · "); return titel.startsWith("A" + nr) ? titel : `A${nr} · ${titel}`; }
-/* Kachel: Zustand, was er gerade macht (eigene Angabe › laufende Aufgabe › Aufgabe aus der letzten Meldung),
-   letzte Meldung, neue offene Nachrichten (Altbestand aus dem alten Bus getrennt). Klick → Übersicht. */
-/* Alter der eigenen Angabe (amw taetigkeit): ab 2 h in Bernstein – vielleicht veraltet */
-function taetigkeitAlter(utc) {
-  const alt = (Date.now() - new Date(utc)) / 1000 > 7200;
-  return el("span", { class: alt ? "bernstein-text" : "sehrleise", style: "font-size:11px;white-space:nowrap", title: alt ? t("t_alt") : "" },
-    " · " + t("t_seit", { x: seit(utc) }) + (alt ? " ⚠" : ""));
-}
-/* Zustand eines Agenten in Worten: [Farbe, Text, seit]. Läuft er, genauer aus den Hooks (arbeitet / frei / wartet auf
-   Freigabe oder Eingabe / Fehler). Ohne Arbeitsordner ist er ein Chat: Er wird nie gestartet und fehlt darum auch nie. */
-function agentZustand(a) {
-  const lebt = a.zustand === "aktiv", soll = a.soll === "an";
-  const ez = { arbeitet: ["gruen", t("z_arbeitet")], frei: ["gruen", t("z_frei")], wartet_freigabe: ["bernstein", t("z_freigabe")],
-               wartet_eingabe: ["bernstein", t("z_eingabe")], fehler: ["rot", t("z_fehler")] }[a.ereignis];
-  const dauer = lebt && ez && ["wartet_freigabe", "wartet_eingabe", "fehler"].includes(a.ereignis) && a.ereignis_utc ? seit(a.ereignis_utc) : null;
-  if (a.chat && !ez) return [lebt ? "gruen" : "", lebt ? t("tm_chat_da") : a.letzter_puls_utc ? t("tm_chat_zuletzt", { x: zeit(a.letzter_puls_utc) }) : t("tm_chat"), null];   /* A1831 */
-  const z = lebt ? (ez || ["gruen", t("laeuft")]) : a.zustand === "ruht" ? ["bernstein", t("abgemeldet")]
-    : soll ? ["rot", a.zustand ? t("beendet_soll") : t("nie_gestartet")] : ["", a.soll === "ruht" ? t("ruht") : t("aus")];
-  return [z[0], z[1], dauer];
-}
 /* Kleine Zeichen der Team-Ansicht (als Elemente gebaut, nicht als Text eingesetzt) */
 const TM_ZEICHEN = { sitzung: [["rect", { x: 1.5, y: 2.5, width: 13, height: 11, rx: 1.5 }], ["path", { d: "M4.5 6l2.5 2-2.5 2M8.500 10.500h3" }]],
   chat: [["path", { d: "M2 3.5h12v7.5H7l-3 2.5V11H2z" }]], desktop: [["rect", { x: 1.5, y: 2.5, width: 13, height: 8.5, rx: 1.5 }], ["path", { d: "M5.5 14h5M8 11v3" }]], mensch: [["circle", { cx: 8, cy: 5, r: 2.6 }], ["path", { d: "M2.800 14c.6-3 2.600-4.400 5.200-4.400s4.600 1.400 5.200 4.400" }]] };
@@ -385,163 +321,10 @@ function tmZeichen(art, titel) {
   for (const [tag, attr] of TM_ZEICHEN[art]) { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(attr)) e.setAttribute(k, v); svg.append(e); }
   return el("span", { class: "tm-zeichen", title: titel }, svg);
 }
-const tmWeise = a => tmZeichen(a.arbeitsweise === "chat" || a.chat ? "chat" : a.arbeitsweise === "desktop" ? "desktop" : "sitzung",
-  t(a.arbeitsweise === "chat" || a.chat ? "tm_w_chat" : a.arbeitsweise === "desktop" ? "tm_w_desktop" : "tm_w_sitzung"));
 /* Lead ist ein Schalter, das Fachgebiet ein eigenes Feld: „Lead“ bzw. das Fachgebiet; fehlt beides, bleibt die Marke weg */
 const tmFach = a => a.rolle === "lead" ? el("span", { class: "tm-fach lead", title: a.fachgebiet || null }, t("lead") + (a.fachgebiet ? " · " + a.fachgebiet : ""))
   : a.fachgebiet ? el("span", { class: "tm-fach" }, a.fachgebiet) : null;
-const tmKurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : x;
 const agentName = a => a.co ? [t("co_entwickler"), el("span", { class: "sehrleise tm-kennung" }, " " + a.kennung)] : a.kennung;   /* A2019 */
-const tmMehr = a => el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
-  onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯");
-const tmOffen = (a, kurz) => a.offen ? el("span", { class: "tm-offen" + (a.offen > 10 ? " viel" : ""), title: t("k_offen_n", { n: a.offen }) + " – " + t("k_offen_h", { n: a.offen_alt || 0 }) },
-  kurz ? "✉ " + a.offen : t("k_offen_n", { n: a.offen })) : null;
-const tmZustand = a => { const [farbe, text, dauer] = agentZustand(a);
-  return el("div", { class: "tm-zustand", title: a.zustand === "aktiv" ? t("k_puls_seit", { t: seit(a.letzter_puls_utc) }) : null }, el("span", { class: "punkt " + farbe }),
-    el("span", { class: farbe === "bernstein" ? "bernstein-text" : farbe === "rot" && a.zustand === "aktiv" ? "rot-text" : "" }, text), dauer ? el("span", { class: "sehrleise" }, dauer) : null); };
-const tmAufgabe = (a, n) => a.gerade ? [el("span", { class: "sehrleise" }, t("k_gerade") + " "),   /* A1953: Quelle und Alter im Tooltip, veraltet grau */
-    el("span", { class: a.gerade_veraltet ? "sehrleise" : "", title: t("k_quelle_" + a.gerade_quelle) + (a.gerade_seit ? " · " + seit(a.gerade_seit) : "")
-      + (a.gerade_veraltet ? " · " + t("k_veraltet_h") : "") }, tmKurz(a.gerade, n)), a.gerade_veraltet ? el("span", { class: "bernstein-text" }, " " + t("k_veraltet")) : null]
-  : [el("span", { class: "sehrleise" }, a.soll === "an" && !a.chat ? t("k_unbekannt") : (a.zustaendig || t("tm_keine")))];
-/* Mit wem er gerade arbeitet (offene Prüfung) oder worauf er wartet – eine Zeile, der Rest steht in der Übersicht */
-function tmNeben(a, d) {
-  const ende = (d.ende || []).find(x => x.kennung === a.kennung);
-  if (ende) return el("div", { class: "tm-neben bernstein-text" }, t("k_endet", { x: zeit(ende.bis_utc) }));
-  const wp = a.warteplatz;
-  if (wp) { const x = wp.auf?.[0], wer = x ? (x.projekt ? `${x.projekt} / ${x.agent || "–"}` : t("tm_fremd")) : null;
-    return el("div", { class: "tm-neben bernstein-text", title: wp.grund ? `L${wp.lauf}: ${wp.grund}` : t("tm_warteplatz_h") },
-      "⏳ " + t(wer ? "tm_platz_hinter" : "tm_platz", { p: wp.platz ?? "–", n: wp.von, x: wer })); }
-  const z = (d.team?.zusammen || []).find(x => x.von === a.kennung || x.mit === a.kennung);
-  if (z) return el("div", { class: "tm-neben tm-mit", title: t("tm_mit_h") }, "⇄ " + (z.von === a.kennung ? z.mit : z.von) + " · " + t("tm_pruefung") + (z.aufgabe ? ` A${z.aufgabe}` : ""));
-  const w = a.wartet || [];
-  return w.length ? el("div", { class: "tm-neben bernstein-text" }, t("k_wartet", { a: `A${w[0].aufgabe}`, x: (w[0].auf || "").split(", ").map(grundText).join(", ") }) + (w.length > 1 ? ` +${w.length - 1}` : "")) : null;
-}
-const tmFuss = a => [tmWeise(a), a.zustand === "aktiv" && a.kontext_prozent != null
-  ? el("span", { class: "tm-balken" + (a.kontext_prozent > 85 ? " voll" : a.kontext_prozent > 60 ? " hoch" : ""), title: `${t("b_kontext")} ${Math.round(a.kontext_prozent)} %` }, el("span", { style: `width:${Math.min(100, a.kontext_prozent)}%` }))
-  : el("span", { class: "tm-balken ohne" }), el("span", { class: "tm-liste-n", title: (a.fuehrt || []).length ? t("k_fuehrt", { x: a.fuehrt.join(", ") }) : null },
-    (a.liste_n ? (a.liste_lauf ? t("tm_liste_lauf", { p: a.liste_lauf, n: a.liste_n }) : t("k_liste_n", { n: a.liste_n })) : "") + ((a.fuehrt || []).length ? " ◆" : ""))];
-const teamArt = () => { const g = gemerkt("amw-team"); return g === "baum" || g === "liste" ? g : (matchMedia("(max-width: 760px)").matches ? "liste" : "baum"); };
-/* Team auf der Startseite: Baum (du → Lead → Agenten; gestrichelte Bögen = arbeiten gerade zusammen) oder kompakte Liste */
-function teamAnsicht(d) {
-  const art = teamArt(), rang = a => (a.soll === "an" ? 0 : a.zustand === "aktiv" ? 1 : 2);
-  const leads = d.agenten.filter(a => a.rolle === "lead"), rest = d.agenten.filter(a => a.rolle !== "lead").sort((x, y) => rang(x) - rang(y));
-  const huelle = el("div", { class: "team", id: "team" });
-  huelle.append(el("div", { class: "tm-schalter" }, ["baum", "liste"].map(x => el("button", { class: "klein-knopf" + (x === art ? " an" : ""), type: "button", title: t("tm_" + x + "_h"),
-    onclick: () => { try { localStorage.setItem(ablage("amw-team"), x); } catch (e) {} huelle.replaceWith(teamAnsicht(d)); } }, t("tm_" + x)))),
-    art === "baum" ? teamBaum(d, leads, rest) : teamListe(d, leads, rest));
-  return huelle;
-}
-const tmDu = d => { const pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] }, frei = pw.spezifikationen.length + pw.plaene.length;
-  return [[pw.eigene.length, "tm_schritte"], [d.fragen.length, "tm_fragen"], [frei, "tm_freigaben"]].filter(([n]) => n); };
-function tmLeadInfo(a, d) {
-  const b = d.team?.bogen, takt = d.team?.takt_min;
-  return [[t("tm_plant"), b ? t("tm_bogen", { nr: b.nr, x: tmKurz(b.titel, 70), f: b.fertig, n: b.n }) + (b.zieldatum ? " · " + t("tm_ziel", { x: datumKurz(b.zieldatum) }) : "") : t("tm_kein_bogen")],
-    [t("tm_takt"), takt ? t("tm_takt_min", { n: takt }) : t("tm_takt_hand")],
-    a.zuletzt ? [t("k_zuletzt"), `${seit(a.zuletzt_utc)}: ${tmKurz(a.zuletzt, 110)}`] : null].filter(Boolean);
-}
-function teamBaum(d, leads, rest) {
-  let zeiger = "maus";
-  const fokus = k => { if ((baum.dataset.fokus || "") === k) return; if (k) baum.dataset.fokus = k; else delete baum.dataset.fokus; zeichnen(); };
-  const karte = (a, klasse, ...inhalt) => { const k = el("div", { class: `tm-knoten ${klasse} klickbar`, "data-k": a.kennung, title: t("k_details"), tabindex: 0 }, inhalt);
-    k.addEventListener("pointerdown", e => { zeiger = e.pointerType; });
-    k.addEventListener("click", () => { if (zeiger === "touch" && baum.dataset.fokus !== a.kennung) { fokus(a.kennung); return; } agentDialog(a.kennung); });
-    k.addEventListener("mouseenter", () => fokus(a.kennung)); k.addEventListener("mouseleave", () => fokus(""));
-    k.addEventListener("focusin", () => fokus(a.kennung)); k.addEventListener("focusout", () => fokus(""));
-    k.addEventListener("keydown", e => { if (e.key === "Enter") agentDialog(a.kennung); });
-    return k; };
-  const du = el("div", { class: "tm-knoten tm-du", "data-k": "*du" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du")), el("span", { class: "leise" }, t("tm_leitet")),
-    tmDu(d).map(([n, k]) => el("span", { class: "tm-zahl" }, el("b", {}, n), " " + t(k))));
-  const lead = a => karte(a, "tm-lead" + (agentZustand(a)[0] === "rot" ? " tot" : ""),
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, agentName(a)), tmFach(a), tmZustand(a)),
-    el("dl", {}, tmLeadInfo(a, d).flatMap(([k, v]) => [el("dt", {}, k), el("dd", {}, v)])),
-    el("div", { class: "tm-rechts" }, el("span", { class: "tm-zeile" }, tmOffen(a), tmMehr(a)), el("span", { class: "tm-zeile sehrleise" }, tmWeise(a), tmFuss(a)[2])));
-  const agent = a => karte(a, "tm-agent" + (agentZustand(a)[0] === "rot" && a.zustand !== "aktiv" ? " tot" : "") + (a.soll !== "an" ? " aus" : ""),
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-name" }, agentName(a)), tmFach(a),
-      (a.wartet_auf || []).includes("Entwickler") ? el("span", { class: "tm-auf-dich", title: t("tm_wartet_du_h") }, "\u23f3 " + t("tm_wartet_du"))
-        : (a.wartet_auf || []).length ? el("span", { class: "tm-auf-andere", title: t("tm_wartet_andere_h") }, "\u23f3 " + t("wartet_auf_x", { x: a.wartet_auf.slice(0, 2).join(", ") }))
-        : null,                                                   /* A1860: „wartet auf dich“ nur, wenn du wirklich dran bist */
-      el("span", { class: "tm-zeile tm-ende" }, tmMehr(a))),
-    tmZustand(a), el("div", { class: "tm-auf" }, tmAufgabe(a, 80)), tmNeben(a, d) || el("div", { class: "tm-neben" }, "\u00a0"), el("div", { class: "tm-fuss" }, tmFuss(a), tmOffen(a, true)));
-  const strich = art => { const ns2 = "http://www.w3.org/2000/svg", g = document.createElementNS(ns2, "svg"), l = document.createElementNS(ns2, "path");
-    g.setAttribute("viewBox", "0 0 34 10"); l.setAttribute("d", "M1 5 H26"); l.setAttribute("class", "tm-" + art);
-    const sp = document.createElementNS(ns2, "path"); sp.setAttribute("d", "M24 0 L34 5 L24 10 z"); sp.setAttribute("class", "tm-spitze-" + art); g.append(l, sp); return g; };
-  const legende = el("div", { class: "tm-legende sehrleise" }, el("span", {}, strich("ast"), t("tm_leg_ast")),
-    el("span", { class: "tm-leg-mehr" }, strich("bogen"), t("tm_leg_bogen")), el("span", { class: "tm-leg-mehr" }, strich("warten"), t("tm_leg_warten")),
-    el("span", {}, t("tm_leg_fokus")));
-  const baum = el("div", { class: "tm-baum" }, du, leads.length ? el("div", { class: "tm-leads" }, leads.map(lead)) : null, el("div", { class: "tm-ebene" }, rest.map(agent)), legende);
-  const ns = "http://www.w3.org/2000/svg", linien = document.createElementNS(ns, "svg"); linien.setAttribute("class", "tm-linien"); baum.prepend(linien);
-  function zeichnen() { tmLinien(baum, linien, d); }
-  requestAnimationFrame(zeichnen); setTimeout(zeichnen, 60); new ResizeObserver(zeichnen).observe(baum);   /* setTimeout: falls der Browser Animationen aussetzt (Tab im Hintergrund) */
-  return baum;
-}
-/* Linien des Baums: rechtwinklige Äste von oben nach unten; gestrichelte, ebenfalls rechtwinklige Verbindung unter zwei Agenten
-   derselben Reihe, die zusammenarbeiten – keine Bögen */
-function tmLinien(baum, svg, d) {
-  if (!baum.isConnected) return;
-  const ns = "http://www.w3.org/2000/svg", o = baum.getBoundingClientRect();
-  const ort = e => { const r = e.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, oben: r.top - o.top, unten: r.bottom - o.top }; };
-  const knoten = k => baum.querySelector(`[data-k="${CSS.escape(k)}"]`);
-  const teile = [], pfad = (klasse, dd) => { const p = document.createElementNS(ns, "path"); p.setAttribute("class", klasse); p.setAttribute("d", dd);
-    p.setAttribute("marker-end", `url(#tm-spitze-${klasse.split(" ")[0].slice(3)})`); teile.push(p); return p; };
-  const defs = document.createElementNS(ns, "defs");
-  for (const art of ["ast", "bogen", "warten"]) {         /* Pfeilspitze: Aufträge laufen zum Pfeil, Arbeit geht zur Prüfung, wartet auf */
-    const m = document.createElementNS(ns, "marker"), sp = document.createElementNS(ns, "path");
-    for (const [k, v] of Object.entries({ id: "tm-spitze-" + art, viewBox: "0 0 10 10", refX: 8, refY: 5, markerWidth: 11, markerHeight: 11,
-      markerUnits: "userSpaceOnUse", orient: "auto-start-reverse" })) m.setAttribute(k, v);
-    sp.setAttribute("d", "M0 0 L10 5 L0 10 z"); sp.setAttribute("class", "tm-spitze-" + art); m.append(sp); defs.append(m); }
-  teile.push(defs);
-  const du = ort(knoten("*du")), leads = [...baum.querySelectorAll(".tm-lead")].map(ort), agenten = [...baum.querySelectorAll(".tm-agent")];
-  const stamm = leads.length ? { x: leads.reduce((s, l) => s + l.x, 0) / leads.length, unten: Math.max(...leads.map(l => l.unten)) } : du;
-  for (const l of leads) pfad("tm-ast", `M${du.x} ${du.unten} V${(du.unten + l.oben) / 2} H${l.x} V${l.oben - 1}`);
-  const reihen = new Map(); for (const a of agenten) { const q = ort(a); const y = Math.round(q.oben); if (!reihen.has(y)) reihen.set(y, []); reihen.get(y).push(q); }
-  const ys = [...reihen.keys()].sort((a, b) => a - b);
-  for (const y of ys) { const xs = reihen.get(y).map(q => q.x), quer = y - 12;
-    pfad("tm-ast", `M${Math.min(...xs, stamm.x)} ${quer} H${Math.max(...xs, stamm.x)}`).removeAttribute("marker-end");
-    for (const x of xs) pfad("tm-ast", `M${x} ${quer} V${y - 1}`); }
-  if (ys.length) pfad("tm-ast", `M${stamm.x} ${stamm.unten} V${ys[ys.length - 1] - 12}`).removeAttribute("marker-end");
-  /* Prüfungen und Wartebeziehungen nur für die Karte im Fokus (Maus, Tastatur, erstes Antippen) – sonst überlagern sich die
-     Linien. Jede Beziehung in eigener Spur mit festem Abstand; „wartet auf dich“ steht als Markierung an der Karte. */
-  const f = baum.dataset.fokus || "";
-  baum.querySelectorAll(".tm-knoten").forEach(k => k.classList.remove("im-fokus", "im-bezug"));
-  if (f) {
-    const bez = [];
-    for (const z of d.team?.zusammen || []) if (z.von === f || z.mit === f) bez.push({ art: "bogen", von: z.von, nach: z.mit });
-    for (const a of d.agenten || []) for (const ziel of a.wartet_auf || []) {
-      if (ziel !== "Entwickler" && (a.kennung === f || ziel === f)) bez.push({ art: "warten", von: a.kennung, nach: ziel }); }
-    const gesehen = new Set(), liste = bez.filter(b => { const s_ = b.art + b.von + ">" + b.nach; if (gesehen.has(s_)) return false; gesehen.add(s_); return true; });
-    knoten(f)?.classList.add("im-fokus");
-    liste.forEach((b, i) => {
-      const a = knoten(b.von), z = knoten(b.nach); if (!a || !z) return;
-      a.classList.add("im-bezug"); z.classList.add("im-bezug");
-      const p = ort(a), q = ort(z), ver = (i - (liste.length - 1) / 2) * 16;     // eigene Spur: Ein- und Ausgang versetzt
-      if (Math.abs(p.unten - q.unten) <= 4) {                                     // gleiche Reihe: unter den Karten, je Beziehung tiefer
-        const y = Math.max(p.unten, q.unten) + 12 + 12 * i;
-        pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.unten} V${y} H${q.x + ver} V${q.unten + 1}`);
-      } else if (q.unten < p.oben) {                                              // nach oben (Lead)
-        const zr = z.getBoundingClientRect(), x = p.x + ver + 30;                // senkrecht hinein, wenn die Karte darüber liegt
-        if (x > zr.left - o.left + 8 && x < zr.right - o.left - 8) pfad("tm-" + b.art + " stark", `M${x} ${p.oben} V${q.unten + 1}`);
-        else { const y = p.oben - 6 - 6 * i; pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.oben} V${y} H${q.x + ver} V${q.unten + 1}`); }
-      } else {                                                                    // nach unten (vom Lead zum Agenten)
-        const x = q.x + ver + 30, ar = a.getBoundingClientRect();
-        if (x > ar.left - o.left + 8 && x < ar.right - o.left - 8) pfad("tm-" + b.art + " stark", `M${x} ${p.unten} V${q.oben - 1}`);
-        else { const y = q.oben - 6 - 6 * i; pfad("tm-" + b.art + " stark", `M${p.x + ver} ${p.unten} V${y} H${q.x + ver} V${q.oben - 1}`); }
-      }
-    });
-  }
-  svg.replaceChildren(...teile);
-}
-function teamListe(d, leads, rest) {
-  const zeile = (a, ast, klasse) => { const z = el("div", { class: `tm-z ${klasse || ""} klickbar` + (a.soll !== "an" ? " aus" : ""), "data-k": a.kennung, title: t("k_details") },
-    el("div", { class: "tm-wer" }, el("span", { class: "tm-astz" }, ast), tmWeise(a), el("span", { class: "tm-name" }, agentName(a)), tmOffen(a)), el("span", {}, tmFach(a)), tmZustand(a),
-    el("div", { class: "tm-auf" }, a.rolle === "lead" && d.team?.bogen ? [el("span", { class: "sehrleise" }, t("tm_plant") + ": "), tmLeadInfo(a, d)[0][1]] : tmAufgabe(a, 120)),
-    tmNeben(a, d) || el("span", {}), el("span", { class: "tm-fuss" }, tmFuss(a).slice(1)), tmMehr(a));
-    z.addEventListener("click", () => agentDialog(a.kennung)); return z; };
-  return el("div", { class: "tm-liste" },
-    el("div", { class: "tm-z tm-kopfz" }, ["tm_k_agent", "tm_k_fach", "tm_k_zustand", "tm_k_auf", "tm_k_mit", "tm_k_liste"].map(k => el("span", {}, t(k))), el("span", {})),
-    el("div", { class: "tm-z tm-du" }, el("div", { class: "tm-wer" }, tmZeichen("mensch", ""), el("span", { class: "tm-name" }, t("tm_du"))), el("span", { class: "leise" }, t("tm_leitet")), el("span", {}),
-      el("div", { class: "tm-auf" }, tmDu(d).flatMap(([n, k], i) => [i ? " · " : "", el("b", {}, n), " " + t(k)])), el("span", {}), el("span", {}), el("span", {})),
-    leads.map(a => zeile(a, "└", "tm-lead")), rest.map((a, i) => zeile(a, "\u00a0\u00a0" + (i === rest.length - 1 ? "└" : "├"))));
-}
 /* Starten / Fortsetzen / Neu / Beenden – nur am PC (online gibt es keine Knöpfe), immer mit Rückfrage */
 function steuerKnoepfe(d, schliessen) {
   if (API || !d.profil) return [];
@@ -810,7 +593,10 @@ async function agentDialog(kennung, reiter) {
           (d.letzter_puls_utc ? ` · ${t("puls", { t: seit(d.letzter_puls_utc) })}` : "")),
         el("span", { style: "margin-left:auto;display:flex;gap:8px;flex-wrap:wrap" }, ...steuerKnoepfe(d, () => hg.remove()),
           d.claude_link ? el("a", { class: "knopf", href: d.claude_link, target: "_blank", rel: "noopener noreferrer", title: t("g_claude_h") }, t("g_claude")) : null,
-          el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")))),
+          el("button", { class: "knopf", type: "button", onclick: () => { hg.remove(); nachrichtDialog(d.kennung); } }, t("nachricht")),
+          (() => { const a = (zustand.start?.agenten || []).find(x => x.kennung === d.kennung);   /* A2006: das Menü der früheren Team-Kachel */
+            return a ? el("button", { class: "klein-knopf mehr-knopf", type: "button", title: t("m_titel", { x: a.kennung }), "aria-haspopup": "menu",
+              onclick: e => { e.stopPropagation(); agentMenue(a, e.currentTarget); } }, "⋯") : null; })())),
       tabs, uebersicht, gespraech));
   document.body.append(hg);
   if (reiter === "gespraech") wechseln("gespraech");

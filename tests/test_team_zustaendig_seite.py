@@ -24,7 +24,7 @@ class TeamZustaendig(Rundgang):
         for g in ("pc", "handy"):
             with self.subTest(g=g):
                 self.groesse(g)
-                self.oeffnen("start", "document.querySelector('#team [data-k=Maler] .tm-auf')")
-                self.assertEqual(self.tab.js("document.querySelector('#team [data-k=Maler] .tm-auf').textContent"), "Karten-Look und Sprites")
-                self.assertEqual(self.tab.js("document.querySelector('#team [data-k=Leer] .tm-auf').textContent"),
+                self.oeffnen("start", "document.querySelector('#team [data-k=Maler] .ls-auf')")
+                self.assertEqual(self.tab.js("document.querySelector('#team [data-k=Maler] .ls-auf').textContent"), "Karten-Look und Sprites")
+                self.assertEqual(self.tab.js("document.querySelector('#team [data-k=Leer] .ls-auf').textContent"),
                                  self.tab.js("TEXTE[sprache].tm_keine"))                # ohne Angabe: wie vorher „keine“

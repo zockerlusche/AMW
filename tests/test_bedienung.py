@@ -195,32 +195,10 @@ class Seite(Wiederholt, Grund):
         self.tab.js("zeige('fragen')")
         self.warten("zustand.sicht === 'fragen' && document.querySelector('#inhalt .seitenkopf') && !document.querySelector('.nr-reiter')")
 
-    def test_baum_zeigt_beziehungen_nur_fuer_die_karte_unter_der_maus(self):
-        """Team-Baum: dauerhaft nur die Äste; Prüf-/Warte-Linien einer Karte erst mit der Maus darauf, Rest abgeblendet."""
-        from amw import betrieb
-        betrieb.pruefbitte(self.con, self.pid, "CC1", "TL", "zweig", "abc1234def5678", "Probe")
-        self.oeffnen("start", "document.querySelector('#team')")
-        self.tab.js("[...document.querySelectorAll('.tm-schalter button')][0].click()")
-        self.warten("document.querySelector('.tm-baum') && document.querySelectorAll('.tm-linien path').length")
-        self.assertEqual(self.tab.js("document.querySelectorAll('.tm-linien .tm-bogen').length"), 0)          # ohne Maus: keine
-        self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').dispatchEvent(new MouseEvent('mouseenter'))")
-        self.warten("document.querySelectorAll('.tm-linien .tm-bogen.stark').length === 1")
-        self.assertTrue(self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').classList.contains('im-fokus')"))
-        self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').dispatchEvent(new MouseEvent('mouseleave'))")
-        self.warten("document.querySelectorAll('.tm-linien .tm-bogen').length === 0")
-
     def test_leitstand_und_aktionsmenue(self):
-        self.oeffnen("start", "document.querySelector('#steuerung') && document.querySelector('#team .mehr-knopf')")
-        # Team: als Baum (du → Lead → Agenten; Vorgabe am breiten Schirm), umschaltbar auf die Liste – die Wahl bleibt
-        self.tab.js("[...document.querySelectorAll('.tm-schalter button')][0].click()")
-        self.warten("document.querySelector('.tm-baum') && document.querySelectorAll('.tm-linien path').length")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.tm-baum [data-k]')].map(k => k.dataset.k)"), ["*du", "TL", "CC1"])
-        self.assertTrue(self.tab.js("document.querySelectorAll('.tm-linien path').length >= 3"))                 # Äste gezeichnet
-        self.tab.js("[...document.querySelectorAll('.tm-schalter button')][1].click()")
-        self.warten("document.querySelector('.tm-liste') && !document.querySelector('.tm-baum')")
-        self.assertEqual(self.tab.js("[...document.querySelectorAll('.tm-liste .tm-z[data-k]')].map(k => k.dataset.k)"), ["TL", "CC1"])
-        self.tab.js("zeige('start', true)")
-        self.warten("document.querySelector('.tm-liste')")
+        self.oeffnen("start", "document.querySelector('#steuerung') && document.querySelector('#team [data-k=CC1]')")
+        # A2006: statt Baum und Liste die Agenten-Leiste des Leitstands, eine Kachel je Agent
+        self.assertEqual(self.tab.js("[...document.querySelectorAll('#team [data-k]')].map(k => k.dataset.k)"), ["TL", "CC1"])
         self.assertEqual(self.tab.js("document.querySelectorAll('#steuerung > div').length"), 5)       # Arbeit, Bildschirm, Sitzungen, Dienst, Rechner
         self.assertNotIn("im Eingang", self.tab.js("document.querySelector('#steuerung').innerText"))   # leerer Eingang: kein Hinweis
         rechner = self.tab.js("document.querySelector('#ls-rechner').innerText")
@@ -261,7 +239,9 @@ class Seite(Wiederholt, Grund):
         self.assertFalse(self.tab.js("document.querySelector('header').innerText.includes('null')"))   # leere Hinweise sind keine Texte
         self.assertFalse(self.tab.js("!!document.querySelector('#halt-knopf')"))                       # Anhalten steht im Leitstand
         self.assertTrue(self.tab.js("[...document.querySelectorAll('#steuerung button')].some(b => b.textContent === 'Alle anhalten')"))
-        self.tab.js("document.querySelector('#team .mehr-knopf').click()")
+        self.tab.js("document.querySelector('#team [data-k=CC1]').click()")                              # A2006: Menü im Agenten-Dialog
+        self.warten("document.querySelector('.agent-dialog .mehr-knopf')")
+        self.tab.js("document.querySelector('.agent-dialog .mehr-knopf').click()")
         self.warten("document.querySelector('.menue')")
         texte = self.tab.js("[...document.querySelectorAll('.menue button')].map(b => b.textContent)")
         self.assertEqual(texte[0], "Nachricht schreiben")

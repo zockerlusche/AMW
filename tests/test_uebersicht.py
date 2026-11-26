@@ -37,24 +37,23 @@ class Uebersicht(unittest.TestCase):
             teile.append({"teil": "synchronisierung", "zustand": "gruen", "alter_s": alter})
         return {"teile": teile}
 
-    def test_stand_und_zustand(self):
+    def test_nur_noch_dienst_und_kosten(self):
+        """A2006: Meilensteine, Pakete ohne Meilenstein, Läufe und Synchronisierung zeigt jetzt der Leitstand (/api/leitstand) bzw.
+        Betrieb – /api/start rechnet sie nicht mehr."""
         u = workbench._uebersicht(self.con, self.pid, self.gesund(60))
-        self.assertEqual([(b["titel"], b["gesamt"], b["fertig"], b["verworfen"]) for b in u["boegen"]], [("Erste Version", 5, 2, 1)])
-        self.assertEqual(u["ohne_bogen"], 1)
+        self.assertEqual(set(u), {"kosten_heute", "dienst"})
         self.assertEqual(u["dienst"], "gruen")
-        self.assertEqual(u["sync"]["zustand"], "gruen")
-        self.assertIsNone(workbench._uebersicht(self.con, self.pid, self.gesund())["sync"])    # ohne Synchronisierung: aus
 
     def test_sync_zeit_laedt_allein_nicht_neu_hoch(self):
         a = workbench._uebersicht(self.con, self.pid, self.gesund(60))
         b = workbench._uebersicht(self.con, self.pid, self.gesund(600))
-        self.assertNotEqual(a["sync"]["zeit_utc"], b["sync"]["zeit_utc"])
         self.assertEqual(abgleich._ruhig({"uebersicht": a}), abgleich._ruhig({"uebersicht": b}))
 
-    def test_start_hat_die_uebersicht(self):
+    def test_start_ohne_team_und_alte_karten(self):
         with mock.patch.object(herzschlag, "gesundheit", return_value=self.gesund(30)):
             d = workbench.daten_start(self.con, self.pid)
-        self.assertEqual(d["uebersicht"]["boegen"][0]["titel"], "Erste Version")
+        self.assertEqual(d["uebersicht"]["dienst"], "gruen")
+        self.assertNotIn("team", d)
 
     def test_erledigte_fragen(self):
         with db.schreiben(self.con):

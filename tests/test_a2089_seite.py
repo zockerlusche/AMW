@@ -80,7 +80,7 @@ class Seite(Rundgang):
 
     def test_planung_und_start_ohne_interne_nummer(self):
         verboten = re.compile("|".join(rf"(?:Meilenstein |\b[MB]){x}\b" for x in self.b))
-        for sicht, bereit in (("start", "document.querySelector('.ue-bogen')"), ("planung", "document.querySelector('main').innerText.includes('Bauen 2')"),
+        for sicht, bereit in (("start", "document.querySelector('.ls-fort:not(.platz)') && document.querySelector('.ls-ablauf')"), ("planung", "document.querySelector('main').innerText.includes('Bauen 2')"),
                               ("dokumente", "document.querySelector('main select')")):
             self.oeffnen(sicht, bereit)
             text = self.tab.js("document.querySelector('main').innerText + [...document.querySelectorAll('main [title], main option')].map(x => ' ' + (x.title || '') + ' ' + x.textContent).join(' ')")

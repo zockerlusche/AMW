@@ -1,0 +1,59 @@
+/* A2006 (TH156 F10, Kleinprobe D1534 v4): der Leitstand. Ruhig, Farbe nur bei Handlungsbedarf (orange = über der Zeit, Verzug). */
+.ls-leiste { display: inline-flex; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; margin-left: auto; }
+.ls-leiste button { background: var(--flaeche); color: var(--text); border: 0; border-left: 1px solid var(--linie); padding: 8px 14px; font: 600 13.5px var(--titel); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; min-height: 40px; }
+.ls-leiste button:first-child { border-left: 0; }
+.ls-leiste button:hover { background: var(--flaeche2); }
+.ls-leiste .leise { font-weight: 400; }
+.ls-fort { margin: 4px 0 18px; }
+.ls-fort-zeile { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.ls-zahl { font: 600 30px var(--titel); }
+.ls-prognose { margin-left: auto; }
+.ls-spur { height: 6px; margin-top: 8px; }
+.ls-spur.ueber i { background: var(--bernstein); }
+.ls-fort.platz .ls-zahl { color: var(--sehrleise); }
+.ls-fuer { grid-template-columns: 1fr; margin-bottom: 18px; }
+.ls-lbl { font: 600 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); margin: 18px 0 8px; }
+.ls-lbl.ls-jetzt { color: var(--gruen); display: flex; align-items: center; gap: 10px; }
+.ls-lbl.ls-jetzt::after { content: ""; flex: 1; border-top: 1px solid color-mix(in srgb, var(--gruen) 45%, transparent); }
+.ls-agenten { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.ls-agent { text-align: left; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px; padding: 10px 12px; color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.ls-agent b { display: flex; align-items: center; gap: 7px; font: 600 14.5px var(--titel); }
+.ls-agent span { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-agent:hover, .ls-karte:hover, .ls-zeile:hover { border-color: var(--linie2); }
+.ls-ressourcen { display: flex; flex-wrap: wrap; gap: 6px 22px; padding: 10px 0; margin: 14px 0 4px; border-top: 1px solid var(--linie); border-bottom: 1px solid var(--linie); font-size: 13.5px; }
+.ls-linie { border-left: 1px solid var(--linie2); margin-left: 6px; padding-left: 16px; display: flex; flex-direction: column; gap: 8px; }
+.ls-zeile { text-align: left; background: var(--flaeche); border: 1px solid var(--linie); border-radius: 8px; padding: 9px 12px; color: var(--text); font: inherit; cursor: pointer; width: 100%; }
+.ls-zeile .leise { font-size: 13px; margin-top: 2px; }
+.ls-raster { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.ls-karte { text-align: left; background: var(--flaeche); border: 1px solid color-mix(in srgb, var(--gruen) 55%, var(--linie)); border-radius: 8px; padding: 10px 12px; color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ls-karte.ueber { border-color: var(--bernstein); }
+.ls-karte-kopf { display: flex; align-items: center; gap: 8px; }
+.ls-karte-kopf b { font: 600 14.5px var(--titel); }
+.ls-karte .chip, .ls-zeile .chip { border: 1px solid var(--linie); border-radius: 999px; padding: 0 8px; font-size: 11.5px; color: var(--leise); }
+.ls-titel { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.8em; line-height: 1.4; font-size: 14px; }
+.ls-karte-fuss { display: flex; justify-content: space-between; font-size: 12px; color: var(--leise); }
+.ls-gleichzeitig { display: flex; flex-direction: column; gap: 6px; }
+.ls-ablauf > div { margin-bottom: 6px; }
+.ls-ablauf .verweis { display: inline-block; margin-top: 8px; font-size: 13.5px; }
+.ls-zeitplan { display: flex; flex-direction: column; gap: 8px; }
+.ls-zp-zeile { display: grid; grid-template-columns: minmax(120px, 220px) 1fr minmax(120px, 200px); gap: 14px; align-items: center; font-size: 13.5px; }
+.ls-zp-zeile > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-zp-spur { position: relative; height: 10px; }
+.ls-zp-spur i { position: absolute; top: 3px; height: 4px; border-radius: 2px; background: var(--gruen); }
+.ls-zp-spur i.ueber { background: var(--bernstein); }
+.ls-zp-spur b { position: absolute; top: 0; width: 2px; height: 10px; background: var(--leise); }
+.ls-entscheidungen { display: flex; flex-direction: column; }
+.ls-ent { display: grid; grid-template-columns: 52px minmax(80px, 120px) 1fr; gap: 12px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--linie); padding: 7px 0; color: var(--text); font: inherit; font-size: 13.5px; cursor: pointer; }
+.ls-leer { padding: 18px; border: 1px dashed var(--linie2); border-radius: 8px; margin: 6px 0 18px; display: flex; flex-direction: column; gap: 6px; }
+.ls-platz { min-height: 120px; }
+@media (max-width: 1100px) { .ls-raster { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 700px) {
+  .ls-leiste { display: flex; width: 100%; margin: 8px 0 0; }
+  .ls-leiste button { flex: 1; justify-content: center; padding: 8px 6px; }
+  .ls-leiste .leise { display: none; }
+  .ls-raster { grid-template-columns: 1fr; }
+  .ls-prognose { margin-left: 0; }
+  .ls-zp-zeile { grid-template-columns: 1fr; gap: 2px; }
+  .ls-ent { grid-template-columns: 52px 1fr; }
+  .ls-ent > span:nth-child(2) { display: none; }
+}

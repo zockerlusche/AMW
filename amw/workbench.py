@@ -294,18 +294,9 @@ def _ablage_grenze(con, pid):
 
 
 def _uebersicht(con, pid, gesund):
-    """A1657 Übersicht: was die Karten „Läuft gerade“, „Stand“ und „Zustand“ brauchen – knapp, ohne Prognose-Rechnung
-    (die steht in der Planung). Zeitpunkte statt Alter, damit der Abgleich nicht von selbst neu hochlädt."""
-    boegen = zeilen(con.execute(
-        "SELECT b.id, b.titel, b.zieldatum, count(a.id) AS gesamt, coalesce(sum(a.status = 'fertig'), 0) AS fertig,"
-        " coalesce(sum(a.status = 'verworfen'), 0) AS verworfen FROM bogen b LEFT JOIN aufgabe a ON a.bogen_id = b.id"
-        " WHERE b.projekt_id = ? AND b.status = 'aktiv' GROUP BY b.id ORDER BY b.nr, b.id", (pid,)))
-    ohne = con.execute("SELECT count(*) FROM aufgabe WHERE projekt_id = ? AND bogen_id IS NULL AND status NOT IN ('fertig', 'verworfen')",
-                       (pid,)).fetchone()[0]
-    laeufe = zeilen(con.execute("SELECT id, agent, beschreibung, start_utc FROM lauf WHERE projekt_id = ? AND status = 'laeuft'"
-                                " ORDER BY id", (pid,)))
-    for l in laeufe:
-        l["beschreibung"] = (l["beschreibung"] or "")[:90]
+    """A1657, ab A2006 knapp: der Zustand des Dienstes (Kopfzeile) und die Kosten heute (Projektdetails im Leitstand). Was die
+    Karten „Läuft gerade“, „Stand“ und „Zustand“ brauchten (Meilensteine, Pakete ohne Meilenstein, Läufe, Synchronisierung),
+    fällt mit ihnen weg – das zeigt der Leitstand aus /api/leitstand, die Synchronisierung steht unter Betrieb."""
     try:
         from . import statusline
         v = statusline.verbrauch_tage(con, pid, 1)
@@ -313,12 +304,7 @@ def _uebersicht(con, pid, gesund):
     except Exception:
         kosten = None
     teile = {g["teil"]: g for g in gesund["teile"]}
-    sync = teile.get("synchronisierung")
-    jetzt = time.time()
-    return {"boegen": boegen, "ohne_bogen": ohne, "laeufe": laeufe, "kosten_heute": kosten,
-            "dienst": teile.get("hauptschleife", {}).get("zustand"),
-            "sync": None if not sync or sync.get("alter_s") is None else {
-                "zustand": sync["zustand"], "zeit_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(jetzt - sync["alter_s"]))}}
+    return {"kosten_heute": kosten, "dienst": teile.get("hauptschleife", {}).get("zustand")}
 
 
 def _zur_abnahme(con, pid):
@@ -498,21 +484,9 @@ def daten_start(con, pid):
     sz["laeufe"] = zeilen(con.execute("SELECT id, agent, status, beschreibung FROM lauf WHERE projekt_id = ? AND schirm = 1"
                                       " AND status IN ('laeuft', 'angemeldet') ORDER BY id", (pid,)))
     ende = [{"kennung": e["kennung"], "bis_utc": e["bis_utc"]} for e in steuerung.ende_offen(con, pid)]   # „Sichern & beenden“ läuft
-    # Team-Ansicht: wer gerade mit wem arbeitet (offene Prüfungen) und was der Lead vor sich hat (aktiver Bogen, Takt)
-    zusammen = [{"von": r["bauer"], "mit": r["pruefer"], "art": "pruefung", "aufgabe": r["aufgabe_id"], "id": r["id"]} for r in con.execute(
-        "SELECT id, bauer, pruefer, aufgabe_id FROM pruefung WHERE projekt_id = ? AND ergebnis = 'offen' ORDER BY id DESC LIMIT 12", (pid,))]
-    b = con.execute("SELECT id, nr, titel, zieldatum, (SELECT count(*) FROM aufgabe a WHERE a.bogen_id = bogen.id AND a.status != 'verworfen') AS n,"
-                    " (SELECT count(*) FROM aufgabe a WHERE a.bogen_id = bogen.id AND a.status = 'fertig') AS fertig FROM bogen"
-                    " WHERE projekt_id = ? AND status = 'aktiv' ORDER BY nr, id LIMIT 1", (pid,)).fetchone()
-    from .dienst import TAKT_MIN
-    try:
-        takt = int(json.loads(con.execute("SELECT einstellungen FROM projekt WHERE id = ?", (pid,)).fetchone()[0] or "{}").get("takt_min", TAKT_MIN))
-    except (TypeError, ValueError):
-        takt = TAKT_MIN
-    team = {"zusammen": zusammen, "bogen": dict(b) if b else None, "takt_min": takt}
     from . import arbeitsliste, betrieb                # Auslastung des Rechners: Läufe aller Projekte, nur als Zahlen; Eingang
     from . import einstellungen as _e
-    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "heimnetz": _e.wert("heimnetz") or None, "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "fragen_anzahl": fragen_anzahl, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "team": team, "zaehler": zaehler,
+    return {"version": __version__, "sprache_vorgabe": sprache_vorgabe(), "heimnetz": _e.wert("heimnetz") or None, "rechner": betrieb.auslastung(con, pid), "token": _token_lage(con), "agenten": agenten, "fragen": fragen, "fragen_anzahl": fragen_anzahl, "an_dich": an_dich, "eingang": len(arbeitsliste.pool(con, pid)), "halt": halte, "ende": ende, "zaehler": zaehler,
             "unangemeldet": unangemeldet, "warnungen": warnungen, "planung_wartet": planung_wartet, "schirm": sz,
             "dienst_rot": [g["teil"] for g in gesund["teile"] if g["zustand"] == "rot"], "uebersicht": _uebersicht(con, pid, gesund),
             "naechster_test": _naechster_test(con, pid), "stand": stand_je_sicht(con, pid),

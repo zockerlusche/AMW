@@ -17,9 +17,9 @@ class StartZwilling(Rundgang):
             json.dump({"env": {"AMW_AGENT": "CCamw"}}, f)                 # meldet jede Sitzung als CCamw an
         steuerung.profil_setzen(self.con, self.pid, "Entwickler", "CC1", ordner=ordner)
 
-    # Team als Baum zeigen, auf die Karte von CC1 warten, ihr Menü öffnen und „Starten / fortsetzen“ wählen
-    MENUE = ("window.confirm = window.confirm_test || (() => true); [...document.querySelectorAll('.tm-schalter button')][0].click();"
-             " (function los() { const b = [...document.querySelectorAll('.tm-knoten[data-k=CC1] button')].find(x => x.textContent === '⋯');"
+    # A2006: Kachel CC1 öffnet den Agenten-Dialog, dort das Menü (⋯) und „Starten / fortsetzen“ wählen
+    MENUE = ("window.confirm = window.confirm_test || (() => true); document.querySelector('#team [data-k=CC1]').click();"
+             " (function los() { const b = document.querySelector('.agent-dialog .mehr-knopf');"
              " if (!b) return setTimeout(los, 100); b.click();"
              " [...document.querySelectorAll('.menue button')].find(x => x.textContent.startsWith(t('m_start'))).click(); })()")
     ZWILLING = "[...document.querySelectorAll('.toast')].some(x => x.textContent.includes('Zwilling'))"

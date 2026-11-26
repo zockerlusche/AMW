@@ -20,10 +20,8 @@ class AgentEnde(Rundgang):
             db.einfuegen(self.con, "sitzung", agent_id=aid, claude_sitzung="s-cc1", gestartet_utc=db.jetzt(), schluessel_datei="x.json",
                          claude_pid=4242, zustand="aktiv")
 
-    # Team als Baum, Menü der Karte CC1 öffnen; Ergebnis: ist „Starten / fortsetzen“ grau?
-    MENUE = ("[...document.querySelectorAll('.tm-schalter button')][0].click();"
-             " (function los() { const b = [...document.querySelectorAll('.tm-knoten[data-k=CC1] button')].find(x => x.textContent === '⋯');"
-             " if (!b) return setTimeout(los, 100); b.click(); })()")
+    # A2006: Kachel CC1 öffnet den Agenten-Dialog, dort das Menü (⋯); Ergebnis: ist „Starten / fortsetzen“ grau?
+    MENUE = ("document.querySelector('#team [data-k=CC1]').click(); (function los() { const b = document.querySelector('.agent-dialog .mehr-knopf'); if (!b) return setTimeout(los, 100); b.click(); })()")
     START = "[...document.querySelectorAll('.menue button')].find(x => x.textContent.startsWith(t('m_start')))"
 
     def start_grau(self):
@@ -41,4 +39,4 @@ class AgentEnde(Rundgang):
             steuerung.ende_pruefen(self.con, beenden_mit=lambda p: lebend.discard(p))
         self.assertEqual(self.con.execute("SELECT zustand FROM sitzung").fetchone()[0], "beendet")
         self.assertFalse(self.start_grau())                                     # Kachel und Menü wie agent liste: beendet
-        self.assertIn("läuft nicht", self.tab.js("document.querySelector('.tm-knoten[data-k=CC1]').textContent"))
+        self.assertIn("läuft nicht", self.tab.js("document.querySelector('#team [data-k=CC1]').textContent"))   # A2006: Kachel der Agenten-Leiste

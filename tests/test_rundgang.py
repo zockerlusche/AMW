@@ -185,8 +185,8 @@ class Agent(Daten, Rundgang):
                       danach="document.querySelector('.agent-dialog')")
 
     def test_menue_am_agenten(self):
-        self.ueberall("start", "agent-menue", bereit=self.START + " && document.querySelector('.mehr-knopf')",
-                      tun="document.querySelector('.mehr-knopf').click()", danach="document.querySelector('.menue')")
+        self.ueberall("start", "agent-menue", bereit=self.START,                       # A2006: Menü im Agenten-Dialog
+                      tun="agentDialog('CC1'); (function los() { const b = document.querySelector('.agent-dialog .mehr-knopf'); if (!b) return setTimeout(los, 100); b.click(); })()", danach="document.querySelector('.menue')")
 
     def test_startbefehl(self):
         self.ueberall("start", "agent-startbefehl", bereit=self.START, tun="startbefehlDialog('CC1')",
@@ -291,8 +291,8 @@ class Online(Daten, OnlineRundgang):
 
     def test_agent_dialog_und_menue(self):
         self.ueberall("start", "online-agent", bereit=self.START, tun="agentDialog('CC1')", danach="document.querySelector('.agent-dialog')")
-        self.ueberall("start", "online-agent-menue", bereit=self.START + " && document.querySelector('.mehr-knopf')",
-                      tun="document.querySelector('.mehr-knopf').click()", danach="document.querySelector('.menue')")
+        self.ueberall("start", "online-agent-menue", bereit=self.START,                       # A2006: Menü im Agenten-Dialog
+                      tun="agentDialog('CC1'); (function los() { const b = document.querySelector('.agent-dialog .mehr-knopf'); if (!b) return setTimeout(los, 100); b.click(); })()", danach="document.querySelector('.menue')")
 
     def test_benutzer_online_freischalten(self):
         """A1615 a: Einstellungen › Benutzer auch online; „Freischalten“ zeigt den Code einmal im Dialog (mit ✕ im Bild)."""
