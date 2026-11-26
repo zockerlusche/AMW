@@ -8,7 +8,7 @@
  "schritte": [
   {
    "titel": "Freigeben",
-   "text": "Übersicht › Bildschirm für Agenten › „Für Agenten freigeben …“ – auf Wunsch mit Uhrzeit, bis wann.",
+   "text": "Leitstand › Bildschirm für Agenten › „Für Agenten freigeben …“ – auf Wunsch mit Uhrzeit, bis wann.",
    "bilder": []
   },
   {
@@ -23,7 +23,7 @@
   },
   {
    "titel": "Zurück am PC",
-   "text": "Die Freigabe schließt von selbst – oder du beendest sie selbst: Übersicht › Bildschirm für Agenten › „Freigabe beenden“.",
+   "text": "Die Freigabe schließt von selbst – oder du beendest sie selbst: Leitstand › Bildschirm für Agenten › „Freigabe beenden“.",
    "bilder": []
   },
   {
@@ -57,7 +57,7 @@
   ],
   [
    "Ein Agent bewegt die Maus, während du hinschaust",
-   "Das passiert, wenn „Eingabe am PC“ aus ist: Die AMW merkt nicht, dass du da bist, und Läufe mit Fenster starten auch, während du arbeitest. Schließ die Freigabe dann bewusst selbst (Übersicht › Bildschirm für Agenten › „Freigabe beenden“)."
+   "Das passiert, wenn „Eingabe am PC“ aus ist: Die AMW merkt nicht, dass du da bist, und Läufe mit Fenster starten auch, während du arbeitest. Schließ die Freigabe dann bewusst selbst (Leitstand › Bildschirm für Agenten › „Freigabe beenden“)."
   ],
   [
    "Fernsitzung wird nicht erkannt",

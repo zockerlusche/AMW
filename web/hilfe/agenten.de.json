@@ -18,7 +18,7 @@
   },
   {
    "titel": "Starten",
-   "text": "In der Übersicht den Agenten anklicken › „Starten / fortsetzen“ und die Rückfrage bestätigen. Die AMW öffnet ihn in einem neuen Terminal-Tab: zuerst setzt sie seine letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der Startanweisung. Lief die letzte Sitzung in einem anderen Ordner, beginnt sie gleich neu – sonst lüde der Agent die Notizen jenes Ordners. Meldet sich der Agent nach 3 Minuten nicht bei der AMW an, bekommen du und der Lead eine Meldung.",
+   "text": "Im Leitstand den Agenten anklicken › „Starten / fortsetzen“ und die Rückfrage bestätigen. Die AMW öffnet ihn in einem neuen Terminal-Tab: zuerst setzt sie seine letzte Sitzung fort; gibt es die nicht mehr, beginnt eine neue mit der Startanweisung. Lief die letzte Sitzung in einem anderen Ordner, beginnt sie gleich neu – sonst lüde der Agent die Notizen jenes Ordners. Meldet sich der Agent nach 3 Minuten nicht bei der AMW an, bekommen du und der Lead eine Meldung.",
    "bilder": []
   }
  ],
@@ -105,7 +105,7 @@
   ],
   [
    "Wie lasse ich alle Agenten auf einmal sichern und beenden – etwa vor einem Update?",
-   "In der Workbench am PC: Leitstand › Sitzungen › „Alle speichern & beenden“. Im eigenen Terminal: `amw agent alle-beenden --von Entwickler` (mit `--alle-projekte` für alle Projekte auf diesem PC). Jeder Agent schließt seinen Schritt ab und meldet sich ab; spätestens nach 5 Minuten beendet die AMW die Sitzung. Wie weit es ist, zeigt `amw agent ende-stand`: je Agent „sichert“, „abgemeldet“ oder „beendet“."
+   "In der Workbench am PC: Leitstand › Steuerung › Sitzungen › „Alle speichern & beenden“. Im eigenen Terminal: `amw agent alle-beenden --von Entwickler` (mit `--alle-projekte` für alle Projekte auf diesem PC). Jeder Agent schließt seinen Schritt ab und meldet sich ab; spätestens nach 5 Minuten beendet die AMW die Sitzung. Wie weit es ist, zeigt `amw agent ende-stand`: je Agent „sichert“, „abgemeldet“ oder „beendet“."
   ],
   [
    "Wie geht die Führung an einen anderen Agenten?",

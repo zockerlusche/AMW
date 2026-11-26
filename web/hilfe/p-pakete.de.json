@@ -1,6 +1,6 @@
 {
  "titel": "p-Pakete schreiben (für den Lead)",
- "kurz": "Ein p-Paket ist eine kleine, klar prüfbare Aufgabe, die ein frischer `claude -p`-Arbeiter neben den interaktiven Agenten erledigt. Der Lead plant es so, dass die AMW es ohne Rückfrage starten, prüfen und zur Freigabe vorlegen kann: mit einem Abnahme-Befehl, eng gefassten Bereichen und den Angaben, womit gearbeitet wird.",
+ "kurz": "Ein p-Paket ist eine kleine, klar prüfbare Aufgabe, die ein frischer `claude -p`-Arbeiter neben den Agenten im Fenster erledigt. Der Lead plant es so, dass die AMW es ohne Rückfrage starten, prüfen und zur Freigabe vorlegen kann: mit einem Abnahme-Befehl, eng gefassten Bereichen und den Angaben, womit gearbeitet wird.",
  "brauchst": [
   "Eine Aufgabe, die für sich allein fertig werden kann – klein, ohne Optik und ohne Entscheidungen, die ein Mensch sehen muss.",
   "Einen Befehl, der heute rot ist und grün wird, sobald die Aufgabe erledigt ist.",
@@ -36,7 +36,7 @@
  "werte": [
   [
    "`--paket`",
-   "`p` für einen `claude -p`-Arbeiter; `agent` (Vorgabe) für einen vorhandenen interaktiven Agenten; `sitzung` für eine neue Sitzung"
+   "`p` für einen `claude -p`-Arbeiter; `agent` (Vorgabe) für einen vorhandenen Agenten im Fenster; `sitzung` für eine neue Sitzung"
   ],
   [
    "`--pruefbefehl`",
@@ -94,8 +94,8 @@
   ]
  ],
  "danach": [
-  "**In der Workbench verfolgen:** Arbeit › Pakete zeigt jedes Paket mit Art, Zustand, Kosten und – wenn es nicht startet – dem Grund in Worten (etwa „Startet nicht: alle Arbeitsplätze belegt“). Bei „wartet auf Lead/dich“ steht, wer dran ist. Am PC kannst du dort ein Paket vorziehen oder zurückstellen, alle neuen Starts pausieren, einem laufenden Arbeiter mit „Mitlesen“ zusehen und ihn mit „Notbremse“ samt Unterprozessen beenden – jeder Eingriff steht im Planungs-Protokoll. Online und am Handy siehst du die Liste nur; gesteuert wird am PC. „Was bedeuten die Zustände?“ unter der Liste zeigt, welcher Zustand als fertig, läuft, wartet oder blockiert zählt.",
-  "Die AMW führt jedes p-Paket durch seine Zustände: Entwurf → startklar → läuft → abgegeben → in der Abnahme → bereit zum Merge → gemergt → fertig. Daneben: blockiert (Frage offen), unklar (keine Schlusszeile), wartet auf interaktiv, abgebrochen, zurückgestellt. In Planung und Übersicht steht ein p-Paket wie jede Aufgabe als läuft, wartet, blockiert oder fertig.",
+  "**In der Workbench verfolgen:** Arbeit › Pakete zeigt jedes Paket mit Art, Zustand, Kosten und – wenn es nicht startet – dem Grund in Worten (etwa „Startet nicht: alle Headless-Agenten belegt“). Bei „wartet auf Lead/dich“ steht, wer dran ist. Am PC kannst du dort ein Paket vorziehen oder zurückstellen, alle neuen Starts pausieren, einem laufenden Arbeiter mit „Mitlesen“ zusehen und ihn mit „Notbremse“ samt Unterprozessen beenden – jeder Eingriff steht im Planungs-Protokoll. Online und am Handy siehst du die Liste nur; gesteuert wird am PC. „Was bedeuten die Zustände?“ unter der Liste zeigt, welcher Zustand als fertig, läuft, wartet oder blockiert zählt.",
+  "Die AMW führt jedes p-Paket durch seine Zustände: Entwurf → startklar → läuft → abgegeben → in der Abnahme → bereit zum Merge → gemergt → fertig. Daneben: blockiert (Frage offen), unklar (keine Schlusszeile), wartet auf Lead, abgebrochen, zurückgestellt. In Planung und Übersicht steht ein p-Paket wie jede Aufgabe als läuft, wartet, blockiert oder fertig.",
   "Aufgaben mit `--paket agent` (die Vorgabe) haben keine dieser Zustände – für sie gilt der Status der Aufgabe wie bisher.",
   "**Bereit zum Merge freigeben:** Unter der Liste steht „Bereit zum Merge“ mit jedem fertig geprüften Paket: welche Dateien es ändert (`diff --stat`) und die Änderungen selbst zum Aufklappen. Am PC gibst du mit „Alle freigeben“ alle auf einmal frei, im Terminal mit `amw paket freigeben --alle` (Prüfer der Pakete, Lead oder du). Die AMW holt dann je Paket genau seinen Stand als Zweig `paket-A<Nummer>` ins Projekt und vermerkt „Prüfung C (AMW) + Freigabe“ und das Merge-OK; ausgeliefert wird wie immer über die Kette. Danach steht das Paket auf „gemergt“ und „fertig“, und sein Arbeitsplatz ist wieder frei.",
   "**Bündeln und ausliefern:** `amw paket buendeln --alle` (Lead oder du) setzt die freigegebenen Pakete der Reihe nach auf den aktuellen Stand – in einem eigenen Arbeitsordner, nie im Live-Ordner. Die AMW hebt die Versionsnummer (MINOR, wenn ein Paket etwas Neues bringt, sonst PATCH), schreibt die Versionshinweise aus den Hinweisen der Pakete und lässt den Gesamtlauf über die Lauf-Schlange laufen. Ist er grün, bekommst du „Bündel X.Y.Z bereit“ mit den geänderten Dateien, den Versionshinweisen und den zwei Befehlen zum Freigeben und Ausliefern – das Release gibst nur du bzw. der Lead frei. Passt ein Paket nicht auf die anderen (Konflikt), bleibt es draußen und wartet auf dich; Pakete, die „nach“ ihm kommen, bleiben ebenfalls draußen. Was ein Projekt dafür braucht, steht in den Projekt-Einstellungen `version_datei`, `changelog_datei`, `gesamtlauf_befehl` und optional `buendel_schritt` (Nacharbeit, z. B. Webseite bauen). Bricht der Gesamtlauf eines Bündels ab, ohne gerechnet zu haben, stößt `amw paket buendeln --gesamtlauf buendel-X.Y.Z` ihn für dasselbe Bündel neu an. Wird ein Bündel nicht ausgeliefert, bleiben seine Pakete freigegeben: Das nächste `amw paket buendeln --alle` nimmt sie wieder mit, ohne dass du sie neu freigibst. Ohne Agent geht es mit `amw paket ausliefern-buendel`: Die AMW nimmt alle abgenommenen Pakete, lässt eines mit Konflikt draußen und teilt ein rotes Bündel, bis das schuldige Paket feststeht. Ausliefern tut sie dabei erst, wenn du `buendel_ausliefern = an` stellst; bis dahin endet es bei „Bündel X.Y.Z bereit“."
@@ -103,7 +103,7 @@
  "fragen": [
   [
    "Ist p die Vorgabe?",
-   "Ja. Pakete der Größe S – und M bei Art mechanisch –, die keine Oberfläche sind, keinen gesperrten Bereich brauchen und weder Bildschirm noch Grafikkarte, laufen als p. Der Planer schneidet sie so (mit Abnahme-Befehl, engen Bereichen und, wenn nötig, Pakettyp `test-schreiben`); Modell und Denkaufwand nimmt er dann aus der Empfehlung des Projekts. Interaktiv bleibt so ein Paket nur mit Grund (Optik, Erkundung, gesperrter Bereich, dein Auge) – der Grund steht im Auftrag („Interaktiv, Grund: …“). Fehlt er, meldet das Ja zum Plan „Achtung“, und `amw aufgabe neu` sagt bei S oder M-mechanisch ohne `--paket` „p möglich – oder Grund“. Wie viele Pakete wirklich als p laufen, zeigt `amw messung --p` (je Tag, mit Kosten und Wartezeiten p gegen interaktiv) und Betrieb › „Anteil p“; liegt der Anteil der letzten sieben Tage unter 50 %, bekommt der Lead einmal am Tag eine Meldung (nur in Projekten mit Arbeitsplätzen)."
+   "Ja. Pakete der Größe S – und M bei Art mechanisch –, die keine Oberfläche sind, keinen gesperrten Bereich brauchen und weder Bildschirm noch Grafikkarte, laufen als p. Der Planer schneidet sie so (mit Abnahme-Befehl, engen Bereichen und, wenn nötig, Pakettyp `test-schreiben`); Modell und Denkaufwand nimmt er dann aus der Empfehlung des Projekts. Interaktiv bleibt so ein Paket nur mit Grund (Optik, Erkundung, gesperrter Bereich, dein Auge) – der Grund steht im Auftrag („Interaktiv, Grund: …“). Fehlt er, meldet das Ja zum Plan „Achtung“, und `amw aufgabe neu` sagt bei S oder M-mechanisch ohne `--paket` „p möglich – oder Grund“. Wie viele Pakete wirklich als p laufen, zeigt `amw messung --p` (je Tag, mit Kosten und Wartezeiten p gegen interaktiv) und Betrieb › „Anteil Headless“; liegt der Anteil der letzten sieben Tage unter 50 %, bekommt der Lead einmal am Tag eine Meldung (nur in Projekten mit Arbeitsplätzen)."
   ],
   [
    "Was ist ein guter Abnahme-Befehl?",
@@ -122,8 +122,8 @@
    "Manche Pakete gehen nach der Prüfung immer erst an dich bzw. den Lead, etwa der Pakettyp „test-schreiben“ oder ein Hinweis auf Zugriffe nach außen, der sich beim Lesen als harmlos zeigt. Die AMW hebt den geprüften Stand dabei auf. Hast du ihn gelesen und er passt: `amw paket annehmen <nr> --grund „was du gelesen hast“` (Lead oder du). Das Paket steht dann unter „Bereit zum Merge“ und wird freigegeben und ausgeliefert wie jedes andere."
   ],
   [
-   "Ein p-Paket hängt fest – wie gebe ich es einem interaktiven Agenten?",
-   "Steht es auf „wartet auf interaktiv“, „blockiert“, „unklar“ oder „abgebrochen“: `amw aufgabe aendern <nr> --paket agent --agent <Kennung>`. Ab dann gilt wieder der normale Status der Aufgabe; die Zustände bis dahin bleiben im Planungs-Protokoll."
+   "Ein p-Paket hängt fest – wie gebe ich es einem Agenten im Fenster?",
+   "Steht es auf „wartet auf Lead“, „blockiert“, „unklar“ oder „abgebrochen“: `amw aufgabe aendern <nr> --paket agent --agent <Kennung>`. Ab dann gilt wieder der normale Status der Aufgabe; die Zustände bis dahin bleiben im Planungs-Protokoll."
   ],
   [
    "Was macht der Pakettyp „test-schreiben“?",

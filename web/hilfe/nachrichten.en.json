@@ -2,7 +2,7 @@
  "titel": "Messages: for you, read along, sent",
  "kurz": "Everything you write to agents and everything they write to you is in one place – from all projects on this PC together. Every line shows its project with a colour mark; at the top you pick “All projects” or a single one. Notices from the Workbench itself show “System” as the sender. For each recipient you see how far a message has got – and as long as nobody has read it, you can withdraw it.",
  "brauchst": [
-  "The Workbench at the PC or the online site. Menu › Messages."
+  "The Workbench at the PC or the online site. Knowledge › Messages."
  ],
  "schritte": [
   {
@@ -56,7 +56,7 @@
   "Only the lead (and the co-developer) asks you. If another agent asks, the question goes to the lead: the lead settles it or asks you – then as the lead's own question, reworked first or bundled with others; who asked originally is shown in the history. Tasks and questions sent to you as messages also go to the lead first; info (e.g. “live”) still comes straight to you.",
   "Every line shows its kind: ✉ message from an agent, ⚙ notice from the Workbench. To mark several open ones as done at once: tick them (or “select all unread”), then “Done”.",
   "What agents and lead write to each other is under “Read along” – from all projects, read only, it never counts.",
-  "The Overview shows only a card with the newest messages for you – one click takes you to “For you”. The number in the menu is for the chosen project, “n to do for you” on the page for all.",
+  "The control room shows only a card with the newest messages for you – one click takes you to “For you”. The number in the menu is for the chosen project, “n to do for you” on the page for all.",
   "On the PC the list and the message scroll separately, as in a mail program: you can read on the right without losing the list."
  ],
  "fragen": [
