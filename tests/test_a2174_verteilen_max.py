@@ -44,6 +44,20 @@ class MaxOffen(Grund):
         self.assertEqual(verteilen.offene_pakete(self.con, self.pid, "CC1"), [])
         self.assertIn("CC1", self.frei())
 
+    def test_geparkte_und_pool_zaehlen_nicht(self):
+        """Lead #34482: ein geparktes Paket (oder eins im Pool) belegt keinen Platz."""
+        with db.schreiben(self.con):
+            for n in (1, 2):
+                db.einfuegen(self.con, "lauf", id=n, projekt_id=self.pid, agent="CC1", beschreibung="Tests", status="angemeldet",
+                             angemeldet_utc=db.jetzt())
+        a = self.eigenes("Geparkt", "L1")
+        b = self.eigenes("Im Pool", "L2")
+        with db.schreiben(self.con):
+            self.con.execute("UPDATE aufgabe SET einstufung = 'geparkt' WHERE id = ?", (a,))
+            self.con.execute("UPDATE aufgabe SET einstufung = 'pool' WHERE id = ?", (b,))
+        self.assertEqual(verteilen.offene_pakete(self.con, self.pid, "CC1"), [])
+        self.assertIn("CC1", self.frei())
+
     def test_einstellung(self):
         self.assertEqual(verteilen.max_offen(self.con, self.pid), 2)
         kern.projekt_einstellen(self.con, self.pid, "TL", verteilen_max_offen=1)

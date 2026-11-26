@@ -94,11 +94,11 @@ def max_offen(con, pid):
 
 
 def offene_pakete(con, pid, k):
-    """A2174: die Pakete des Agenten, die noch Arbeit von ihm brauchen – läuft, wartet, blockiert; gebaute, die nur auf eine Prüfung oder
+    """A2174: die aktiven Pakete des Agenten, die noch Arbeit von ihm brauchen – läuft, wartet, blockiert; gebaute, die nur auf eine Prüfung oder
     auf Stapel/Bündel warten (Wartegrund-Sorte wartet_pruefung, wartet_stapel), zählen nicht."""
     aus = []
-    for a in con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('laeuft', 'wartet', 'blockiert')",
-                         (pid, k)).fetchall():
+    for a in con.execute("SELECT id FROM aufgabe WHERE projekt_id = ? AND agent = ? AND status IN ('laeuft', 'wartet', 'blockiert')"
+                         " AND einstufung = 'aktiv'", (pid, k)).fetchall():          # geparkt oder im Pool: kein Platz (Lead #34482)
         sorten = {wartegrund.sorte(g["art"], g["bezug"]) for g in wartegrund.offene(con, a["id"])}
         if sorten & {"wartet_pruefung", "wartet_stapel"}:
             continue
