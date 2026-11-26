@@ -77,7 +77,7 @@ def schnell(projekt, lead="TL", agenten=("CC1",), ordner=None, rechte="vorgabe",
             pid = r["id"]
         else:
             with db.schreiben(con):
-                pid = db.einfuegen(con, "projekt", name=projekt, angelegt_utc=db.jetzt())
+                pid = db.einfuegen(con, "projekt", name=projekt, angelegt_utc=db.jetzt(), einstellungen=kern.neue_projekt_einstellungen())
             schritte.append(f"Projekt „{projekt}“ angelegt")
             if quelle:
                 n = wissen.regeln_uebernehmen(con, pid, quelle)

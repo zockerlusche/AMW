@@ -377,9 +377,9 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
   schwächer als die Empfehlung für Größe und Art; ist das Profil schwächer, teilt die AMW nie selbst zu, sondern schlägt dem
   Lead vor („A… bräuchte opus/high, CC1 hat sonnet/medium“), weil Modell und Denkaufwand in einer laufenden Sitzung nicht
   wechseln (TH159). Ohne Fachgebiet, ohne Art oder mit offenem Profil passt es. Die Begründung nennt beide Treffer.
-- **Einstellung `verteilen`:** vorschlag (Vorgabe) – der Lead bekommt „Vorschlag: A… an CC1?“ als Frage mit dem Befehl;
-  an – die AMW teilt zu (Auftrag an den Agenten mit Begründung, Meldung an den Lead); aus. Je Paar Agent/Aufgabe ein
-  Vorschlag.
+- **Einstellung `verteilen`:** vorschlag (Vorgabe bestehender Projekte ohne Eintrag) – der Lead bekommt „Vorschlag: A… an CC1?“
+  als Frage mit dem Befehl; an – die AMW teilt zu (Auftrag an den Agenten mit Begründung, Meldung an den Lead); aus. Je Paar
+  Agent/Aufgabe ein Vorschlag. **Neue Projekte** starten mit `an` (A2152, TH164: in der Umsetzung verteilt die AMW selbst).
 - **Ausfall:** Hat ein Agent eine Aufgabe in „läuft“ und ist seine Sitzung seit `ausfall_min` (Vorgabe 30, 5–1440) beendet
   ohne neue (die Aufsicht prüft die Pipe – ein stiller, wartender Agent hat Puls), geht die Aufgabe ohne Bearbeiter in den
   Pool zurück. Übergabe-Notiz: letzter Commit zur Aufgabe, letzte Tätigkeit, offene Kriterien und Wartegründe – an den Lead
@@ -641,6 +641,10 @@ wenn er strenger (kleiner) ist; abschalten kann ein Projekt den Halt nicht mehr 
   nur ohne Urteil. Endet er mit einem Urteil (Abnahme-Text mehr als „alle Pakete fertig“: Vorführung, Bericht, Probe), bleibt er
   offen und ist „bereit zur Abnahme“: Abschlussbericht und eine Meldung an Lead und Co (bzw. den Menschen) je Stand, Ereignis
   `bogen_bereit_abnahme`; fertig wird er erst mit dem Ja zum Abschluss (`amw bogen freigeben N --art abschluss`, A2002).
+- **Vorgaben neuer Projekte (A2152, TH155/TH164):** Jedes neu angelegte Projekt – Einrichtung (`amw einrichten`, Workbench „Neues
+  Projekt“), `amw projekt neu` und `amw init --projekt` – startet mit `meilenstein_fertig = automatisch` und `verteilen = an`:
+  Meilensteine ohne Urteil schließt die AMW selbst, Meilensteine mit Urteil warten weiter auf das Ja. Bestehende Projekte
+  bleiben unverändert, auch ohne Eintrag (dort gilt weiter `vorschlag`); ändern: `amw projekt einstellen meilenstein_fertig=…`.
 - **Themen statt Spezifikation:** Der Meilenstein zeigt die Themen seiner Aufgaben (`amw aufgabe aendern N --thema TH<n>`)
   mit Status. Neue Meilensteine haben keine Spezifikation mehr; `amw bogen neu` verlangt sie nicht und der Plan-Check meldet
   nichts mehr dazu. Alte Meilensteine behalten ihre Spezifikation als alten Bestand (lesbar, `amw spec …`).

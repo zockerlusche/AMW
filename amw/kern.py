@@ -290,7 +290,7 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # (interne Pflege); aus = nur ein Hinweis. Gilt nur, wenn das Projekt Themen hat. Lead oder Mensch.
                 "thema_pflicht": ("aus", "an"),
                 # Meilenstein fertig (A1742): sind alle Aufgaben fertig, schlägt die AMW dem Lead das Abschließen vor (vorschlag)
-                # oder schließt selbst ab (automatisch) – die Versions-Pflicht gilt in beiden Fällen.
+                # oder schließt selbst ab (automatisch) – die Versions-Pflicht gilt in beiden Fällen. Neue Projekte: automatisch (A2152).
                 "meilenstein_fertig": ("vorschlag", "automatisch"),
                 # farbe: Streifen über dem Kopf und Marke in der Projekt-Auswahl (Farbtöne setzt die Oberfläche)
                 "farbe": ("bernstein", "gruen", "blau", "violett", "tuerkis", "rot", "grau"),
@@ -309,11 +309,21 @@ PROJEKT_WAHL = {"dateien_online": ("wunsch", "bilder", "alle"),
                 # Planer (A1940, K4): nach der Freigabe eines Themas entwirft ein frischer -p Meilensteine und Pakete als Daten
                 "themen_planer": ("sonnet", "aus"),
                 # Verteilen an interaktive Agenten (A1927, TH157): vorschlag = der Lead bekommt die Zuteilung als Frage (Vorgabe);
-                # an = die AMW teilt einem freien Agenten das nächste passende startklare Paket selbst zu; aus = nie.
+                # an = die AMW teilt einem freien Agenten das nächste passende startklare Paket selbst zu; aus = nie. Neue Projekte: an.
                 "verteilen": ("vorschlag", "an", "aus"),
                 # Releases in drei Ebenen (A1928, TH158): meilenstein = release ausliefern ist lokal live (ohne Push und GitHub-
                 # Release); veröffentlicht wird nach der Abnahme des Meilensteins durch den Menschen; sofort = wie früher.
                 "veroeffentlichen": ("meilenstein", "sofort")}
+# A2152 (M14 D1974, TH155/TH164): neue Projekte – alle Anlegewege – schließen Meilensteine ohne Urteil selbst und verteilen selbst;
+# bestehende Projekte ohne Eintrag behalten die Vorgabe oben (erster Wert).
+NEUE_PROJEKTE = {"meilenstein_fertig": "automatisch", "verteilen": "an"}
+
+
+def neue_projekt_einstellungen():
+    """Einstellungen (JSON) für ein neu angelegtes Projekt."""
+    return json.dumps(NEUE_PROJEKTE)
+
+
 NUR_MENSCH_WAHL = ("merge_blick", "merge_aussen_pruefung", "buendel_ausliefern")
 # A1951 (Marcel W2460, B2914: „Wir sind Dev und TL“): Lead oder Mensch – nie ein anderer Agent; ändert der Lead, steht es im Protokoll
 LEAD_ODER_MENSCH_WAHL = ("thema_freigabe", "sicherung_ziel", "grobplan_freigabe", "feinplan_freigabe", "abschluss_freigabe")

@@ -112,7 +112,7 @@ def cmd_init(a):
     con = db.anlegen()
     if name:
         with db.schreiben(con):
-            db.einfuegen(con, "projekt", name=name, angelegt_utc=db.jetzt())
+            db.einfuegen(con, "projekt", name=name, angelegt_utc=db.jetzt(), einstellungen=kern.neue_projekt_einstellungen())   # A2152
     con.close()
     print(f"angelegt: {db.db_pfad()}" + (f" mit Projekt {name}" if name else ""))
 
@@ -125,7 +125,8 @@ def cmd_projekt(a, con):
         if a.ordner and not os.path.isdir(a.ordner):
             raise kern.AmwFehler(f"Ordner {a.ordner} gibt es nicht – lege ihn zuerst an")
         with db.schreiben(con):
-            pid = db.einfuegen(con, "projekt", name=a.name, beschreibung=a.beschreibung, angelegt_utc=db.jetzt())
+            pid = db.einfuegen(con, "projekt", name=a.name, beschreibung=a.beschreibung, angelegt_utc=db.jetzt(),
+                              einstellungen=kern.neue_projekt_einstellungen())             # A2152
         if a.ordner:
             print(f"Projektordner: {kern.projekt_ordner_setzen(con, pid, a.ordner)}")
         n = wissen.regeln_uebernehmen(con, pid, quelle) if quelle else 0
