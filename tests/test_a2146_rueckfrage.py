@@ -21,6 +21,10 @@ FRAGEN = ("ab_frage", "ua_frage", "ua_zurueck_frage", "pjw_wartet_frage", "pjw_t
 ZAEHLEN = ("window.__post = []; window.__fetch = window.fetch; window.fetch = (u, o) => { if (o && o.method === 'POST') window.__post.push(String(u));"
            " return window.__fetch(u, o); }")
 OFFEN = "document.querySelectorAll('.rueckfrage-hg').length"
+# wie ZAEHLEN, nur kommt jede Antwort auf ein POST erst nach 1,5 s – so liegt ein zweiter Klick sicher in der laufenden Anfrage
+LANGSAM = ("window.__post = []; window.__fetch = window.fetch; window.fetch = (u, o) => { if (o && o.method === 'POST') {"
+           " window.__post.push(String(u)); return new Promise(r => setTimeout(r, 1500)).then(() => window.__fetch(u, o)); }"
+           " return window.__fetch(u, o); }")
 
 
 class Quelle(unittest.TestCase):
@@ -67,6 +71,7 @@ class Abnahme(Rundgang):
                 self.warten("!document.querySelector('.rueckfrage-hg')")
                 self.assertEqual(posts(self, "abnehmen"), [])
                 self.assertFalse(self.tab.js(self.KNOPF + ".disabled"))
+                self.assertTrue(self.tab.js(f"document.activeElement === {self.KNOPF}"))            # der Fokus ist wieder beim Knopf, der fragte
         self.tab.js(f"const b = {self.KNOPF}; b.click(); b.click()")                       # Doppelklick: eine Rückfrage
         self.assertEqual(self.tab.js(OFFEN), 1)
         self.rueckfrage(True)
@@ -159,6 +164,41 @@ class Einmal(Rundgang):
         self.warten("window.__post.length")
         self.warten(f"document.querySelectorAll('.karte.frage:not(.weg)').length === {n - 1}")
         self.assertEqual(len(posts(self, f"/api/frage/{self.fid}/antwort")), 1)
+
+    def test_zwei_optionen_schnell_nacheinander_eine_antwort(self):
+        """Erst A, dann B, solange A noch unterwegs ist: je Frage geht eine Antwort zur Zeit hinaus (Sperre je Frage, nicht je Knopf)."""
+        self.oeffnen("fragen", "document.querySelector('.karte.frage .optionen button')")
+        self.tab.js(LANGSAM)
+        self.tab.js("const k = document.querySelectorAll('.karte.frage')[0].querySelectorAll('.optionen button'); k[0].click(); k[1].click()")
+        self.warten("window.__post.length")
+        time.sleep(2.5)
+        self.assertEqual(len(posts(self, "/antwort")), 1)
+
+    def test_nach_der_rueckfrage_bleibt_die_karte_gesperrt(self):
+        """Eine Rückfrage lässt die Karte stehen – ihre Knöpfe bleiben aus, auch nach dem Freigeben der Sperre (bleibtAus)."""
+        self.oeffnen("fragen", "document.querySelector('.karte.frage textarea')")
+        self.tab.js(ZAEHLEN)
+        self.tab.js("const k = document.querySelectorAll('.karte.frage')[0]; const n = k.querySelector('textarea'); n.value = 'Was heißt grün genau?';"
+                    " [...k.querySelectorAll('button')].find(b => b.textContent === t('rueckfrage')).click()")
+        self.warten("window.__post.length")
+        self.warten("document.querySelectorAll('.karte.frage')[0].querySelector('.rueckmeldung').textContent === t('rueckfrage_gesendet')")
+        time.sleep(2.5)                                                                           # einmalTun gibt nach 1,5 s frei
+        self.assertTrue(self.tab.js("[...document.querySelectorAll('.karte.frage')[0].querySelectorAll('button')].every(b => b.disabled)"))
+
+    def test_themen_ja_neu_gezeichnet_zaehlt_einmal(self):
+        """Das Ja zu einem Thema, die Seite zeichnet neu, solange es unterwegs ist: der neue Knopf schickt es nicht noch einmal."""
+        self.oeffnen("themen", "document.querySelector('.th-liste .th-zeile')")
+        self.tab.js(f"zustand.themaOffen = {self.tid}; zeige('themen', true)")
+        self.warten("document.querySelector('.th-knoepfe button[data-h=freigeben]')")
+        self.tab.js(LANGSAM)
+        self.tab.js("const b = document.querySelector('.th-knoepfe button[data-h=freigeben]'); b.dataset.alt = '1'; b.click()")
+        if self.tab.js(OFFEN):
+            self.rueckfrage(True)
+        self.tab.js("zeige('themen', true)")
+        self.warten("document.querySelector('.th-knoepfe button[data-h=freigeben]:not([data-alt])')")
+        self.tab.js("document.querySelector('.th-knoepfe button[data-h=freigeben]:not([data-alt])').click()")
+        time.sleep(2.5)
+        self.assertEqual(len(posts(self, "/api/thema/freigeben")), 1)
 
     def test_antwort_bei_fehler_satz_und_knopf_wieder_da(self):
         self.oeffnen("fragen", "document.querySelector('.karte.frage .optionen button')")
