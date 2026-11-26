@@ -3,8 +3,9 @@ Suche über alles beim Tippen (erst das eigene Projekt, dann die anderen; eine N
 Tor-Leiste, keine zweite Statusleiste; Farbe nur am Zähler „für dich“. PC und Handy, hell und dunkel."""
 import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im echten Zugangs-Ordner
 import unittest
+from unittest import mock
 
-from amw import db, kern, planung, workbench
+from amw import abgleich, db, kern, planung, workbench
 from tests.rundgang import Rundgang
 from tests.test_a2077_verlauf import Grund
 
@@ -40,7 +41,7 @@ class Daten(Grund):
         self.n = bestand(self.con, self.pid)
 
     def test_projekte_mit_fuer_dich(self):
-        p = {x["name"]: x for x in workbench.daten_projekte(self.con, self.pid)["projekte"]}
+        p = {x["name"]: x for x in workbench.daten_projekte(self.con, self.pid)["projekte"] if not x.get("fern")}   # andere Rechner: ohne Zähler
         self.assertEqual((p["P"]["fuer_dich"], p["Shop"]["fuer_dich"]), (1, 2))
 
     def test_gesamtsicht(self):
@@ -66,6 +67,9 @@ class Daten(Grund):
 
 class Seite(Rundgang):
     def daten(self):
+        v = mock.patch.dict(abgleich.VERZEICHNIS, {"projekte": []})          # keine Projekte anderer Rechner aus früheren Tests
+        v.start()
+        self.addCleanup(v.stop)
         kern.agent_neu(self.con, self.pid, "CC1")
         self.n = bestand(self.con, self.pid)
 
@@ -77,7 +81,7 @@ class Seite(Rundgang):
     def test_projektwechsel_mit_zaehlern(self):
         self.liste_auf()
         zeilen = self.tab.js("[...document.querySelectorAll('.pw-liste .pw-eintrag')].map(e => e.innerText.replace(/\\s+/g, ' ').trim())")
-        n = {x["name"]: x["fuer_dich"] for x in workbench.daten_projekte(self.con, self.pid)["projekte"]}   # dieselbe Zahl wie „Für dich“
+        n = {x["name"]: x["fuer_dich"] for x in workbench.daten_projekte(self.con, self.pid)["projekte"] if not x.get("fern")}   # wie „Für dich“
         self.assertEqual(n["Shop"], 2)
         self.assertEqual(zeilen[:3], [f"Alle Projekte {n['P'] + 2}", f"P {n['P']}", "Shop 2"])
         signale = self.tab.js("document.querySelector('#signale').innerText")       # keine zweite Statusleiste: nur Abweichungen
