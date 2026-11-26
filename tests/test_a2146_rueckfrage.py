@@ -5,6 +5,7 @@ import tests.abschotten  # noqa: F401 – immer als erster Import: Tests nie im 
 import glob
 import os
 import re
+import time
 import unittest
 from unittest import mock
 
@@ -117,8 +118,12 @@ class Zurueck(Rundgang):
         self.rueckfrage(True)
         self.warten("window.__post.length")
         self.assertEqual(len(posts(self, "/api/aufgabe/abnehmen")), 1)
-        self.con.commit()
+        ende = time.time() + 8                                                                    # gesendet heißt noch nicht verarbeitet
+        while time.time() < ende and self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0] != "fertig":
+            self.con.commit()
+            time.sleep(0.2)
         self.assertEqual(self.con.execute("SELECT status FROM aufgabe WHERE id = ?", (self.aid,)).fetchone()[0], "fertig")
+        self.assertEqual(len(posts(self, "/api/aufgabe/abnehmen")), 1)
 
 
 class Einmal(Rundgang):
@@ -149,9 +154,10 @@ class Einmal(Rundgang):
     def test_antwort_doppelklick(self):
         self.oeffnen("fragen", "document.querySelector('.karte.frage .optionen button')")
         self.tab.js(ZAEHLEN)
+        n = self.tab.js("document.querySelectorAll('.karte.frage:not(.weg)').length")             # die Grund-Frage „Erste Frage?“ bleibt offen
         self.tab.js("const b = document.querySelector('.karte.frage .optionen button'); b.click(); b.click()")
         self.warten("window.__post.length")
-        self.warten(f"!document.querySelector('.karte.frage:not(.weg)')")
+        self.warten(f"document.querySelectorAll('.karte.frage:not(.weg)').length === {n - 1}")
         self.assertEqual(len(posts(self, f"/api/frage/{self.fid}/antwort")), 1)
 
     def test_antwort_bei_fehler_satz_und_knopf_wieder_da(self):
