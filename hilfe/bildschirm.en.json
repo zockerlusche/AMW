@@ -8,7 +8,7 @@
  "schritte": [
   {
    "titel": "Release",
-   "text": "Overview › Screen for agents › “Free for agents …” – optionally with a time until when.",
+   "text": "Control room › Screen for agents › “Free for agents …” – optionally with a time until when.",
    "bilder": []
   },
   {
@@ -23,7 +23,7 @@
   },
   {
    "titel": "Back at the PC",
-   "text": "The release closes by itself – or end it yourself: Overview › Screen for agents › “End sharing”.",
+   "text": "The release closes by itself – or end it yourself: Control room › Screen for agents › “End sharing”.",
    "bilder": []
   },
   {
@@ -57,7 +57,7 @@
   ],
   [
    "An agent moves the mouse while you are watching",
-   "This happens when “Input at the PC” is off: the AMW does not notice you are there, and runs with a window start even while you work. End the release yourself then (Overview › Screen for agents › “End sharing”)."
+   "This happens when “Input at the PC” is off: the AMW does not notice you are there, and runs with a window start even while you work. End the release yourself then (Control room › Screen for agents › “End sharing”)."
   ],
   [
    "Remote session not recognised",

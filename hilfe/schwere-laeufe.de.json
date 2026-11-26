@@ -33,7 +33,7 @@
   },
   {
    "titel": "Nachsehen",
-   "text": "Übersicht › Leitstand › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.",
+   "text": "Leitstand › Steuerung › „Rechner“ zeigt, wie viele Läufe laufen und warten und wann der Rechner voraussichtlich frei ist.",
    "bilder": []
   }
  ],
@@ -60,7 +60,7 @@
   ],
   [
    "Dauerhaft belegt anzeigen ab (Dieser PC)",
-   "ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange im Leitstand, Vorgabe 4 GB, 0 = aus"
+   "ab so viel Arbeitsspeicher erscheint ein Programm außerhalb der Warteschlange in der Steuerung, Vorgabe 4 GB, 0 = aus"
   ],
   [
    "Weitere schwere Befehle (Projekt)",
@@ -74,7 +74,7 @@
   ],
   [
    "Ein Lauf wartet lange",
-   "Im Leitstand steht, warum: der Rechner ist belegt, es ist zu wenig Arbeitsspeicher frei oder ein Lauf davor wartet – dann steht dabei, wie viel Arbeitsspeicher er braucht und wie viel nutzbar ist. Der Mensch kann einen Lauf vorziehen – in der Rechner-Kachel mit „Vorziehen“ oder mit `amw lauf vorziehen <nr>`; der Lauf steht dann ganz vorn, vor jeder Vorrang-Stufe. Ein Lead kann nur innerhalb seines Projekts vorziehen: vor die anderen Läufe des Projekts, nicht vor Läufe anderer Projekte. In der Liste steht deshalb „vom Entwickler vorgezogen“ oder „im Projekt vorgezogen“."
+   "In der Steuerung steht, warum: der Rechner ist belegt, es ist zu wenig Arbeitsspeicher frei oder ein Lauf davor wartet – dann steht dabei, wie viel Arbeitsspeicher er braucht und wie viel nutzbar ist. Der Mensch kann einen Lauf vorziehen – in der Rechner-Kachel mit „Vorziehen“ oder mit `amw lauf vorziehen <nr>`; der Lauf steht dann ganz vorn, vor jeder Vorrang-Stufe. Ein Lead kann nur innerhalb seines Projekts vorziehen: vor die anderen Läufe des Projekts, nicht vor Läufe anderer Projekte. In der Liste steht deshalb „vom Entwickler vorgezogen“ oder „im Projekt vorgezogen“."
   ],
   [
    "Ein Gesamtlauf zählt nicht für die Auslieferung",
@@ -98,7 +98,7 @@
   ],
   [
    "Der Rechner ist frei, trotzdem startet nichts",
-   "Ein Programm außerhalb der Warteschlange belegt den Arbeitsspeicher, zum Beispiel ein lokaler KI-Server oder eine virtuelle Maschine. Im Leitstand steht unter „Rechner“, welches Programm das ist, wie viel es belegt und seit wann. Beende es selbst, wenn du es nicht mehr brauchst – die AMW beendet nichts."
+   "Ein Programm außerhalb der Warteschlange belegt den Arbeitsspeicher, zum Beispiel ein lokaler KI-Server oder eine virtuelle Maschine. In der Steuerung steht unter „Rechner“, welches Programm das ist, wie viel es belegt und seit wann. Beende es selbst, wenn du es nicht mehr brauchst – die AMW beendet nichts."
   ]
  ],
  "danach": [
@@ -109,7 +109,7 @@
  "fragen": [
   [
    "Wie bekommt ein Projekt Vorrang?",
-   "Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, im Leitstand steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC. Innerhalb derselben Stufe kommt danach die Rangfolge der Projekte (`amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT`, nur du; nicht genannte Projekte danach), erst dann die Ankunft."
+   "Unter Einstellungen › Dieser PC › „Vorrang der Projekte“ stellst du je Projekt hoch, normal oder niedrig ein. Wartende Läufe kommen dann in dieser Reihenfolge dran: zuerst, was du selbst vorgezogen hast, dann „hoch“, dann „normal“, dann „niedrig“ – innerhalb einer Stufe der Reihe nach. Ein Lauf, der schon läuft, wird nie abgebrochen. Der Wartegrund nennt den Vorrang; im Zeitstrahl „Rechner – heute“ sind Vorrang-Läufe mit ▲ markiert, in der Steuerung steht die Liste kurz. Die Einstellung gehört dem PC, nicht einem Projekt – Namen anderer Projekte siehst du nur am PC. Innerhalb derselben Stufe kommt danach die Rangfolge der Projekte (`amw pc einstellen projekt_rang=AMW,GlassWorld,LayerIT`, nur du; nicht genannte Projekte danach), erst dann die Ankunft."
   ],
   [
    "Kann ein Projekt schwere Läufe nur zu bestimmten Zeiten rechnen?",
@@ -141,7 +141,7 @@
   ],
   [
    "Was tut die AMW, wenn die Festplatte voll wird?",
-   "Sie warnt: im Leitstand unter „Rechner“ und mit einer Nachricht an Lead und dich, sobald auf einem Laufwerk mit der Datenbank oder einem Projektordner weniger als 15 % frei sind, und dringend unter 5 %. Unter Einstellungen › Dieser PC stehen die Laufwerke und die Aufräumvorschläge: alte Sicherungen mit Größe und Alter. Gelöscht wird nichts von selbst. Ist ein Archiv-Ordner eingetragen, verschiebst du alte Sicherungen mit einem Klick dorthin; jede Verschiebung steht in archiv-protokoll.txt. Auch die Arbeitsordner der Claude-Sitzungen (%TEMP%\\claude) misst die AMW – je Sitzung mit Agent und Projekt, unter Einstellungen › Dieser PC › „Claude-Ablagen“. Belegt eine Sitzung mehr als 10 GB, bekommen ihr Lead und du eine Meldung. Alte Arbeitskopien darin (Ordner mit .git, seit über einem Tag unverändert) stehen mit einem fertigen PowerShell-Befehl zum Entfernen da; die AMW führt ihn nie aus."
+   "Sie warnt: in der Steuerung unter „Rechner“ und mit einer Nachricht an Lead und dich, sobald auf einem Laufwerk mit der Datenbank oder einem Projektordner weniger als 15 % frei sind, und dringend unter 5 %. Unter Einstellungen › Dieser PC stehen die Laufwerke und die Aufräumvorschläge: alte Sicherungen mit Größe und Alter. Gelöscht wird nichts von selbst. Ist ein Archiv-Ordner eingetragen, verschiebst du alte Sicherungen mit einem Klick dorthin; jede Verschiebung steht in archiv-protokoll.txt. Auch die Arbeitsordner der Claude-Sitzungen (%TEMP%\\claude) misst die AMW – je Sitzung mit Agent und Projekt, unter Einstellungen › Dieser PC › „Claude-Ablagen“. Belegt eine Sitzung mehr als 10 GB, bekommen ihr Lead und du eine Meldung. Alte Arbeitskopien darin (Ordner mit .git, seit über einem Tag unverändert) stehen mit einem fertigen PowerShell-Befehl zum Entfernen da; die AMW führt ihn nie aus."
   ],
   [
    "Kann ich das für einen Rechner abschalten?",

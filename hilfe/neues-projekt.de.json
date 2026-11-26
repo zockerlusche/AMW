@@ -46,7 +46,7 @@
   },
   {
    "titel": "Agent starten",
-   "text": "Übersicht › Kachel des Agenten › „Starten“. Es öffnet sich ein Tab „CC1 · Projektname“. Beim allerersten Start in einem neuen Ordner fragt Claude Code einmal, ob du dem Ordner vertraust – im Tab mit „Yes, proceed“ bestätigen; vorher läuft nichts an. Danach steht im Fenster „AMW: als CC1 angemeldet“.",
+   "text": "Leitstand › Kachel des Agenten › „Starten“. Es öffnet sich ein Tab „CC1 · Projektname“. Beim allerersten Start in einem neuen Ordner fragt Claude Code einmal, ob du dem Ordner vertraust – im Tab mit „Yes, proceed“ bestätigen; vorher läuft nichts an. Danach steht im Fenster „AMW: als CC1 angemeldet“.",
    "bilder": [
     {
      "name": "np-start",

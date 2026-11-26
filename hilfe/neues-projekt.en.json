@@ -46,7 +46,7 @@
   },
   {
    "titel": "Start an agent",
-   "text": "Overview › agent tile › “Start”. A tab “CC1 · project name” opens. On the very first start in a new folder Claude Code asks once whether you trust the folder – confirm with “Yes, proceed” in the tab; nothing runs before that. Then the window says “AMW: als CC1 angemeldet”.",
+   "text": "Control room › agent tile › “Start”. A tab “CC1 · project name” opens. On the very first start in a new folder Claude Code asks once whether you trust the folder – confirm with “Yes, proceed” in the tab; nothing runs before that. Then the window says “AMW: als CC1 angemeldet”.",
    "bilder": [
     {
      "name": "np-start",
