@@ -185,6 +185,27 @@ class Abbruch(Grund):
         self.assertIn("Dienst neu", k)
         self.assertIsNone(buendel.offenes_buendel(self.con, self.pid))
         self.assertEqual(self.ereignisse()[-1]["zweig"], "buendel-1.2.4")
+        self.assertEqual(self.git("rev-parse", "HEAD", ordner=buendel.arbeitsbaum(self.con, self.pid)), self.main)   # Arbeitsbaum auf main
+
+    def test_wartung_von_aussen_waehrend_des_laufs(self):
+        self.an()
+        self.p_paket("Plus", T1, {"lib/a.py": "A = 1\n"})
+        orig = buendel.gesamtlauf_rechnen
+
+        def mit_wartung(*x, **k):
+            waechter.wartung_an("von Hand")
+            return orig(*x, **k)
+        with mock.patch.object(buendel, "gesamtlauf_rechnen", mit_wartung):
+            self.assertEqual(self.los(), "abgebrochen")
+        self.assertEqual(((waechter.zustand()["wartung"] or {}).get("grund"), self.ausgeliefert), ("von Hand", []))
+
+    def test_diff_tor(self):
+        self.an()
+        self.p_paket("Plus", T1, {"lib/a.py": "A = 1\n"})
+        kern.projekt_einstellen(self.con, self.pid, "TL", buendel_schritt="python -c \"open('lib/y.py', 'a').write('# x')\"")
+        self.assertEqual(self.los(), "abgebrochen")
+        self.assertTrue(any("Diff-Tor" in k for k in self.an_lead()))
+        self.assertEqual(self.git("rev-parse", "main"), self.main)
 
     def test_pause_zwischendurch_beendet_ihn(self):
         self.an()
