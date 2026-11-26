@@ -4,6 +4,11 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.199.0 – 26.11.2026 · Suchtreffer öffnen das Ding selbst; stille Agenten werden nachgeweckt
+- **Verbessert:** Ein Klick auf einen Suchtreffer öffnet das Ding selbst; die gesuchte Nummer steht oben, und Nummern im Text von Nachrichten und Berichten öffnen es ebenfalls.
+- **Verbessert:** Neue Projekte schließen fertige Meilensteine ohne Urteil selbst ab und teilen freien Agenten die Arbeit selbst zu; bestehende Projekte bleiben, wie sie sind.
+- **Neu:** Antwortet ein Agent mit laufendem Paket nicht auf einen Weckruf, weckt die AMW ihn noch einmal; bleibt er still, geht das Paket zurück in den Pool oder der Lead bekommt einen Vorschlag.
+
 ## 1.198.0 – 26.11.2026 · Neues Menü: Leitstand, Projektweg, Fragen, Wissen; Bündel ohne Agent
 - **Verbessert:** Das Menü hat fünf Punkte und „Fragen“: Leitstand, Projektweg, Fragen, Wissen, Betrieb, Einstellungen; am Handy Leitstand · Projektweg · Fragen · Wissen · Mehr. Themen und Planung stehen als Reiter unter Projektweg, Nachrichten unter Wissen, Termine unter Betrieb. Jede alte Adresse und jeder Link aus einer Push-Meldung führt weiter auf ihre Seite. Die Zahl am Projektweg zählt jedes Ding einmal und nur, was du tun musst.
 - **Verbessert:** Neue Namen: der Abschnitt mit den Eingriffen heißt „Steuerung“ (Knopf oben im Leitstand, Adresse `#steuerung`), aus „Tor“ wird „Schritt“, aus „Platz“ und „p-Paket“ wird „Headless“. Ein Paket, das auf eine Eingabe wartet, zeigt „wartet auf dich“ oder „wartet auf Lead“. Das Blatt „Mehr“ am Handy schließt mit ✕.
