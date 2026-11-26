@@ -383,7 +383,7 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
 - **Frei:** Agent im Terminal mit aktiver Sitzung, Soll an, nicht Lead und nicht Co-Entwickler, kein Halt, ohne Aufgabe in
   „läuft“ und ohne Aufgabe ohne Wartegrund.
 - **Kandidaten:** offene Aufgaben ohne Bearbeiter in aktiven Meilensteinen, Art agent (keine p-Pakete), startklar (wartet,
-  kein offener Wartegrund, kein Wartetext, kein offener Vorgänger). Reihenfolge: Rang, dann kritischer Pfad (die längere
+  kein offener Wartegrund, kein Wartetext, kein offener Vorgänger – einer, der gebaut im Bündel steht, zählt als erfüllt, siehe unten). Reihenfolge: Rang, dann kritischer Pfad (die längere
   Kette offener Nachfolger zuerst).
 - **Passt (Option A, #29773):** Fachgebiet – ein Wort aus der Tabelle der Art steht im Fachgebiet des Agenten (Vorgabe: text →
   text/doku/code; mechanisch, fehlersuche, sicherheit → code; oberflaeche → code/grafik; konzept → konzept; je Projekt
@@ -408,7 +408,19 @@ bekommen; fällt ein Agent aus, geht seine Arbeit nicht verloren.
   und dem Befehl (Ereignis `ausfall_vorschlag`), und nichts ändert sich. Der Mensch bekommt keine Frage. Wer antwortet, die
   Nachricht liest oder arbeitet, behält seine Aufgabe. Nie im Halt oder in der Pause; kein Prozess wird beendet, nichts neu
   gestartet.
-- Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `ausfall_vorschlag`, `uebergabe`.
+- **Vorgänger im Bündel (A2148):** Ein Vorgänger, der gebaut im Bündel steht, hält seine Nachfolger nicht mehr auf. Gemeint ist:
+  Seine jüngste Prüfbitte liegt auf einem Bündel- oder Stapelzweig (`buendel-X.Y.Z`, ein Zweig mit Prüfbitten zu mindestens zwei
+  Aufgaben oder ein Zweig, auf den jemand mit `stapel:<zweig>` wartet), und sie ist nicht rot, das Bündel auch nicht. Das gilt für
+  Verteilen, „nächster Schritt“ und den Start von Hand; Plan und Anzeige zeigen den Vorgänger weiter als offen. Der Auftrag (und der
+  Vorschlag an den Lead) nennt die Basis: „Baut auf: A… (P…, Zweig@SHA) – auf diesem Zweig aufbauen; nach dem Live-Gang auf main
+  umsetzen.“ In jeder Verteil-Runde hält die AMW die Basis nach:
+  - neuer Stand des Vorgängers (andere Prüfbitte, anderer Zweig oder SHA): Nachricht an den Bauer mit dem neuen Zweig.
+  - Prüfbitte rot oder Bündel rot, und nach 20 Minuten kein neuer Stand: die AMW hält den Nachfolger an. Sie setzt den Wartegrund
+    „A<Vorgänger>“ und den Status wartet, meldet es dem Bauer und dem Lead. Ein neuer Stand hebt den Halt auf; mit dem Live-Gang
+    des Vorgängers erledigt er sich von selbst. Von Hand: `amw aufgabe wartet <nr> --erledigt A<Vorgänger>`.
+  - Vorgänger live: Nachricht an den Bauer, den Zweig jetzt auf main umsetzen.
+- Ohne Schemaänderung: Ereignisse `verteilt`, `verteil_vorschlag`, `ausfall`, `ausfall_vorschlag`, `uebergabe`; A2148: `buendel_basis`,
+  `buendel_basis_halt`, `buendel_basis_frei`, `buendel_basis_live`.
 
 ## Sperrliste je Projekt (A1919, TH160)
 

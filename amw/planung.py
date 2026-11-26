@@ -527,7 +527,8 @@ def pruefe_status(con, a, neu, zusammenfassung=None, kriterien_sperren=True):
     if not a["bogen_id"]:
         return
     if neu == "laeuft":
-        offen = offene_vorgaenger(con, a["id"])
+        from . import buendel_nachfolger                # A2148: ein Vorgänger gebaut im Bündel hält den Start nicht auf
+        offen = buendel_nachfolger.offen(con, a["id"])
         if offen:
             raise kern.AmwFehler(f"A{a['id']} wartet auf " + ", ".join(f"A{x}" for x in offen) + " (Abhängigkeit)")
         if (a["komplexitaet"] or 0) >= PLAN_AB_KOMPLEXITAET and a["plan_status"] != "frei":
@@ -547,7 +548,7 @@ def naechster(con, pid, von, nehmen=False):
     nehmen=True übernimmt ihn in derselben Transaktion (Bearbeiter = von, Status läuft)."""
     if nehmen and kern.halt_gilt(con, pid, von):
         raise kern.AmwFehler("HALT gilt – keine neuen Schritte")
-    from . import delta_halt, herausnehmen              # A2095
+    from . import buendel_nachfolger, delta_halt, herausnehmen   # A2095, A2148
     if t := herausnehmen.sperrtext(con, pid, von):
         raise kern.AmwFehler(t)
     from . import paket_schieben                         # A2094: dieselbe Auswahl, Handgriffe „früher/später“ gelten auch hier
@@ -557,7 +558,7 @@ def naechster(con, pid, von, nehmen=False):
                 " AND a.einstufung IN ('aktiv', 'keine_prio') AND (a.agent = ? OR a.agent IS NULL OR a.agent = '')"
                 " AND (b.id IS NULL OR b.status = 'aktiv')"
                 " ORDER BY (b.id IS NULL), b.nr, (a.agent IS NULL), a.rang, a.id", (pid, von)).fetchall()):
-            if offene_vorgaenger(con, a["id"]) or delta_halt.haelt(con, a["id"]):      # A2140
+            if buendel_nachfolger.offen(con, a["id"]) or delta_halt.haelt(con, a["id"]):      # A2140, A2148
                 continue
             if nehmen:
                 if (a["komplexitaet"] or 0) >= PLAN_AB_KOMPLEXITAET and a["plan_status"] != "frei":

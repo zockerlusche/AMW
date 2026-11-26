@@ -23,7 +23,7 @@ import json
 import subprocess
 import time
 
-from . import db, kern, wartegrund
+from . import buendel_nachfolger, db, kern, wartegrund
 
 AUSFALL_MIN = 30
 # A2147: eine Nachricht, die ganz im Weckruf stand, gilt beim Wecken als gelesen (gelesen_utc = geweckt_utc) – das ist keine
@@ -109,13 +109,13 @@ def _tiefe(con, aid, gesehen=None):
 
 
 def kandidaten(con, pid):
-    """Startklare Aufgaben ohne Bearbeiter in aktiven Meilensteinen, Art agent – in der Reihenfolge der Zuteilung."""
-    from . import planung
+    """Startklare Aufgaben ohne Bearbeiter in aktiven Meilensteinen, Art agent – in der Reihenfolge der Zuteilung. A2148: ein Vorgänger,
+    der gebaut im Bündel steht (Prüfbitte auf einem Bündel-/Stapelzweig, nicht rot), zählt als erfüllt."""
     aus = []
     for r in wartegrund.freie_bogen_aufgaben(con, pid):
         a = con.execute("SELECT * FROM aufgabe WHERE id = ?", (r["id"],)).fetchone()
         if a["status"] != "wartet" or wartegrund.offene(con, a["id"]) or (a["wartet_auf"] or "").strip() \
-                or planung.offene_vorgaenger(con, a["id"]):
+                or buendel_nachfolger.offen(con, a["id"]):
             continue
         aus.append((a["rang"] if a["rang"] is not None else 999999, -_tiefe(con, a["id"]), a["id"], a))
     if not aus:
@@ -221,6 +221,8 @@ def verteilen(con, pid):
                     aus.append(f"Vorschlag A{a['id']} an {k} (Profil schwächer)")
                 vergeben.add(a["id"])
                 break                                            # der Plan geht vor: nicht am kritischen Pfad vorbei zuteilen
+            basis = buendel_nachfolger.basis(con, a["id"])               # A2148: baut auf einem Paket im Bündel
+            auf = ("\n" + buendel_nachfolger.text(basis)) if basis else ""
             if wie == "an":
                 with db.schreiben(con):
                     n = con.execute("UPDATE aufgabe SET agent = ? WHERE id = ? AND coalesce(agent, '') = ''", (k, a["id"])).rowcount
@@ -230,7 +232,8 @@ def verteilen(con, pid):
                                  text=json.dumps({"aufgabe": a["id"], "agent": k, "grund": grund}, ensure_ascii=False))
                     kern._posten(con, pid, "AMW", k, "auftrag", f"A{a['id']} ist dir zugeteilt: {a['titel'][:90]}",
                                  f"Du warst frei, und A{a['id']} ist das nächste passende startklare Paket nach dem Plan ({grund}).\n"
-                                 f"Starten: amw aufgabe start {a['id']} · ganz lesen: amw aufgabe zeige {a['id']}", aufgabe_id=a["id"])
+                                 f"Starten: amw aufgabe start {a['id']} · ganz lesen: amw aufgabe zeige {a['id']}" + auf, aufgabe_id=a["id"])
+                    buendel_nachfolger.merken(con, pid, a["id"], basis)
                     if lead and lead != k:
                         kern._posten(con, pid, "AMW", lead, "meldung", f"Verteilt: A{a['id']} an {k}",
                                      f"{k} war frei. A{a['id']} „{a['titel'][:90]}“ – {grund}. Zurück: amw aufgabe aendern {a['id']}"
@@ -247,7 +250,7 @@ def verteilen(con, pid):
                     kern._posten(con, pid, "AMW", lead, "frage", f"Vorschlag: A{a['id']} an {k}? ({a['titel'][:70]})",
                                  f"{k} ist frei. Nächstes passendes startklares Paket nach deinem Plan: A{a['id']} „{a['titel'][:90]}“ –"
                                  f" {grund}.\nZuteilen: amw aufgabe aendern {a['id']} --agent {k} · die AMW selbst zuteilen lassen:"
-                                 " amw projekt einstellen verteilen=an", aufgabe_id=a["id"])
+                                 " amw projekt einstellen verteilen=an" + auf, aufgabe_id=a["id"])
                 aus.append(f"Vorschlag A{a['id']} an {k} ({grund})")
             vergeben.add(a["id"])
             break
@@ -414,5 +417,6 @@ def runde(con, jetzt=None):
         aus += ausfall(con, p["id"], jetzt)
         aus += still(con, p["id"], jetzt)                                # A2147
         aus += herausnehmen.nachziehen(con, p["id"])                     # A2095
+        aus += buendel_nachfolger.abgleichen(con, p["id"], jetzt)        # A2148: Basis im Bündel nachhalten
         aus += verteilen(con, p["id"])
     return aus

@@ -104,6 +104,7 @@ GESPERRT = (
     ("amw/buendel_ausloeser.py", "fest", "Wann ein Bündel gebildet wird und wer das einstellt (A2119)"),
     ("amw/buendel_zusammensetzen.py", "fest", "Setzt abgenommene Pakete per git zusammen (A2120)"),
     ("amw/buendel_version.py", "fest", "Vergibt Nummer, CHANGELOG und Versionshinweis eines Bündels (A2121)"),
+    ("amw/buendel_nachfolger.py", "fest", "Nachfolger eines Pakets im Bündel: startklar, angehalten bei Rot (A2148)"),
     ("amw/cli.py", "fest", "Befehle mit ihren Sperren"),
     ("amw/aktionen.py", "fest", "Aktionen der Oberfläche mit ihren Sperren"),
     ("amw/schluessel.py", "fest", "Rechte (Schlüssel)"),
