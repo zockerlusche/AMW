@@ -961,6 +961,19 @@ main.geteilt-seite { padding-bottom: 16px; }
 .rueckfrage input[type=text] { width: 100%; padding: 8px; margin: 0 0 14px; background: var(--grund); border: 1px solid var(--linie); border-radius: 3px; color: var(--tinte); font: inherit; }
 .rueckfrage-knoepfe { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 @media (max-width: 760px) { .dialog-hg.rueckfrage-hg { padding: 8px; } .rueckfrage { width: 100%; } .rueckfrage-knoepfe .knopf { flex: 1 1 0; } }
+/* A2012: Wissen – Filter als ruhige Segment-Gruppe (Kleinprobe A2008), Liste links wie die Nachrichten */
+.ws-filter { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-bottom: 12px; } .ws-filter .rechts { margin-left: auto; }
+.segment { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--linie2); border-radius: 6px; overflow: hidden; }
+.segment button { border: 0; background: transparent; padding: 6px 12px; min-height: 36px; cursor: pointer; font: inherit; font-size: 14px; color: var(--leise); }
+.segment button + button { border-left: 1px solid var(--linie2); } .segment button.an { background: var(--flaeche2); color: var(--tinte); font-weight: 600; }
+.ws-zeile .ws-titel { overflow-wrap: anywhere; } .ws-unter { font-size: 12.5px; } .ws-eintrag h3 { overflow-wrap: anywhere; } .ws-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 760px) { .ws-filter .rechts { margin-left: 0; width: 100%; } .ws-filter .rechts input { width: 100% !important; } }
+.ws-filter input, .dk-oben input { background: var(--flaeche); color: var(--tinte); border: 1px solid var(--linie); border-radius: 3px; padding: 6px 9px; min-width: 0; font: inherit; }
+.dk-oben { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; } .dk-oben input { flex: 1 1 260px; max-width: 420px; }
+.dk-mehr { margin-bottom: 14px; } .dk-mehr > summary { cursor: pointer; color: var(--leise); font-size: 13.5px; padding: 4px 0; } .dk-mehr[open] > summary { margin-bottom: 8px; }
+.dk-mehr .dk-filter { margin-bottom: 0; }
+@media (max-width: 760px) { .segment { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; } .segment::-webkit-scrollbar { display: none; }
+  .segment button { flex: none; padding: 6px 10px; } .dk-oben input { max-width: none; } }
 /* --- Gespräch je Agent ------------------------------------------------------------------------- */
 .gs-tabs { display: flex; gap: 2px; margin-top: 12px; border-bottom: 1px solid var(--linie); }
 .gs-tabs button { background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; padding: 7px 14px 6px; cursor: pointer;
@@ -2065,7 +2078,8 @@ const TEXTE = {
     kz_ms_n_alle: "{n} Meilensteine · alle {b} Pakete fertig", kz_fertig_etwa: "fertig etwa {d}", kz_spaeter: ", {n} Tage später als geplant", kz_bereit: "bereit zur Abnahme", kz_arbeiten: "{n} Agenten arbeiten", kz_arbeitet1: "1 Agent arbeitet",
     kz_nichts_laeuft: "nichts läuft", kz_in: "In {x}", kz_andere: "Andere Projekte", kz_zuletzt: "Zuletzt gesucht", kz_s_laeuft: "läuft", kz_s_wartet: "wartet",
     kz_s_blockiert: "blockiert", kz_s_fertig: "fertig", kz_s_verworfen: "verworfen", kz_s_aktiv: "in Arbeit", kz_s_geplant: "geplant", kz_s_offen: "offen",
-    kz_s_beantwortet: "beantwortet", kz_s_freigegeben: "freigegeben",
+    kz_s_beantwortet: "beantwortet", kz_s_freigegeben: "freigegeben", ws_leer_beschluesse: "Noch keine Beschlüsse. Sie entstehen aus deinen Antworten und deinen Worten.", ws_leer_regeln: "Noch keine Regeln für dieses Projekt.", ws_leer_wortlaut: "Noch nichts von dir festgehalten.", ws_leer_notizen: "Keine Notizen.",
+    ws_filter: "Filter", ws_filter_n: "Filter ({n} gesetzt)",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search everything", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
@@ -2517,7 +2531,8 @@ const TEXTE = {
     kz_ms_n_alle: "{n} milestones · all {b} packages done", kz_fertig_etwa: "done around {d}", kz_spaeter: ", {n} days later than planned", kz_bereit: "ready for acceptance", kz_arbeiten: "{n} agents working", kz_arbeitet1: "1 agent working",
     kz_nichts_laeuft: "nothing running", kz_in: "In {x}", kz_andere: "Other projects", kz_zuletzt: "Recent searches", kz_s_laeuft: "running", kz_s_wartet: "waiting",
     kz_s_blockiert: "blocked", kz_s_fertig: "done", kz_s_verworfen: "dropped", kz_s_aktiv: "in progress", kz_s_geplant: "planned", kz_s_offen: "open",
-    kz_s_beantwortet: "answered", kz_s_freigegeben: "approved",
+    kz_s_beantwortet: "answered", kz_s_freigegeben: "approved", ws_leer_beschluesse: "No decisions yet. They come from your answers and your words.", ws_leer_regeln: "No rules for this project yet.", ws_leer_wortlaut: "Nothing of yours recorded yet.", ws_leer_notizen: "No notes.",
+    ws_filter: "Filters", ws_filter_n: "Filters ({n} set)",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -2971,13 +2986,14 @@ let ruhig = false;
 /* Menü nach TH156 (A2018): Leitstand · Projektweg · Fragen (bis „Für dich“) · Wissen · Betrieb · Einstellungen. Was früher ein eigener
    Punkt war, gehört jetzt zu einem dieser Bereiche; jede alte Adresse (#planung, #themen, #nachrichten, #arbeit …) bleibt gültig. */
 const BEREICH = { planung: "projektweg", themen: "projektweg", arbeit: "projektweg", verlauf: "projektweg", nachrichten: "wissen", teamchat: "wissen",
-  runde: "wissen", dokumente: "wissen", releases: "wissen", termine: "betrieb" };
+  runde: "wissen", dokumente: "wissen", ergebnisse: "wissen", releases: "projektweg", termine: "betrieb" };   /* #ergebnisse: alte Adresse (A2012) */   /* A2012: Versionshinweise beim Projektweg (TH156) */
 /* Die Reihe eines Bereichs steht im Seitenkopf jeder seiner Seiten (rahmen): so ist alles erreichbar, was im Menü keinen Punkt mehr hat.
    Wissen hat seine Reiter schon auf der Seite – nur die Nachrichten bekommen sie hier. */
-const REIHEN = { projektweg: [["projektweg", "n_projektweg"], ["themen", "n_themen"], ["planung", "n_planung"]], betrieb: [["betrieb", "n_betrieb"], ["termine", "pr_termine"]] };
+const REIHEN = { projektweg: [["projektweg", "n_projektweg"], ["themen", "n_themen"], ["planung", "n_planung"], ["releases", "n_releases"]],
+  betrieb: [["betrieb", "n_betrieb"], ["termine", "pr_termine"]] };
 const REIHE_AN = { arbeit: "planung", verlauf: "planung" };
 function bereichReihe(sicht) {
-  if (["nachrichten", "teamchat", "runde"].includes(sicht)) { const r = wissenReiter("nachrichten"); r.className = "bereich-reihe"; return r; }
+  if (["nachrichten", "teamchat", "runde"].includes(sicht)) { const r = wissenReiter(sicht === "teamchat" ? "teamchat" : "nachrichten"); r.className = "bereich-reihe"; return r; }
   const teile = REIHEN[BEREICH[sicht] || sicht];
   return teile ? el("div", { class: "bereich-reihe" }, teile.map(([s, n]) => el("button", { type: "button", class: s === (REIHE_AN[sicht] || sicht) ? "an" : "",
     "data-s": s, onclick: () => zeige(s) }, t(n)))) : null;
@@ -2993,14 +3009,15 @@ function planReiter(aktiv, n = {}) {
     ["risiken", t("pr_risiken") + (n.risiken !== undefined ? ` (${n.risiken})` : ""), plan("risiken")],
     ["check", t("pr_check") + (n.check ? ` (${n.check})` : ""), plan("check")], ["protokoll", t("pr_protokoll"), plan("protokoll")]], aktiv);
 }
+/* A2012 (Kleinprobe A2008, TL #33784): Wissen hat vier Reiter – Beschlüsse (mit Regeln, Wortlaut, Notizen als Filter), Dokumente,
+   Nachrichten, Mitlesen (nur lesen). Themen gehören zum Projektweg, die Versionshinweise auch. */
+const WISSEN_FILTER = ["beschluesse", "regeln", "wortlaut", "notizen"];
 function wissenReiter(aktiv) {
-  const w = k => () => { zustand.wissenReiter = k; zeige("wissen"); };
-  return bereichReiter([...["themen", "beschluesse", "regeln", "wortlaut", "notizen"].map(k => [k, t("rb_" + k), w(k)]),
-    ["nachrichten", t("n_nachrichten"), () => zeige("nachrichten")], ["dokumente", t("n_dokumente"), () => zeige("dokumente")],
-    ["releases", t("n_releases"), () => zeige("releases")]], aktiv);
+  const an = WISSEN_FILTER.includes(aktiv) ? "beschluesse" : aktiv;
+  return bereichReiter([["beschluesse", t("rb_beschluesse"), () => { if (!WISSEN_FILTER.includes(zustand.wissenReiter)) zustand.wissenReiter = "beschluesse"; zeige("wissen"); }],
+    ["dokumente", t("n_dokumente"), () => zeige("dokumente")], ["nachrichten", t("n_nachrichten"), () => zeige("nachrichten")],
+    ["teamchat", t("n_teamchat"), () => zeige("teamchat")]], an);
 }
-const wissenExtern = () => [["nachrichten", "n_nachrichten"], ["dokumente", "n_dokumente"], ["releases", "n_releases"]].map(([s, k]) =>
-  el("button", { type: "button", onclick: () => zeige(s) }, t(k)));
 function zeige(sicht, still = false) {
   if (sicht === "steuerung") return zurSteuerung();                     /* A2018: Adresse #steuerung */
   if (PW_ADRESSEN[sicht]) return pwAdresse(sicht);                      /* A2011: #reihenfolge, #zeitplan, #gesamtplan → Reiter im Projektweg */
@@ -3018,7 +3035,7 @@ function zeige(sicht, still = false) {
   try { localStorage.setItem(ablage("amw-sicht"), sicht); } catch (e) {}
   if (location.hash !== "#" + sicht) history[still ? "replaceState" : "pushState"](null, "", "#" + sicht);   /* Zurück-Knopf */
   kzKnopf();                                                            /* A2014: „Alle Projekte“ im Kopf nur in der Gesamtsicht */
-  const fertig = ({ projekte: sichtProjekte, start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
+  const fertig = ({ projekte: sichtProjekte, start: sichtStart, nachrichten: sichtNachrichten, fragen: sichtFragen, planung: sichtPlanung, projektweg: sichtProjektweg, verlauf: sichtVerlauf, arbeit: sichtArbeit, teamchat: sichtTeamchat, runde: sichtRunde, wissen: sichtWissen, themen: sichtThemen, termine: sichtTermine, dokumente: sichtDokumente, ergebnisse: sichtDokumente, betrieb: sichtBetrieb, releases: sichtReleases, einstellungen: sichtEinstellungen }[sicht] || sichtStart)();
   if (!still) { $("#inhalt").scrollTop = 0; return fertig; }
   return Promise.resolve(fertig).then(() => {
     if (offen?.size) for (const s of $("#inhalt").querySelectorAll("details > summary")) if (offen.has(s.textContent)) s.parentElement.open = true;
@@ -3129,7 +3146,10 @@ function seitenkopf() {
     else if (an && w.scrollWidth > w.clientWidth) w.scrollLeft += an.getBoundingClientRect().left - w.getBoundingClientRect().left - (w.clientWidth - an.offsetWidth) / 2;
     w.addEventListener("scroll", () => kante(w), { passive: true });
   }
-  for (const w of k.querySelectorAll(":scope > .reiter > .reiter-zeile, :scope > :is(.vl-filter, .dk-arten, .dk-filter, .sprung)")) kante(w);
+  for (const w of k.querySelectorAll(":scope > .bereich-reihe:not([data-kante])")) {   /* A2012 (F5401 A): auch die Reihe des Bereichs wischt am Handy mit Verlauf */
+    w.dataset.kante = "1"; w.addEventListener("scroll", () => kante(w), { passive: true });
+  }
+  for (const w of k.querySelectorAll(":scope > .reiter > .reiter-zeile, :scope > :is(.vl-filter, .dk-arten, .dk-filter, .sprung, .bereich-reihe)")) kante(w);
   const erstes = k.querySelector(`:scope > :is(${UNTERMENUE})`);
   k.classList.toggle("mit-menue", !!erstes);
   kopfStand.weg = erstes ? Math.max(0, erstes.offsetTop - 8) : 0;        /* so viel läuft oben hinaus: Titelzeile samt Abstand */
@@ -3777,8 +3797,8 @@ function nrReiterLeiste(aktiv, eingangOffen, weiter) {
     try { localStorage.setItem(ablage("amw-nr"), k); } catch (e) {}
     if (zustand.sicht === "nachrichten" && weiter) weiter(k); else zeige("nachrichten"); } }, t("nr_" + k), n ? el("span", { class: "z" }, n) : null);
   const runde = API && !darfFreigeben() ? null : el("button", { type: "button", class: aktiv === "runde" ? "an" : null, onclick: () => zeige("runde") }, t("nr_runde"));   /* Lead-Runde (A1658): online nur lesen, nur System-Admins (A1680) */
-  const chat = el("button", { type: "button", class: aktiv === "teamchat" ? "an" : null, onclick: () => zeige("teamchat") }, t("n_teamchat"));   /* A1657 */
-  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? zustand.nrOffenAlle ?? z.nachrichten), chat, knopf("gesendet"), runde);
+  /* A2012: „Mitlesen“ ist ein eigener Reiter des Wissens (wissenReiter) – hier nur noch Eingang, Gesendet, Lead-Runde */
+  return el("div", { class: "reiter nr-reiter" }, knopf("eingang", eingangOffen ?? zustand.nrOffenAlle ?? z.nachrichten), knopf("gesendet"), runde);
 }
 /* Verlauf als Gespräch (A1889, wie im Mail-Programm): alles im selben Projekt mit demselben Bezug – Antworten erben ihn –,
    sonst die Kette über antwort_auf; an dich, von dir und was Agenten untereinander dazu schrieben. Ältestes oben. */
@@ -3994,8 +4014,7 @@ async function sichtTeamchat() {
   const d = { nachrichten: geladen.flatMap(({ p, d: x }) => (x.nachrichten || []).map(n => ({ ...n, projekt: p })))
     .sort((a, b) => (b.zeit_utc || "").localeCompare(a.zeit_utc || "") || b.id - a.id), agenten: [...new Set(geladen.flatMap(({ d: x }) => x.agenten || []))].sort() };
   const mehrere = nrProjekte().length > 1;             /* A1889: Mitlesen über alle Projekte, jede Zeile mit ihrem Projekt */
-  const m = rahmen(t("n_nachrichten"), el("span", { class: "leise" }, t("tc_unter")));
-  m.append(nrReiterLeiste("teamchat"));
+  const m = rahmen(t("n_teamchat"), el("span", { class: "leise" }, t("tc_unter")));          /* A2012: nur lesen – die Reiter des Wissens stehen im Kopf */
   let agent = "", such = "", projektWahl = "";
   const liste = el("div", { class: "tc-liste" }), chips = el("div", { class: "nr-chipzeile" });
   m.append(el("div", { class: "nr-leiste" }, el("div", { class: "nr-filter" },
@@ -4993,77 +5012,93 @@ async function sichtProjektweg() {
   pwNachsehen(d);
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && zustand.pwFenster && zustand.sicht === "projektweg") { zustand.pwFenster = null; document.getElementById("pjw-fenster")?.remove(); } });
+/* A2012 (Kleinprobe A2008 D1900 v2, TL #33784): Reiter „Beschlüsse“ des Wissens – Filter Beschlüsse · Regeln · Deine Worte · Notizen,
+   links die Liste, rechts der Eintrag (wie Nachrichten: geteilt am PC, am Handy Liste → Eintrag mit „‹ zurück“). Themen stehen im
+   Projektweg (#themen bleibt gültig). Nur lesen – außer dem Abgleich mit dem Grund-Regelwerk (wie bisher, je Regel einzeln). */
 async function sichtWissen() {
+  if (zustand.wissenReiter === "themen") return zeige("themen");             /* alte Adresse: Themen gehören zum Projektweg */
+  if (!WISSEN_FILTER.includes(zustand.wissenReiter)) zustand.wissenReiter = "beschluesse";
   const m = rahmen(t("wissen"));
+  m.append(wissenReiter("beschluesse"));
   const such = el("input", { placeholder: t("wissen_ph"), value: zustand.wissenQ, style: "width:300px;max-width:100%",
-    onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; sichtWissen(); } } });
+    onkeydown: e => { if (e.key === "Enter") { zustand.wissenQ = e.target.value; zustand.wissenWahl = null; sichtWissen(); } } });
   let d; try { d = await holen("/api/wissen?q=" + encodeURIComponent(zustand.wissenQ)); } catch (e) { m.append(el("div", { class: "leer" }, String(e))); return; }
   const r = zustand.wissenReiter;
-  if (r === "themen") {                                      /* Design-Dokument je Thema */
-    let th; try { th = await holen("/api/themen"); } catch (e) { th = []; }
-    m.append(el("div", { class: "reiter" }, [["themen", th.length], ["beschluesse", d.anzahl?.beschluesse ?? d.beschluesse.length], ["regeln", d.regeln.length],
-      ["wortlaut", d.anzahl?.wortlaut ?? d.wortlaut.length], ["notizen", (d.notizen || []).length]]
-      .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
-      ...wissenExtern(),
-      el("div", { class: "rechts" }, such)));
-    return m.append(themenAnsicht(th, zustand.wissenQ));
-  }
-  const anzahl = { beschluesse: d.anzahl?.beschluesse ?? d.beschluesse.length, wortlaut: d.anzahl?.wortlaut ?? d.wortlaut.length };
-  m.append(el("div", { class: "reiter" }, [["themen", d.anzahl?.themen ?? "…"], ["beschluesse", anzahl.beschluesse], ["regeln", d.regeln.length],
-    ["wortlaut", anzahl.wortlaut], ["notizen", (d.notizen || []).length]]
-    .map(([k, n]) => el("button", { class: k === r ? "an" : "", type: "button", onclick: () => { zustand.wissenReiter = k; sichtWissen(); } }, t(k, { n }))),
-    ...wissenExtern(),
+  const anzahl = { beschluesse: d.anzahl?.beschluesse ?? d.beschluesse.length, regeln: d.regeln.length, wortlaut: d.anzahl?.wortlaut ?? d.wortlaut.length,
+    notizen: (d.notizen || []).length };
+  m.append(el("div", { class: "ws-filter" },
+    el("div", { class: "segment ws-seg" }, WISSEN_FILTER.map(k => el("button", { type: "button", class: k === r ? "an" : "", "data-f": k,
+      onclick: () => { zustand.wissenReiter = k; zustand.wissenWahl = null; sichtWissen(); } }, t(k, { n: anzahl[k] })))),
     el("div", { class: "rechts" }, such)));
-  const box = el("div", { class: "zeile-reveal" });
   const gezeigt = { beschluesse: d.beschluesse.length, wortlaut: d.wortlaut.length }[r];
   if (gezeigt && anzahl[r] > gezeigt) m.append(el("p", { class: "sehrleise", style: "font-size:13px;margin:-4px 0 10px" }, t("w_neueste", { n: gezeigt, g: anzahl[r] })));
-  if (r === "beschluesse") box.append(...d.beschluesse.map(b => el("div", { class: "karte wissen-eintrag" },
-    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`), el("b", {}, b.stichwort),
-      el("span", { class: "etikett " + (b.status === "gilt" ? "gruen" : b.status === "unklar" ? "bernstein" : "") }, b.status),
-      el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`), postKnopf(`B${b.id}`, `B${b.id} ${b.stichwort}`)), el("div", { class: "inhalt" }, b.regel))));
+  const eintraege = wsEintraege(d, r);
+  if (!eintraege.length) { m.append(el("div", { class: "leer ws-leer" }, zustand.wissenQ ? t("nichts_gefunden") : t("ws_leer_" + r))); return; }
+  const liste = el("div", { class: "nr-liste ws-liste" }), rechts = el("div", { class: "nr-gespraech ws-eintrag" }),
+    raster = el("div", { class: "nr-raster ws-raster" }, liste, rechts);
+  const zeigen = (x, geklickt) => {
+    zustand.wissenWahl = x.schluessel;
+    for (const z of liste.children) z.classList.toggle("an", z.dataset.s === x.schluessel);
+    rechts.replaceChildren(el("button", { class: "nr-zurueck", type: "button", onclick: () => raster.classList.remove("detail") }, "‹ " + t(r, { n: anzahl[r] })),
+      ...x.inhalt());
+    if (geklickt) { raster.classList.add("detail"); rechts.scrollTop = 0; }
+  };
+  liste.append(...eintraege.map(x => el("div", { class: "nr-eintrag ws-zeile", "data-s": x.schluessel, role: "button", tabindex: "0",
+    onclick: () => zeigen(x, true), onkeydown: e => { if (e.key === "Enter") zeigen(x, true); } },
+    el("div", { class: "nr-kurz ws-titel" }, x.titel), el("div", { class: "sehrleise ws-unter" }, [x.ref, ...x.unter].filter(Boolean).join(" · ")))));
+  m.append(raster);
+  geteilt(raster)();
+  zeigen(eintraege.find(x => x.schluessel === zustand.wissenWahl) || eintraege[0], false);
+}
+/* Die Einträge eines Filters: {schluessel, ref, titel, unter: [...], inhalt: () => [Elemente]} – die Liste zeigt Titel und eine Zeile,
+   rechts steht alles. Regeln behalten ihre Gruppen (Grund-Regelwerk oben) und den Abgleich als eigenen Eintrag. */
+function wsEintraege(d, r) {
+  const erste = (x, n = 90) => { const z = String(x || "").split("\n")[0].trim(); return z.length > n ? z.slice(0, n - 1) + "…" : z; };
+  const werte = (...w) => el("div", { class: "sehrleise ws-werte" }, w.filter(Boolean).join(" · "));
+  if (r === "beschluesse") return d.beschluesse.map(b => ({ schluessel: "B" + b.id, ref: `B${b.id}`, titel: b.stichwort,
+    unter: [zeit(b.zeit_utc), b.status !== "gilt" ? b.status : null],
+    inhalt: () => [el("h3", {}, b.stichwort), el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `B${b.id}`),
+      el("span", { class: "etikett " + (b.status === "gilt" ? "" : b.status === "unklar" ? "bernstein" : "") }, b.status),
+      el("span", { class: "sehrleise" }, `${zeit(b.zeit_utc)} · ${b.quelle}`), postKnopf(`B${b.id}`, `B${b.id} ${b.stichwort}`)),
+      el("div", { class: "inhalt ws-text" }, b.regel)] }));
   if (r === "regeln") {
-    /* Regeln aus dem Grund-Regelwerk stehen als eigene Gruppe oben: Nummer der Vorlage, „angepasst“, wenn der Wortlaut
-       geändert wurde, darunter das Warum bzw. die belegte Erfahrung. Sie bleiben gewöhnliche Arbeitsregeln des Projekts. */
     const karte = x => { const g = x.grund ? (x.grund[sprache] || x.grund.de) : null;
-      return el("div", { class: "karte wissen-eintrag" + (g ? " grundregel" : "") },
-        el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr),
+      return [el("h3", {}, (x.ebene === "arbeit" ? "KR" : "PR") + x.nr), el("div", { class: "kopfzeile" },
           g ? el("span", { class: "etikett gr-marke", title: t("gr_marke_h", { n: g.fassung }) }, g.nr) : null,
           el("span", { class: "etikett" }, g ? g.gruppe : x.ebene === "arbeit" ? t("arbeitsregel") : t("projektregel") + (x.teil ? " · " + x.teil : "")),
           g?.angepasst ? el("span", { class: "etikett bernstein", title: t("gr_angepasst_h") }, t("gr_angepasst")) : null,
           el("span", { class: "sehrleise" }, t("stand", { t: zeit(x.stand_utc) }))),
-        el("div", { class: "inhalt" }, x.text),
-        g ? el("div", { class: "gr-warum" }, el("b", {}, t(g.erfahrung ? "gr_erfahrung" : "gr_warum") + " "), g.erfahrung || g.warum) : null); };
+        el("div", { class: "inhalt ws-text" }, x.text),
+        g ? el("div", { class: "gr-warum" }, el("b", {}, t(g.erfahrung ? "gr_erfahrung" : "gr_warum") + " "), g.erfahrung || g.warum) : null]; };
     const grund = d.regeln.filter(x => x.grund), eigene = d.regeln.filter(x => !x.grund);
-    if (grund.length) box.append(el("h4", { class: "gr-titel" }, t("gr_gruppe", { n: grund.length }), hilfeKnopf("regelwerk")), ...grund.map(karte));
-    if (grund.length && eigene.length) box.append(el("h4", { class: "gr-titel" }, t("gr_eigene", { n: eigene.length })));
-    box.append(...eigene.map(karte));
-    const gw = d.grundregeln;                         /* Abgleich mit dem Grund-Regelwerk (nur Vorschlag; übernehmen einzeln) */
-    if (gw && (gw.zahl.fehlt || gw.zahl.aehnlich || gw.zahl.neue_fassung)) {
-      const zeile = x => el("div", { class: "gr-abgleich-zeile " + x.status },
-        el("span", { class: "gr-zeichen", title: t("gra_" + (x.status === "neue_fassung" ? "neu_uebernehmen" : x.status)), style: `color:var(${{ drin: "--gruen", aehnlich: "--leise", fehlt: "--bernstein", neue_fassung: "--bernstein" }[x.status]})` },
-          { drin: "✓", aehnlich: "≈", fehlt: "–", neue_fassung: "↻" }[x.status]),
-        el("span", { class: "etikett gr-nr" }, x.nr), el("span", { class: "gr-titel-text", title: x.text[sprache] || x.text.de }, x.titel[sprache] || x.titel.de),
-        x.status === "aehnlich" ? el("span", { class: "sehrleise", title: x.gemeinsam.join(", ") }, t("gra_wie", { r: x.ref }))
-          : x.status === "neue_fassung" ? el("span", { class: "bernstein-text" }, t("gra_neue_fassung", { r: x.ref, f: x.fassung })) : x.ref ? el("span", { class: "sehrleise" }, x.ref) : null,
-        x.status !== "drin" ? el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", title: x.text[sprache] || x.text.de,
-          onclick: async ev => { if (!confirm(t("gra_frage", { x: `${x.nr} ${x.titel[sprache] || x.titel.de}` }))) return;
-            try { const r = await schicken("/api/regelwerk/uebernehmen", { nr: x.nr }); if (!r.unterwegs) toast(t("gra_ok", { x: x.nr, r: r.regel })); zeige("wissen", true); }
-            catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t(x.status === "neue_fassung" ? "gra_neu_uebernehmen" : "gra_uebernehmen")) : null);
-      box.append(el("details", { class: "gr-abgleich" }, el("summary", {}, el("b", {}, t("gra_titel", { v: gw.vorlage })), " ",
-          el("span", { class: "sehrleise" }, t("gra_zahl", { f: gw.zahl.fehlt, a: gw.zahl.aehnlich, d: gw.zahl.drin }))),
-        el("p", { class: "sehrleise", style: "margin:6px 0" }, t("gra_h")), ...gw.regeln.map(zeile)));
-    }
+    const aus = [...grund, ...eigene].map(x => { const g = x.grund ? (x.grund[sprache] || x.grund.de) : null;
+      return { schluessel: (x.ebene === "arbeit" ? "KR" : "PR") + x.nr, ref: (x.ebene === "arbeit" ? "KR" : "PR") + x.nr, titel: erste(x.text),
+        unter: [g ? g.nr : x.ebene === "arbeit" ? t("arbeitsregel") : t("projektregel")], inhalt: () => karte(x) }; });
+    const gw = d.grundregeln;
+    if (gw && (gw.zahl.fehlt || gw.zahl.aehnlich || gw.zahl.neue_fassung)) aus.push({ schluessel: "abgleich", ref: null, titel: t("gra_titel", { v: gw.vorlage }),
+      unter: [t("gra_zahl", { f: gw.zahl.fehlt, a: gw.zahl.aehnlich, d: gw.zahl.drin })], inhalt: () => [el("h3", {}, t("gra_titel", { v: gw.vorlage })),
+        el("p", { class: "sehrleise", style: "margin:0" }, t("gra_h")), ...gw.regeln.map(wsAbgleichZeile)] });
+    return aus;
   }
-  if (r === "wortlaut") box.append(...d.wortlaut.map(w => el("div", { class: "karte wissen-eintrag" },
-    el("div", { class: "kopfzeile" }, el("span", { class: "ref" }, `W${w.id}`), el("span", { class: "sehrleise" }, `${zeit(w.zeit_utc)} · ${w.kanal}`)),
-    el("div", { class: "inhalt", style: "color:var(--tinte)" }, w.text))));
-  if (r === "notizen") box.append(...(d.notizen || []).map(n => el("div", { class: "karte wissen-eintrag" },
-    el("div", { class: "kopfzeile" }, el("b", { class: "mono" }, n.schluessel), el("span", { class: "sehrleise" }, t("stand", { t: zeit(n.geaendert_utc) }))),
-    el("div", { class: "inhalt", style: "white-space:pre-wrap" }, n.wert))));
-  if (!box.children.length) box.append(el("div", { class: "leer" }, t("nichts_gefunden")));
-  m.append(box);
+  if (r === "wortlaut") return d.wortlaut.map(w => ({ schluessel: "W" + w.id, ref: `W${w.id}`, titel: erste(w.text), unter: [zeit(w.zeit_utc), w.kanal],
+    inhalt: () => [el("h3", {}, `W${w.id}`), werte(zeit(w.zeit_utc), w.kanal), el("div", { class: "inhalt ws-text", style: "color:var(--tinte)" }, w.text)] }));
+  return (d.notizen || []).map(n => ({ schluessel: "N:" + n.schluessel, ref: null, titel: n.schluessel, unter: [t("stand", { t: zeit(n.geaendert_utc) })],
+    inhalt: () => [el("h3", { class: "mono" }, n.schluessel), werte(t("stand", { t: zeit(n.geaendert_utc) })),
+      el("div", { class: "inhalt ws-text", style: "white-space:pre-wrap" }, n.wert)] }));
 }
-
+/* Abgleich mit dem Grund-Regelwerk: je Regel drin / ähnlich / fehlt / neue Fassung, übernehmen einzeln (wie bisher) */
+function wsAbgleichZeile(x) {
+  return el("div", { class: "gr-abgleich-zeile " + x.status },
+    el("span", { class: "gr-zeichen", title: t("gra_" + (x.status === "neue_fassung" ? "neu_uebernehmen" : x.status)), style: `color:var(${{ drin: "--gruen", aehnlich: "--leise", fehlt: "--bernstein", neue_fassung: "--bernstein" }[x.status]})` },
+      { drin: "✓", aehnlich: "≈", fehlt: "–", neue_fassung: "↻" }[x.status]),
+    el("span", { class: "etikett gr-nr" }, x.nr), el("span", { class: "gr-titel-text", title: x.text[sprache] || x.text.de }, x.titel[sprache] || x.titel.de),
+    x.status === "aehnlich" ? el("span", { class: "sehrleise", title: x.gemeinsam.join(", ") }, t("gra_wie", { r: x.ref }))
+      : x.status === "neue_fassung" ? el("span", { class: "bernstein-text" }, t("gra_neue_fassung", { r: x.ref, f: x.fassung })) : x.ref ? el("span", { class: "sehrleise" }, x.ref) : null,
+    x.status !== "drin" ? el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", title: x.text[sprache] || x.text.de,
+      onclick: async () => { if (!confirm(t("gra_frage", { x: `${x.nr} ${x.titel[sprache] || x.titel.de}` }))) return;
+        try { const r = await schicken("/api/regelwerk/uebernehmen", { nr: x.nr }); if (!r.unterwegs) toast(t("gra_ok", { x: x.nr, r: r.regel })); zeige("wissen", true); }
+        catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t(x.status === "neue_fassung" ? "gra_neu_uebernehmen" : "gra_uebernehmen")) : null);
+}
 /* --- Dokumente ----------------------------------------------------------------------------- */
 const dokUrl = (id, v) => ziel(`/api/dokument/datei?id=${id}${v ? "&v=" + v : ""}`);
 const nurAmPc = d => API && d.vorschau !== "text" && !d.online;      // online: Datei nicht auf dem Webspace
@@ -5106,14 +5141,18 @@ async function sichtDokumente() {
   const formatWahl = el("select", { "aria-label": t("dk_format"), onchange: e => neu("format", e.target.value) },
     el("option", { value: "" }, t("dk_format_alle")),
     DK_FORMATE.filter(v => formate[v] != null).map(v => el("option", { value: v, ...(f.format === v ? { selected: true } : {}) }, `${t("dkf_" + v)} (${formate[v]})`)));
-  m.append(el("div", { class: "dk-filter" }, such, formatWahl,
+  /* A2012 (F5398, TH156 Regel 1–9): Suche und Ansicht bleiben sichtbar, die übrigen Filter sind zugeklappt, solange keiner gesetzt ist */
+  const gesetzt = [f.format, f.von, f.bezug, f.zeit, f.sort && f.sort !== "neu", f.status !== "aktuell"].filter(Boolean).length;
+  m.append(el("div", { class: "dk-oben" }, such,
+    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
+  m.append(el("details", { class: "dk-mehr", ...(gesetzt ? { open: true } : {}) }, el("summary", {}, gesetzt ? t("ws_filter_n", { n: gesetzt }) : t("ws_filter")),
+   el("div", { class: "dk-filter" }, formatWahl,
     auswahl("von", t("alle_agenten"), Object.entries(d.von).map(([a, n]) => [a, `${a} (${n})`])),
     auswahl("bezug", t("dk_alle_bezuege"), bezugListe),
     wahl("zeit", [["", t("dk_zeit_alle")], ["heute", t("dk_zeit_heute")], ["7", t("dk_zeit_7")], ["30", t("dk_zeit_30")]], ""),
     wahl("sort", [["neu", t("dk_sort_neu")], ["alt", t("dk_sort_alt")], ["titel", t("dk_sort_titel")], ["art", t("dk_sort_art")]], "neu"),
     el("select", { onchange: e => neu("status", e.target.value) }, ["aktuell", "archiviert", "alle"].map(s =>
-      el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))),
-    el("button", { class: "klein-knopf", type: "button", onclick: () => neu("liste", !f.liste) }, t(f.liste ? "dk_raster" : "dk_liste"))));
+      el("option", { value: s, ...(f.status === s ? { selected: true } : {}) }, t("dks_" + s) + (s === "archiviert" ? ` (${d.archiviert})` : "")))))));
   const ab = f.zeit === "heute" ? new Date(new Date().setHours(0, 0, 0, 0)) : f.zeit ? new Date(Date.now() - Number(f.zeit) * 864e5) : null;
   d.dokumente = d.dokumente.filter(x => (!ab || new Date(x.version_utc) >= ab) && (!f.format || x.vorschau === f.format));
   const vergleich = { alt: (a, b) => a.version_utc.localeCompare(b.version_utc) || a.id - b.id,
@@ -5664,18 +5703,20 @@ document.addEventListener("paste", e => {
 });
 /* Markdown sicher als DOM (nie innerHTML): Überschriften, Absätze, Listen, Code, Zitate, Tabellen, Links (nur http/https/mailto) */
 function markdown(text) {
-  const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*|__[^_]+__)|(\*[^*\s][^*]*\*|_[^_\s][^_]*_)|(!?\[[^\]]*\]\([^)\s]+\))/g;
+  /* A2163: _kursiv_ und __fett__ mit Unterstrichen nur am Wortrand (wie CommonMark) – nie_gleichzeitig, feinplanung._anlegen,
+     __init__.py bleiben, wie sie sind. Ohne Lookbehind (ältere iPads): das Zeichen davor gehört zum Treffer (Gruppe 5). */
+  const inline = s => { const teile = []; const re = /(`[^`]+`)|(\*\*[^*]+\*\*)|(\*[^*\s][^*]*\*)|(!?\[[^\]]*\]\([^)\s]+\))|(^|[^\p{L}\p{N}_])(__[^_]+__|_[^_\s][^_]*_)(?![\p{L}\p{N}_])/gu;
     let pos = 0, m;
     while ((m = re.exec(s))) {
-      if (m.index > pos) teile.push(...mitRefs(s.slice(pos, m.index)));       /* A2115: Nummern im Text öffnen das Ding */
-      const x = m[0];
+      const start = m.index + (m[5] || "").length, x = m[6] || m[0];
+      if (start > pos) teile.push(...mitRefs(s.slice(pos, start)));           /* A2115: Nummern im Text öffnen das Ding */
       if (m[1]) teile.push(el("code", {}, x.slice(1, -1)));
-      else if (m[2]) teile.push(el("strong", {}, ...inline(x.slice(2, -2))));
-      else if (m[3]) teile.push(el("em", {}, ...inline(x.slice(1, -1))));
+      else if (m[2] || (m[6] && x.startsWith("__"))) teile.push(el("strong", {}, ...inline(x.slice(2, -2))));
+      else if (m[3] || m[6]) teile.push(el("em", {}, ...inline(x.slice(1, -1))));
       else { const l = /^(!?)\[([^\]]*)\]\(([^)\s]+)\)$/.exec(x); const ok = /^(https?:|mailto:)/i.test(l[3]);
         teile.push(l[1] ? el("span", { class: "sehrleise" }, `[${t("dk_bild")}: ${l[2] || l[3]}]`)
           : ok ? el("a", { href: l[3], target: "_blank", rel: "noopener noreferrer" }, l[2] || l[3]) : l[2]); }
-      pos = m.index + x.length;
+      pos = start + x.length;
     }
     if (pos < s.length) teile.push(...mitRefs(s.slice(pos)));
     return teile; };
@@ -7030,8 +7071,7 @@ async function sichtReleases() {
   const mit = !!zustand.vhAufgaben;
   const umschalter = el("div", { class: "reiter", style: "margin:0" }, [false, true].map(w => el("button", { class: w === mit ? "an" : "", type: "button",
     onclick: () => { zustand.vhAufgaben = w; sichtReleases(); } }, t(w ? "vh_mit" : "vh_alle"))));
-  const m = rahmen(t("wissen"), umschalter);
-  m.append(wissenReiter("releases"));
+  const m = rahmen(t("n_releases"), umschalter);                                  /* A2012: beim Projektweg – die Reihe steht im Kopf */
   const gruppen = ["neu", "verbessert", "behoben"], e = d.entwurf || {}, nEntwurf = gruppen.reduce((s, g) => s + (e[g] || []).length, 0);
   const block = (titel, unter, inhalt) => el("div", { class: "karte vh-version" }, el("div", { class: "vh-kopf" }, el("b", { class: "ver" }, titel), unter ? el("span", { class: "sehrleise" }, unter) : null), inhalt);
   if (nEntwurf) m.append(block(t("vh_entwurf"), t("vh_entwurf_h"), gruppen.filter(g => (e[g] || []).length).map(g => el("div", { class: "vh-gruppe vh-" + g },
@@ -7067,7 +7107,7 @@ function dialogeZu() {
 /* Den Eintrag mit dieser Nummer auf der gezeigten Seite ins Bild holen; false = er steht nicht dort */
 function refInsBild(ref) {
   const z = [...document.querySelectorAll("#inhalt .karte .ref")].find(e => e.textContent === ref)?.closest(".karte")
-    || document.querySelector(`#inhalt .tc-eintrag[data-ref="${ref}"]`);
+    || document.querySelector(`#inhalt .tc-eintrag[data-ref="${ref}"]`) || document.querySelector(`#inhalt .ws-zeile[data-s="${ref}"]`);   /* A2012: Zeile im Wissen */
   if (!z) return false;
   z.scrollIntoView({ block: "center" });
   z.classList.remove("blink"); void z.offsetWidth; z.classList.add("blink");
@@ -7107,7 +7147,7 @@ async function refOeffnen(ref, aufgabe) {
       const r = art === "B" ? "beschluesse" : "wortlaut";
       if (!(await abrufen("/api/wissen?q=" + ref))[r].some(x => x.id === nr)) return refFehlt(ref);
       if (!dialogeZu()) return;
-      zustand.wissenReiter = r; zustand.wissenQ = ref; await zeige("wissen");
+      zustand.wissenReiter = r; zustand.wissenQ = ref; zustand.wissenWahl = ref; await zeige("wissen");   /* A2012: gleich rechts offen */
       return refInsBild(ref);
     }
     const d = await abrufen("/api/nachrichten");         /* „#“: an dich oder von dir – sonst zwischen Agenten (Team-Chat) */
