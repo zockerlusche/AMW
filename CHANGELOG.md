@@ -4,6 +4,13 @@ Versionen nach dem Schema MAJOR.MINOR.PATCH: MINOR für neue Fähigkeiten, PATCH
 für andere Teams ohne Begleitung einsetzbar ist. Die Nummer steht in `amw/__init__.py`,
 `amw --version` zeigt sie, die Workbench in der Kopfzeile. Zu jeder Version gibt es den Git-Tag `vX.Y.Z`.
 
+## 1.202.0 – 27.11.2026 · Wissen aufgeräumt; Verteilen ohne Horten
+- **Verbessert:** Wissen ist aufgeräumt: vier Reiter, Beschlüsse und Regeln als Liste mit dem Eintrag daneben, Mitlesen nur zum Lesen.
+- **Verbessert:** Die Online-Projektliste zeigt dieselbe Zahl „für dich“ wie am PC.
+- **Behoben:** Ein Agent bekommt höchstens zwei offene Pakete gleichzeitig zugeteilt – auch während er auf seine Testläufe wartet; gebaute, die nur auf Prüfung oder Bündel warten, zählen nicht.
+- **Behoben:** Überholte Prüfbitten schließt die AMW jetzt selbst, sobald ihr Paket ausgeliefert, verworfen oder neu geprüft ist.
+- **Behoben:** Unterstriche mitten im Wort (zum Beispiel in Datei- oder Feldnamen) machen den Text nicht mehr kursiv.
+
 ## 1.201.0 – 26.11.2026 · Leitstand als Startseite; neue Kopfzeile
 - **Neu:** Die Startseite ist jetzt der Leitstand: Fortschritt, Für dich, Agenten, was zuletzt geschah, was jetzt läuft und was als Nächstes kommt, Zeitplan und Entscheidungen der AMW auf einen Blick.
 - **Neu:** Die Kopfzeile wechselt das Projekt mit der Zahl dessen, was dort auf dich wartet, zeigt alle Projekte auf einen Blick und sucht schon beim Tippen.
