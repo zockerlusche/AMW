@@ -203,7 +203,10 @@ function seitenkopf() {
     else if (an && w.scrollWidth > w.clientWidth) w.scrollLeft += an.getBoundingClientRect().left - w.getBoundingClientRect().left - (w.clientWidth - an.offsetWidth) / 2;
     w.addEventListener("scroll", () => kante(w), { passive: true });
   }
-  for (const w of k.querySelectorAll(":scope > .reiter > .reiter-zeile, :scope > :is(.vl-filter, .dk-arten, .dk-filter, .sprung)")) kante(w);
+  for (const w of k.querySelectorAll(":scope > .bereich-reihe:not([data-kante])")) {   /* A2012 (F5401 A): auch die Reihe des Bereichs wischt am Handy mit Verlauf */
+    w.dataset.kante = "1"; w.addEventListener("scroll", () => kante(w), { passive: true });
+  }
+  for (const w of k.querySelectorAll(":scope > .reiter > .reiter-zeile, :scope > :is(.vl-filter, .dk-arten, .dk-filter, .sprung, .bereich-reihe)")) kante(w);
   const erstes = k.querySelector(`:scope > :is(${UNTERMENUE})`);
   k.classList.toggle("mit-menue", !!erstes);
   kopfStand.weg = erstes ? Math.max(0, erstes.offsetTop - 8) : 0;        /* so viel läuft oben hinaus: Titelzeile samt Abstand */

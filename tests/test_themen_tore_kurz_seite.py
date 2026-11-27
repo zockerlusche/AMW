@@ -65,12 +65,16 @@ class ToreKurz(Rundgang):
 
     def test_bilder(self):
         """Regel 8/9: PC und Handy, hell und dunkel, nichts über den Rand – Grunddesign bleibt (Bilder über AMW_RUNDGANG_BILDER)."""
-        rand = ("document.documentElement.scrollWidth > innerWidth + 1 || [...document.querySelectorAll('#inhalt .th-stand, #inhalt .bereich-reihe,"
+        rand = ("document.documentElement.scrollWidth > innerWidth + 1 || [...document.querySelectorAll('#inhalt .th-stand,"
                 " #inhalt .tore-dich')].some(e => e.scrollWidth > e.clientWidth + 1)")
+        # A2012 (F5401 A): die Reihe des Bereichs darf am Handy wischen – dann mit overflow-x und Verlauf an der Kante (weiter-r/-l)
+        reihe = ("[...document.querySelectorAll('#inhalt .bereich-reihe')].every(e => e.scrollWidth <= e.clientWidth + 1"
+                 " || (getComputedStyle(e).overflowX === 'auto' && (e.classList.contains('weiter-r') || e.classList.contains('weiter-l'))))")
         for g in ("pc", "handy"):
             for th in ("hell", "dunkel"):
                 self.assertEqual(self.besuchen("themen", "themen-zeile", bereit=self.LISTE + f" && {self.DICH}", g=g, t=th), [], f"{g} {th}")
                 self.assertFalse(self.tab.js(rand), f"{g} {th}")
+                self.assertTrue(self.tab.js(reihe), f"{g} {th}: Reihe wischt ohne Verlauf")
         self.groesse("pc")
         self.oeffnen("themen", self.LISTE + f" && {self.DICH}")
         self.tab.js("sprache_setzen('en')")
