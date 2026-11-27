@@ -88,6 +88,7 @@ class Freigeben(Grund):
         return [k for k, _ in verteilen.freie_agenten(self.con, self.pid)]
 
     def test_lauf_gibt_frei_antwort_erst_nach_10_min(self):
+        kern.projekt_einstellen(self.con, self.pid, "TL", verteilen_max_offen=3)   # hier geht es um die Warteart, nicht um die Grenze (A2174)
         mein = self.aufgabe("Mein Paket")
         with db.schreiben(self.con):
             lid = db.einfuegen(self.con, "lauf", projekt_id=self.pid, agent="CC1", beschreibung="Gesamtlauf", status="laeuft",
