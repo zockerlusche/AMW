@@ -367,6 +367,9 @@ table.pm-pakete { width: 100%; border-collapse: collapse; font-size: 14px; margi
 .th-kopf h2 { margin: 0; flex: 1 1 220px; font: 600 21px var(--titel); letter-spacing: .01em; text-transform: none; color: var(--tinte); display: block; } .th-kopf h2::after { display: none; }
 .th-zur-liste { display: none; }
 .th-grund { color: var(--leise); font-size: 13.5px; margin-top: 6px; }
+.th-nr { font: 600 12px var(--mono); color: var(--bernstein); margin-right: 8px; }   /* A2200 */
+.th-aenderung { display: block; color: var(--leise); font-size: 12px; margin-top: 2px; }
+.th-plan { display: block; font-size: 12.5px; margin-top: 3px; width: fit-content; }
 .th-grund-zeile { display: block; color: var(--sehrleise); font-size: 12px; margin-top: 2px; }   /* P306 (2): klein und grau unter dem Namen */
 .th-knoepfe { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; } .th-knoepfe .klein-knopf.haupt { border-color: var(--bernstein); color: var(--bernstein); font-weight: 600; }
 .th-kasten:empty { display: none; }
@@ -1476,6 +1479,40 @@ button.pjw-karte:hover { background: var(--flaeche2); }
   .ls-ent { grid-template-columns: 52px 1fr; }
   .ls-ent > span:nth-child(2) { display: none; }
 }
+/* A2190: Pause – wer noch zu Ende bringt; am Handy untereinander */
+.ls-pause-liste { display: flex; flex-direction: column; gap: 4px; }
+.ls-pause-zeile { display: grid; grid-template-columns: minmax(80px, auto) auto minmax(0, 1fr); gap: 10px; align-items: baseline; }
+.ls-pause-zeile b { display: flex; align-items: center; gap: 7px; }
+.ls-pause-zeile .sehrleise { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-pause[data-alle] b { display: flex; align-items: center; gap: 7px; }
+@media (max-width: 760px) { .ls-pause-zeile { grid-template-columns: auto minmax(0, 1fr); } .ls-pause-zeile .sehrleise { grid-column: 1 / -1; } }
+/* A2170: Lead-Aufgaben – ruhige Zeilen, die zugeteilte mit Rahmen */
+.ls-lead .ls-liste { display: flex; flex-direction: column; gap: 6px; }
+.ls-lead .ls-zeile { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.ls-lead .ref { white-space: nowrap; }
+.ls-lead-mehr { margin-top: 6px; }
+.ls-lead-mehr > summary { cursor: pointer; list-style: none; }
+.ls-lead-mehr > .ls-liste { margin-top: 6px; }
+.ls-lead .ls-titel { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ls-lead .ls-zeile.an { border-color: var(--text); }
+@media (max-width: 760px) { .ls-lead .ls-zeile { grid-template-columns: auto minmax(0, 1fr); } .ls-lead .ls-zeile > :last-child { grid-column: 2; } }
+/* A2013 (Kleinprobe A2009 D1902 v2): Betrieb in Reitern. Farbe nur bei Platte knapp, Woche reicht nicht, Dienst steht –
+   sonst grau (auch der Balken: grün wäre hier Farbe ohne Grund). */
+.bt-karte .balken > i { background: var(--leise); }
+.bt-karte.bt-bernstein { border-color: var(--bernstein); }
+.bt-karte.bt-bernstein .wert { color: var(--bernstein); }
+.bt-karte.bt-bernstein .balken > i { background: var(--bernstein); }
+.bt-karte.bt-rot { border-color: var(--rot); }
+.bt-karte.bt-rot .wert { color: var(--rot); }
+.bt-karte.bt-rot .balken > i { background: var(--rot); }
+.bt-tage { display: flex; gap: 8px; align-items: stretch; height: 132px; padding: 6px 0 0; }
+.bt-tag { flex: 1 1 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; min-width: 0; }
+.bt-tag > i { display: block; background: var(--linie2); border-radius: 2px 2px 0 0; }
+.bt-tag.heute > i { background: var(--leise); }
+.bt-tag > span { font-size: 11px; color: var(--sehrleise); text-align: center; margin-top: 4px; white-space: nowrap; }
+.bt-protokoll { margin-top: 18px; }
+.bt-protokoll > summary { cursor: pointer; font: 600 12px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--leise); }
+@media (max-width: 760px) { .bt-tage { height: 96px; gap: 4px; } }
 /* A2011 (Kleinprobe D1481 v4): Reiter und Unteransichten im Projektweg – Reihenfolge, Zeitplan, Gesamtplan. Ruhig; Bernstein nur bei
    Handlungsbedarf (blockiert, wartet auf dich). */
 .pjw-seg { display: inline-flex; flex-wrap: wrap; max-width: 100%; border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; margin: 4px 0 14px auto; align-self: flex-end; }
@@ -1580,6 +1617,38 @@ button.pjw-karte:hover { background: var(--flaeche2); }
 /* die Liste ist ein Dialog: auch am PC Überschrift und ✕ (wie am Handy), schließt außerdem mit Klick daneben */
 .pw-liste h3 { display: block; font: 11px var(--titel); letter-spacing: .12em; text-transform: uppercase; color: var(--sehrleise); margin: 6px 10px 8px; }
 .pw-liste .dialog-zu { display: block; position: absolute; top: 4px; right: 6px; margin: 0; }
+/* A2084 (Lead #34299): Planung aufgeräumt – Termin/Risiko/Qualität nur bei Abweichung als ruhige Zeile mit Weg; Wege zu Gesamtplan und
+   Zeitplan im Projektweg. */
+.pl-abweichungen { display: flex; flex-direction: column; gap: 4px; margin: 2px 0 8px; }
+.pl-abweichung { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; color: var(--leise); }
+.pl-abweichung .verweis { white-space: nowrap; }
+.pl-wege { margin: 4px 0 10px; font-size: 13px; }
+/* Grob- und Feinplan als Reiter im Projektweg: schmal nach eigener Breite wie am Handy (iPad neben dem Verlauf) – erst die Liste */
+@container (max-width: 700px) {
+  .th-raster { grid-template-columns: minmax(0, 1fr); }
+  .th-raster.offen .th-liste { display: none; } .th-raster:not(.offen) .th-thema { display: none; }
+  .th-liste { border-right: 0; } .th-zur-liste { display: inline-block; } .th-thema { padding: 12px 14px 22px; }
+}
+/* die Zeitleiste ist jetzt die Ansicht der Planung: am Handy bricht ein langes Etikett um, statt über den Rand zu ragen */
+@media (max-width: 760px) { .zeitleiste .schritt > .etikett { max-width: 100%; white-space: normal; overflow-wrap: anywhere; } }
+/* A2166 (Kleinprobe A2009, D1902 v2): Einstellungen – links die Gruppen, rechts der Inhalt; am Handy erst die Liste, dann der Inhalt. */
+.eg-raster { display: grid; grid-template-columns: minmax(180px, 230px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.eg-liste { border: 1px solid var(--linie); border-radius: 8px; overflow: hidden; background: var(--flaeche); position: sticky; top: 8px; }
+.eg-zeile { display: block; width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--linie); background: none; color: var(--tinte);
+  font: 600 14px var(--titel); padding: 11px 14px; cursor: pointer; min-height: 44px; }
+.eg-zeile:last-child { border-bottom: 0; }
+.eg-zeile:hover, .eg-zeile.an { background: var(--flaeche2); }
+.eg-inhalt { min-width: 0; }
+.eg-zurueck { display: none; margin-bottom: 12px; }
+/* schmal nach eigener Breite (iPad neben dem Menü, auch online): wie am Handy erst die Liste, dann der Inhalt – sonst wird der Inhalt zu schmal */
+.eg-huelle { container-type: inline-size; }
+@container (max-width: 900px) {
+  .eg-raster { grid-template-columns: minmax(0, 1fr); }
+  .eg-liste { position: static; }
+  .eg-raster:not(.offen) .eg-inhalt { display: none; }
+  .eg-raster.offen .eg-liste { display: none; }
+  .eg-zurueck { display: inline-block; }
+}
 </style>
 </head>
 <body>
@@ -1593,9 +1662,8 @@ button.pjw-karte:hover { background: var(--flaeche2); }
   </header>
   <nav id="nav">
     <div id="projektwahl"></div>
-    <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span></a>
+    <a data-sicht="start"><span class="sym">◉</span><span data-t="n_start"></span> <span class="zahl" data-zahl="fuer_dich"></span></a>
     <a data-sicht="projektweg"><span class="sym">➔</span><span data-t="n_projektweg"></span> <span class="zahl" data-zahl="projektweg"></span></a>
-    <a data-sicht="fragen"><span class="sym">?</span><span data-t="n_fragen"></span> <span class="zahl" data-zahl="fragen"></span></a>
     <a data-sicht="wissen"><span class="sym">§</span><span data-t="n_wissen"></span> <span class="zahl" data-zahl="nachrichten"></span></a>
     <a data-sicht="betrieb" class="im-mehr"><span class="sym">◈</span><span data-t="n_betrieb"></span></a>
     <a data-sicht="einstellungen" class="im-mehr"><span class="sym">⚙</span><span data-t="n_einst" data-t-lang></span><span data-t="n_einst_kurz" data-t-kurz hidden></span></a>
@@ -1968,7 +2036,7 @@ const TEXTE = {
     mg_erklaerung_alle: "Die AMW hat jedes Paket selbst geprüft. Laut Einstellung siehst du dir jedes Paket vor der Freigabe an.", mg_erklaerung_aus: "Die AMW hat jedes Paket selbst geprüft. Laut Einstellung gibt es keinen Blick vor der Freigabe.", mg_aussen_aus: "Die Prüfung auf Adressen nach außen ist aus – Treffer stehen nur als Hinweis da.", mg_alle: "Alle freigeben ({n})", mg_alle_frage: "{n} Pakete freigeben? Die AMW holt je Paket genau seinen Stand als eigenen Zweig ins Projekt und vermerkt Prüfung und Merge-OK – ausgeliefert wird danach wie immer über die Kette.", mg_blick_freigeben: "Angesehen – freigeben",
     mg_blick_frage: "Hast du dir die Änderungen von A{x} angesehen? Prüfliste: {l}. Dann gibt die AMW dieses Paket frei.", mg_nur_pc: "freigeben am PC", e_merge_blick: "Blick vor der Merge-Freigabe", e_merge_blick_server: "nur bei Server-Code", e_merge_blick_alle: "bei jedem Paket", e_merge_blick_aus: "kein Blick",
     e_merge_blick_h: "Für Pakete der kopflosen Arbeiter. „Nur bei Server-Code“: Wer freigibt, sieht sich Änderungen am Online-Server (web/*.php) vorher an. „Kein Blick“ spart Zeit, aber ein Fehler im Server-Code ginge ungesehen online. Stellst nur du ein.", e_merge_aussen_pruefung: "Prüfung auf Aufrufe nach außen", e_merge_aussen_pruefung_an: "an (hält das Paket an)", e_merge_aussen_pruefung_aus: "aus (nur Hinweis)", e_merge_aussen_pruefung_h: "An: Neue Adressen fremder Server oder gefährliche Aufrufe (Shell, eval …) halten ein Paket an, der Lead sieht es sich an. Aus: Sie stehen nur als Hinweis in der Liste – so könnte Code, der Daten nach außen schickt, ohne Halt durchgehen. Stellst nur du ein.", e_limit_halt: "Halt beim Wochenlimit (%)",
-    e_limit_halt_h: "Ab diesem Verbrauch des Wochenlimits hält die AMW alle Coder an (sauber, mit Zwischenstand) und sagt dir und dem Lead Bescheid; nach dem Wochenwechsel geht es von selbst weiter. Leer = es gilt der Wert für den ganzen PC (Vorgabe 95); hier zählt nur ein strengerer.", n_projektweg: "Projektweg", pjw_s_konzept: "Konzept", pjw_s_grob: "Grobplanung", pjw_s_fein: "Feinplanung", pjw_s_umsetzung: "Umsetzung",
+    e_limit_halt_h: "Ab diesem Verbrauch des Wochenlimits hält die AMW alle Coder an (sauber, mit Zwischenstand) und startet keine Headless-Läufe und Nachbesserungen mehr und sagt dir und dem Lead Bescheid; nach dem Wochenwechsel geht es von selbst weiter. Leer = es gilt der Wert für den ganzen PC (Vorgabe 95); hier zählt nur ein strengerer.", n_projektweg: "Projektweg", pjw_s_konzept: "Konzept", pjw_s_grob: "Grobplanung", pjw_s_fein: "Feinplanung", pjw_s_umsetzung: "Umsetzung",
     pjw_s_abschluss: "Abschluss", pjw_wartet_dich: "wartet auf dich", pjw_in_arbeit: "in Arbeit", pjw_w_konzept: "{n} von {g} Themen freigegeben", pjw_w_grob_ok: "{n} Meilensteine · freigegeben", pjw_w_grob_ok1: "1 Meilenstein · freigegeben",
     pjw_fassung: "Fassung {n}", pjw_w_fein: "{m} · {p}", pjw_freigegeben: "freigegeben", pjw_w_ums: "{m} · {f} von {n} fertig", pjw_f_von_n: "{f} von {n} fertig", pjw_frage1: "1 Frage",
     pjw_fragen: "{n} Fragen", pjw_bereit: "bereit zur Abnahme", pjw_abgenommen: "abgenommen", pjw_zurueck: "‹ Projektweg", pjw_wie: "So läuft dieser Schritt", pjw_noch_nicht: "noch nicht dran",
@@ -2079,7 +2147,24 @@ const TEXTE = {
     kz_nichts_laeuft: "nichts läuft", kz_in: "In {x}", kz_andere: "Andere Projekte", kz_zuletzt: "Zuletzt gesucht", kz_s_laeuft: "läuft", kz_s_wartet: "wartet",
     kz_s_blockiert: "blockiert", kz_s_fertig: "fertig", kz_s_verworfen: "verworfen", kz_s_aktiv: "in Arbeit", kz_s_geplant: "geplant", kz_s_offen: "offen",
     kz_s_beantwortet: "beantwortet", kz_s_freigegeben: "freigegeben", ws_leer_beschluesse: "Noch keine Beschlüsse. Sie entstehen aus deinen Antworten und deinen Worten.", ws_leer_regeln: "Noch keine Regeln für dieses Projekt.", ws_leer_wortlaut: "Noch nichts von dir festgehalten.", ws_leer_notizen: "Keine Notizen.",
-    ws_filter: "Filter", ws_filter_n: "Filter ({n} gesetzt)",
+    ws_filter: "Filter", ws_filter_n: "Filter ({n} gesetzt)", fd_art_frage: "Fragen", fd_art_thema: "Themen freigeben", fd_art_grob: "Grobplan freigeben", fd_art_plan: "Feinplan freigeben",
+    fd_art_aenderung: "Änderungen freigeben", fd_art_start: "Meilenstein starten", fd_art_abnahme: "Meilensteine abnehmen", fd_art_aufgabe: "Pakete abnehmen", fd_art_pruefpunkt: "Du testest", fd_art_vorschlag: "Agenten starten",
+    fd_art_eigene: "Deine Aufgaben", fd_art_nachricht: "Nachrichten an dich", fd_was_beantworten: "beantworten", fd_was_freigeben: "freigeben", fd_was_abnehmen: "abnehmen", fd_was_testen: "testen",
+    fd_was_starten: "starten", fd_was_lesen: "lesen", fd_was_erledigen: "erledigen", fd_nichts: "Nichts für dich.", fd_fehler: "Nicht alles geladen: {x} – die Zahl kann fehlen.", fd_mehr: "Geparkt ({g}) · Beantwortet ({b})",
+    fd_geparkt: "Geparkt ({n})", fd_beantwortet: "Beantwortet ({n})", fd_aelter: "Beantwortete der letzten {n} Tage – ältere findet die Suche.", fd_weitere: "{n} weitere ›", eg_projekt: "Projekt", eg_freigaben: "Freigaben",
+    eg_auslieferung: "Auslieferung", eg_benachrichtigung: "Benachrichtigung", eg_modelle: "Modelle und Kosten", eg_pc: "Dieser PC", eg_benutzer: "Benutzer und Rechte", lst_gebaut_buendel: "gebaut, wartet auf Bündel",
+    lst_gebaut_pruefung: "wartet auf Prüfung", pjw_t_grob: "Grobplan", pjw_t_meilensteine: "Meilensteine", pjw_t_pmpakete: "Pakete", lst_steht: "steht", lst_haelt_an: "hält gerade an",
+    lst_beendet_noch: "beendet noch: {x}", lst_alle_stehen: "Pause: alle stehen", lst_pause_noch: "Pause – noch nicht alle stehen", lst_headless_paket: "Headless-Paket", lst_lauf: "Lauf", lst_lead_aufgaben: "Lead-Aufgaben · {n}",
+    lst_la_zugeteilt: "beim Lead", lst_la_gelesen: "gelesen, wartet auf den Lauf", lst_la_wartet: "kommt danach", lst_la_planung: "Planung", bt2_auslieferungen: "Auslieferungen", bt2_verbrauch: "Verbrauch",
+    bt2_rechner: "Rechner", bt2_gesundheit: "Gesundheit", bt2_letzte: "Letzte", bt2_pakete: "{n} Pakete", bt2_noch_keine: "noch keine Version", bt2_naechste: "Nächste",
+    bt2_naechste_auto: "{b} von {n} Paketen bereit, spätestens um {x}", bt2_naechste_hand: "{b} Pakete bereit · gebündelt wird von Hand", bt2_wartend: "Wartende Pakete ({n})", bt2_k_gebaut: "Gebaut von", bt2_k_bereit: "Bereit seit", bt2_headless: "Headless",
+    bt2_keine_wartend: "Kein Paket wartet auf die nächste Version.", bt2_woche: "Woche", bt2_woche_leer: "noch nicht gemessen", bt2_woche_knapp: "reicht bis etwa {x}, neu danach", bt2_woche_reicht: "reicht bis zum Ende, neu am {x}", bt2_heute: "Heute",
+    bt2_listenpreis: "Schätzung zum Listenpreis", bt2_meilenstein: "Meilenstein {n}", bt2_prognose: "Prognose etwa {x} $", bt2_je_tag: "Je Tag", bt2_heute_kurz: "heute", bt2_laufwerk: "Laufwerk {x}",
+    bt2_frei: "{n} GB frei", bt2_von: "von {n} GB", bt2_aufraeumen: "Aufräumvorschläge ansehen", bt2_sicherungen: "Sicherungen", bt2_k_sicherung: "Sicherung", bt2_k_groesse: "Größe",
+    bt2_k_alter: "Alter", bt2_keine_sicherung: "Noch keine Sicherung.", bt2_dienst: "Dienst", bt2_steht: "steht", bt2_steht_h: "nichts wird verteilt oder benachrichtigt – neu starten am PC:", bt2_haengt1: "1 Teil hängt",
+    bt2_haengt: "{n} Teile hängen", bt2_laeuft: "läuft", bt2_laeuft_h: "alle Teile in Ordnung", bt2_datenbank: "Datenbank", bt2_db_ok: "in Ordnung", bt2_db_fehler: "Prüfung meldet Fehler",
+    bt2_geprueft: "letzte Prüfung {x}", bt2_ausser_haus: "Sicherung außer Haus", bt2_nicht_eingerichtet: "nicht eingerichtet", bt2_ausser_haus_h: "eine Kopie an einem anderen Ort – das entscheidest du", k_paket: "Paket", th2_aenderung_neu: "Geändert: {x}",
+    th2_aenderung_weg: "Gestrichen: {x}", th2_aenderung_mehr: "(und {n} weitere Stellen)", th2_plan_grob: "Grobplan M{m} wartet auf dich ›", th2_plan_fein: "Plan M{m} wartet auf dich ›", th2_aenderung_mehr1: "(und 1 weitere Stelle)",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search everything", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
@@ -2421,7 +2506,7 @@ const TEXTE = {
     mg_erklaerung_alle: "AMW has checked every package itself. Per your setting, you look at every package before you approve it.", mg_erklaerung_aus: "AMW has checked every package itself. Per your setting, there is no review before approval.", mg_aussen_aus: "The check for outbound addresses is off – hits are shown as a note only.", mg_alle: "Approve all ({n})", mg_alle_frage: "Approve {n} packages? For each package AMW fetches exactly its state as its own branch into the project and records review and merge OK – delivery then runs through the chain as always.", mg_blick_freigeben: "Reviewed – approve",
     mg_blick_frage: "Have you looked at the changes of A{x}? Checklist: {l}. Then AMW approves this package.", mg_nur_pc: "approve on the PC", e_merge_blick: "Review before merge approval", e_merge_blick_server: "server code only", e_merge_blick_alle: "every package", e_merge_blick_aus: "no review",
     e_merge_blick_h: "For packages of headless workers. “Server code only”: whoever approves looks at changes to the online server (web/*.php) first. “No review” saves time, but a mistake in server code would go online unseen. Only you can set this.", e_merge_aussen_pruefung: "Check for outbound calls", e_merge_aussen_pruefung_an: "on (stops the package)", e_merge_aussen_pruefung_aus: "off (note only)", e_merge_aussen_pruefung_h: "On: new addresses of other servers or dangerous calls (shell, eval …) stop a package, and the lead looks at it. Off: they only show as a note in the list – code that sends data out could pass without a stop. Only you can set this.", e_limit_halt: "Stop at weekly limit (%)",
-    e_limit_halt_h: "From this share of the weekly limit, AMW stops all coders (cleanly, with a saved state) and tells you and the lead; after the weekly reset work resumes by itself. Empty = the value for the whole PC applies (default 95); only a stricter value counts here.", n_projektweg: "Project path", pjw_s_konzept: "Concept", pjw_s_grob: "Rough planning", pjw_s_fein: "Detailed planning", pjw_s_umsetzung: "Delivery",
+    e_limit_halt_h: "From this share of the weekly limit, AMW stops all coders (cleanly, with a saved state) and starts no more headless runs or rework and tells you and the lead; after the weekly reset work resumes by itself. Empty = the value for the whole PC applies (default 95); only a stricter value counts here.", n_projektweg: "Project path", pjw_s_konzept: "Concept", pjw_s_grob: "Rough planning", pjw_s_fein: "Detailed planning", pjw_s_umsetzung: "Delivery",
     pjw_s_abschluss: "Closing", pjw_wartet_dich: "waiting for you", pjw_in_arbeit: "in progress", pjw_w_konzept: "{n} of {g} topics approved", pjw_w_grob_ok: "{n} milestones · approved", pjw_w_grob_ok1: "1 milestone · approved",
     pjw_fassung: "Version {n}", pjw_w_fein: "{m} · {p}", pjw_freigegeben: "approved", pjw_w_ums: "{m} · {f} of {n} done", pjw_f_von_n: "{f} of {n} done", pjw_frage1: "1 question",
     pjw_fragen: "{n} questions", pjw_bereit: "ready for acceptance", pjw_abgenommen: "accepted", pjw_zurueck: "‹ Project path", pjw_wie: "How this step works", pjw_noch_nicht: "not yet",
@@ -2532,7 +2617,24 @@ const TEXTE = {
     kz_nichts_laeuft: "nothing running", kz_in: "In {x}", kz_andere: "Other projects", kz_zuletzt: "Recent searches", kz_s_laeuft: "running", kz_s_wartet: "waiting",
     kz_s_blockiert: "blocked", kz_s_fertig: "done", kz_s_verworfen: "dropped", kz_s_aktiv: "in progress", kz_s_geplant: "planned", kz_s_offen: "open",
     kz_s_beantwortet: "answered", kz_s_freigegeben: "approved", ws_leer_beschluesse: "No decisions yet. They come from your answers and your words.", ws_leer_regeln: "No rules for this project yet.", ws_leer_wortlaut: "Nothing of yours recorded yet.", ws_leer_notizen: "No notes.",
-    ws_filter: "Filters", ws_filter_n: "Filters ({n} set)",
+    ws_filter: "Filters", ws_filter_n: "Filters ({n} set)", fd_art_frage: "Questions", fd_art_thema: "Approve topics", fd_art_grob: "Approve rough plan", fd_art_plan: "Approve detailed plan",
+    fd_art_aenderung: "Approve changes", fd_art_start: "Start milestone", fd_art_abnahme: "Accept milestones", fd_art_aufgabe: "Accept packages", fd_art_pruefpunkt: "You test", fd_art_vorschlag: "Start agents",
+    fd_art_eigene: "Your tasks", fd_art_nachricht: "Messages for you", fd_was_beantworten: "answer", fd_was_freigeben: "approve", fd_was_abnehmen: "accept", fd_was_testen: "test",
+    fd_was_starten: "start", fd_was_lesen: "read", fd_was_erledigen: "do", fd_nichts: "Nothing for you.", fd_fehler: "Not everything loaded: {x} – the count may be incomplete.", fd_mehr: "Parked ({g}) · Answered ({b})",
+    fd_geparkt: "Parked ({n})", fd_beantwortet: "Answered ({n})", fd_aelter: "Answered in the last {n} days – the search finds older ones.", fd_weitere: "{n} more ›", eg_projekt: "Project", eg_freigaben: "Approvals",
+    eg_auslieferung: "Delivery", eg_benachrichtigung: "Notifications", eg_modelle: "Models and costs", eg_pc: "This PC", eg_benutzer: "Users and permissions", lst_gebaut_buendel: "built, waiting for bundle",
+    lst_gebaut_pruefung: "waiting for review", pjw_t_grob: "Rough plan", pjw_t_meilensteine: "Milestones", pjw_t_pmpakete: "Packages", lst_steht: "stopped", lst_haelt_an: "stopping now",
+    lst_beendet_noch: "still finishing: {x}", lst_alle_stehen: "Paused: everyone has stopped", lst_pause_noch: "Paused – not everyone has stopped yet", lst_headless_paket: "headless package", lst_lauf: "run", lst_lead_aufgaben: "Lead tasks · {n}",
+    lst_la_zugeteilt: "with the lead", lst_la_gelesen: "read, waiting for the run", lst_la_wartet: "comes next", lst_la_planung: "Planning", bt2_auslieferungen: "Releases", bt2_verbrauch: "Usage",
+    bt2_rechner: "Computer", bt2_gesundheit: "Health", bt2_letzte: "Last", bt2_pakete: "{n} packages", bt2_noch_keine: "no version yet", bt2_naechste: "Next",
+    bt2_naechste_auto: "{b} of {n} packages ready, at the latest at {x}", bt2_naechste_hand: "{b} packages ready · bundled by hand", bt2_wartend: "Waiting packages ({n})", bt2_k_gebaut: "Built by", bt2_k_bereit: "Ready since", bt2_headless: "Headless",
+    bt2_keine_wartend: "No package is waiting for the next version.", bt2_woche: "Week", bt2_woche_leer: "not measured yet", bt2_woche_knapp: "lasts until about {x}, renews after that", bt2_woche_reicht: "lasts to the end, renews on {x}", bt2_heute: "Today",
+    bt2_listenpreis: "estimate at list price", bt2_meilenstein: "Milestone {n}", bt2_prognose: "forecast about {x} $", bt2_je_tag: "Per day", bt2_heute_kurz: "today", bt2_laufwerk: "Drive {x}",
+    bt2_frei: "{n} GB free", bt2_von: "of {n} GB", bt2_aufraeumen: "See clean-up suggestions", bt2_sicherungen: "Backups", bt2_k_sicherung: "Backup", bt2_k_groesse: "Size",
+    bt2_k_alter: "Age", bt2_keine_sicherung: "No backup yet.", bt2_dienst: "Service", bt2_steht: "stopped", bt2_steht_h: "nothing is assigned or notified – restart on the PC:", bt2_haengt1: "1 part is stuck",
+    bt2_haengt: "{n} parts are stuck", bt2_laeuft: "running", bt2_laeuft_h: "all parts fine", bt2_datenbank: "Database", bt2_db_ok: "fine", bt2_db_fehler: "check reports errors",
+    bt2_geprueft: "last check {x}", bt2_ausser_haus: "Off-site backup", bt2_nicht_eingerichtet: "not set up", bt2_ausser_haus_h: "a copy in another place – your decision", k_paket: "Package", th2_aenderung_neu: "Changed: {x}",
+    th2_aenderung_weg: "Removed: {x}", th2_aenderung_mehr: "(and {n} more places)", th2_plan_grob: "Rough plan M{m} is waiting for you ›", th2_plan_fein: "Plan M{m} is waiting for you ›", th2_aenderung_mehr1: "(and 1 more place)",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -2973,7 +3075,8 @@ async function kopfLaden() {
         t("s_ende", { n: d.ende.length, x: zeit(d.ende[0].bis_utc) })) : null,
     ].filter(Boolean));
     for (const z of document.querySelectorAll("[data-zahl]")) {
-      const n = d.zaehler[z.dataset.zahl] ?? ""; z.textContent = n || ""; z.classList.toggle("heiss", ["fragen", "projektweg"].includes(z.dataset.zahl) && n > 0);
+      const n = z.dataset.zahl === "fuer_dich" ? (d.fuer_dich?.zahl ?? "") : (d.zaehler[z.dataset.zahl] ?? "");   /* A2113: Leitstand = „Für dich“ */
+      z.textContent = n || ""; z.classList.toggle("heiss", ["fuer_dich", "fragen", "projektweg"].includes(z.dataset.zahl) && n > 0);
     }
   } catch (e) {
     zustand.startFehler = String(e.message || e);      /* A1998: die Startseite zeigt den Grund (z. B. „Noch kein Abgleich …“) */
@@ -2986,41 +3089,60 @@ let ruhig = false;
 /* Menü nach TH156 (A2018): Leitstand · Projektweg · Fragen (bis „Für dich“) · Wissen · Betrieb · Einstellungen. Was früher ein eigener
    Punkt war, gehört jetzt zu einem dieser Bereiche; jede alte Adresse (#planung, #themen, #nachrichten, #arbeit …) bleibt gültig. */
 const BEREICH = { planung: "projektweg", themen: "projektweg", arbeit: "projektweg", verlauf: "projektweg", nachrichten: "wissen", teamchat: "wissen",
-  runde: "wissen", dokumente: "wissen", ergebnisse: "wissen", releases: "projektweg", termine: "betrieb" };   /* #ergebnisse: alte Adresse (A2012) */   /* A2012: Versionshinweise beim Projektweg (TH156) */
+  runde: "wissen", dokumente: "wissen", ergebnisse: "wissen", releases: "projektweg", termine: "betrieb", fragen: "start" };   /* #ergebnisse: alte Adresse (A2012) */   /* A2012: Versionshinweise beim Projektweg (TH156) */   /* A2113: Fragen stehen in „Für dich“ */
 /* Die Reihe eines Bereichs steht im Seitenkopf jeder seiner Seiten (rahmen): so ist alles erreichbar, was im Menü keinen Punkt mehr hat.
    Wissen hat seine Reiter schon auf der Seite – nur die Nachrichten bekommen sie hier. */
 const REIHEN = { projektweg: [["projektweg", "n_projektweg"], ["themen", "n_themen"], ["planung", "n_planung"], ["releases", "n_releases"]],
-  betrieb: [["betrieb", "n_betrieb"], ["termine", "pr_termine"]] };
+  betrieb: [["betrieb:auslieferungen", "bt2_auslieferungen"], ["betrieb:verbrauch", "bt2_verbrauch"], ["betrieb:rechner", "bt2_rechner"],
+    ["betrieb:gesundheit", "bt2_gesundheit"], ["termine", "pr_termine"]] };   /* A2013: Reiter des Betriebs */
 const REIHE_AN = { arbeit: "planung", verlauf: "planung" };
 function bereichReihe(sicht) {
   if (["nachrichten", "teamchat", "runde"].includes(sicht)) { const r = wissenReiter(sicht === "teamchat" ? "teamchat" : "nachrichten"); r.className = "bereich-reihe"; return r; }
   const teile = REIHEN[BEREICH[sicht] || sicht];
-  return teile ? el("div", { class: "bereich-reihe" }, teile.map(([s, n]) => el("button", { type: "button", class: s === (REIHE_AN[sicht] || sicht) ? "an" : "",
-    "data-s": s, onclick: () => zeige(s) }, t(n)))) : null;
+  const an = s => s.includes(":") ? sicht === s.split(":")[0] && s.split(":")[1] === btReiter() : s === (REIHE_AN[sicht] || sicht);   /* A2013: „betrieb:verbrauch“ */
+  return teile ? el("div", { class: "bereich-reihe" }, teile.map(([s, n]) => el("button", { type: "button", class: an(s) ? "an" : "",
+    "data-s": s, onclick: () => s.includes(":") ? zumBetrieb(s.split(":")[1]) : zeige(s) }, t(n)))) : null;
 }
 function bereichReiter(teile, aktiv, ...rechts) {
   return el("div", { class: "reiter bereich-reiter" }, teile.map(([k, text, tun]) => el("button", { type: "button", class: k === aktiv ? "an" : "", onclick: tun }, text)), ...rechts);
 }
+/* A2084 (Lead #34299, nach Kleinprobe A2007): sechs Reiter – nur, was es sonst nirgends gibt. Pakete (Feinplan), Verlauf, Reihenfolge,
+   Zeitplan und Gesamtplan stehen im Projektweg (A2011); ihre alten Wege führen dorthin (planUmleiten, #verlauf). */
 function planReiter(aktiv, n = {}) {
   const plan = k => () => { zustand.planReiter = k; zeige("planung"); };
-  return bereichReiter([...(n.meilensteine ? [["meilensteine", t("pm_meilensteine"), plan("meilensteine")], ["pakete", t("pm_pakete"), plan("pakete")]] : []),   /* A1950 */
-    ["zeitleiste", t("pr_zeitleiste"), plan("zeitleiste")], ["arbeit", t("n_aufgaben"), () => zeige("arbeit")],
-    ["verlauf", t("n_verlauf"), () => zeige("verlauf")], ["leitbild", t("pr_leitbild"), plan("leitbild")],
-    ["risiken", t("pr_risiken") + (n.risiken !== undefined ? ` (${n.risiken})` : ""), plan("risiken")],
+  return bereichReiter([["zeitleiste", t("pm_meilensteine"), plan("zeitleiste")], ["arbeit", t("n_aufgaben"), () => zeige("arbeit")],
+    ["leitbild", t("pr_leitbild"), plan("leitbild")],
+    ["risiken", t("pr_risiken") + (n.risiken ? ` (${n.risiken})` : ""), plan("risiken")],
     ["check", t("pr_check") + (n.check ? ` (${n.check})` : ""), plan("check")], ["protokoll", t("pr_protokoll"), plan("protokoll")]], aktiv);
 }
 /* A2012 (Kleinprobe A2008, TL #33784): Wissen hat vier Reiter – Beschlüsse (mit Regeln, Wortlaut, Notizen als Filter), Dokumente,
    Nachrichten, Mitlesen (nur lesen). Themen gehören zum Projektweg, die Versionshinweise auch. */
 const WISSEN_FILTER = ["beschluesse", "regeln", "wortlaut", "notizen"];
+/* A2084: die früheren Reiter „Meilensteine“ und „Pakete“ der Planung stehen im Projektweg (Schritt 2 bzw. 3, gleichnamiger Reiter);
+   true = umgeleitet */
+function planUmleiten(r) {
+  if (r !== "meilensteine" && r !== "pakete") return false;
+  zustand.planReiter = "zeitleiste";
+  pwAdresse(r);                                                          /* #meilensteine, #pakete (PW_ADRESSEN) */
+  return true;
+}
 function wissenReiter(aktiv) {
   const an = WISSEN_FILTER.includes(aktiv) ? "beschluesse" : aktiv;
   return bereichReiter([["beschluesse", t("rb_beschluesse"), () => { if (!WISSEN_FILTER.includes(zustand.wissenReiter)) zustand.wissenReiter = "beschluesse"; zeige("wissen"); }],
     ["dokumente", t("n_dokumente"), () => zeige("dokumente")], ["nachrichten", t("n_nachrichten"), () => zeige("nachrichten")],
     ["teamchat", t("n_teamchat"), () => zeige("teamchat")]], an);
 }
+/* A2113: „Für dich“ im Leitstand statt einer eigenen Fragen-Seite – zum Leitstand und zur Karte scrollen */
+async function zuFuerDich() {
+  await zeige("start");
+  document.getElementById("fuer-dich")?.scrollIntoView({ block: "start" });
+}
 function zeige(sicht, still = false) {
   if (sicht === "steuerung") return zurSteuerung();                     /* A2018: Adresse #steuerung */
   if (PW_ADRESSEN[sicht]) return pwAdresse(sicht);                      /* A2011: #reihenfolge, #zeitplan, #gesamtplan → Reiter im Projektweg */
+  if (sicht === "fragen") return zuFuerDich();                          /* A2113: der EINE Ort – alte Adressen (Nachrichten, Push, online) führen hin */
+  if (sicht.startsWith("einstellungen-")) { zustand.einstGruppe = sicht.slice(14); zustand.einstOffen = true; return zeige("einstellungen", still); }   /* A2166: #einstellungen-pc … */
+  if (sicht === "verlauf") { zustand.pwVerlaufAlle = true; zustand.pwOffen = true; return zeige("projektweg", still); }   /* A2084: der Verlauf steht im Projektweg (alle Schritte) */
   if (!still) { wechselNr++; seitenNr++; }                              /* A1907: was die vorige Seite noch lädt, zeichnet nicht mehr */
   ruhig = still;
   const pos = [$("#inhalt").scrollTop, window.scrollY];
@@ -3225,47 +3347,139 @@ function urteilZeile(x) {
       el("button", { class: "klein-knopf", type: "button", onclick: () => tun(false) }, t("ua_zurueck")),
       el("a", { class: "verweis", style: "margin-left:6px", onclick: () => aufgabeDialog(x.id) }, t("uk_ansehen"))));
 }
+/* A2113 (TH156 F10 Regel 6, B2938): „Für dich“ ist der EINE Ort für alles, was der Mensch tun muss – aus fuer_dich.sammeln (A2142),
+   dieselbe Quelle wie die Zahl am Menüpunkt und im Projektwechsel. Je Art eine Gruppe, je Ding eine Zeile; eine Frage wird hier
+   beantwortet (aufgeklappt, mit Optionen, Empfehlung, Grund und Anhang), Abnahmen und Startvorschläge mit ihrem Knopf, alles andere
+   öffnet seinen Ort. Leer: „Nichts für dich.“ Was Agenten untereinander schreiben, zählt nie. */
+const FD_ARTEN = ["frage", "thema", "grob", "plan", "aenderung", "start", "abnahme", "aufgabe", "pruefpunkt", "vorschlag", "eigene", "nachricht"];
+function fdOeffnen(e) {
+  const z = e.ziel || {};
+  if (z.sicht === "aufgabe") return aufgabeDialog(z.nr);
+  if (z.sicht === "agent") return agentDialog(z.nr);
+  if (z.sicht === "themen" && z.nr) zustand.themaOffen = z.nr;
+  if (z.sicht === "nachrichten") { try { localStorage.setItem(ablage("amw-nr"), "eingang"); } catch (x) {} }
+  zeige(z.sicht || "start");
+}
+/* Aufgeklappte Fragen bleiben aufgeklappt, wenn der Leitstand im Takt neu zeichnet: welche offen sind, merkt zustand.fdOffen;
+   sichtStart holt dann die Fragen vor dem Zeichnen (zustand.fdFragen), damit sie ohne Flackern gleich wieder offen stehen. */
+const fdOffen = () => (zustand.fdOffen ||= new Set());
+const fdFinden = (liste, e) => (liste || []).find(x => `F${x.id}` === e.id || String(x.id) === String(e.ziel?.nr));
+function fdAufklappen(zeile, f) {
+  zeile.classList.add("an");
+  zeile.after(el("div", { class: "fd-frage" }, frageKarte(f)));
+}
+async function fdFrage(e, zeile) {
+  const offen = zeile.nextElementSibling?.classList.contains("fd-frage") ? zeile.nextElementSibling : null;
+  if (offen) { offen.remove(); zeile.classList.remove("an"); fdOffen().delete(e.id); return; }
+  let liste; try { liste = await holen("/api/fragen"); } catch (x) { toast(fehlerSatz(x), true); return; }
+  zustand.fdFragen = liste;
+  const f = fdFinden(liste, e);
+  if (!f) { fdOeffnen(e); return; }
+  if (zeile.classList.contains("an")) return;                           /* inzwischen schon offen (Doppelklick) */
+  fdOffen().add(e.id);
+  fdAufklappen(zeile, f);
+}
+const fdSeit = z => { const m = Math.max(0, Math.floor((Date.now() - Date.parse(z)) / 60000));    /* A1990: neu · min · h · Tage */
+  return m < 1 ? t("uk_seit_neu") : m < 60 ? t("uk_seit_min", { n: m }) : m < 1440 ? t("uk_seit_h", { n: Math.floor(m / 60) }) : t("uk_seit_t", { n: Math.floor(m / 1440) }); };
+/* Je Gruppe: blockierte zuerst, dann die ältesten; höchstens 6 Zeilen, der Rest hinter „n weitere“ (klappt in der Gruppe auf –
+   bleibt aufgeklappt, wenn der Leitstand im Takt neu zeichnet: zustand.fdAlle) */
+const FD_ZEILEN = 6;
+function fdGruppe(a, liste, d) {
+  const reihe = [...liste].sort((x, y) => (y.blockiert ? 1 : 0) - (x.blockiert ? 1 : 0) || String(x.seit_utc || "").localeCompare(String(y.seit_utc || "")));
+  const g = el("div", { class: "ue-gruppe fd-gruppe", "data-art": a }, el("h4", {}, t("fd_art_" + a), el("b", {}, String(liste.length))),
+    reihe.slice(0, (zustand.fdAlle ||= new Set()).has(a) ? reihe.length : FD_ZEILEN).map(e => fdZeile(e, d)));
+  if (reihe.length > FD_ZEILEN && !zustand.fdAlle.has(a)) {
+    const mehr = el("a", { class: "verweis ue-mehr", role: "button", tabindex: "0" }, t(a === "frage" ? "uk_mehr_fragen" : "fd_weitere", { n: reihe.length - FD_ZEILEN }));
+    mehr.addEventListener("click", () => { zustand.fdAlle.add(a); mehr.replaceWith(...reihe.slice(FD_ZEILEN).map(e => fdZeile(e, d))); });
+    g.append(mehr);
+  }
+  return g;
+}
+function fdZeile(e, d) {
+  if (e.art === "vorschlag") { const v = (d.startvorschlaege || []).find(x => x.kennung === e.id || x.kennung === e.ziel?.nr); if (v) return startvorschlagZeile(v); }   /* Agent starten */
+  if (e.art === "abnahme") { const b = (d.zur_abnahme || []).find(x => String(x.bogen_id ?? x.id) === String(e.ziel?.nr)); if (b) return abnahmeZeile(b); }
+  if (e.art === "aufgabe" || e.art === "pruefpunkt") { const x = (d.aufgaben_zur_abnahme || []).find(y => `A${y.id}` === e.id); if (x) return urteilZeile(x); }
+  const z = el("div", { class: "ue-zeile fd-zeile", "data-art": e.art, "data-id": e.id, role: "button", tabindex: "0" },
+    el("span", { class: "ref" }, e.id), el("span", { class: "ue-text" }, e.titel),
+    e.blockiert ? el("span", { class: "etikett bernstein" }, t("blockiert"))                       /* wie Kleinprobe D1413: blockiert oder seit wann */
+      : el("span", { class: "ue-frage-zeit", title: t("fd_was_" + e.was) === "fd_was_" + e.was ? "" : t("fd_was_" + e.was) }, e.seit_utc ? fdSeit(e.seit_utc) : ""));
+  const tun = () => e.art === "frage" ? fdFrage(e, z) : fdOeffnen(e);
+  z.addEventListener("click", tun); z.addEventListener("keydown", x => { if (x.key === "Enter") tun(); });
+  if (e.art === "frage" && fdOffen().has(e.id)) {                      /* war aufgeklappt: gleich wieder offen (Daten von sichtStart) */
+    const f = fdFinden(zustand.fdFragen, e);
+    if (!f) { fdOffen().delete(e.id); return z; }
+    const teil = document.createDocumentFragment(); teil.append(z); fdAufklappen(z, f); return teil;
+  }
+  return z;
+}
+/* A2113 (F5400 A, TL #34470): unten in „Für dich“ zugeklappt „Geparkt (n) · Beantwortet (n)“ – geparkte lassen sich wieder aufnehmen,
+   beantwortete nur lesen (mit Antwort und Nachtrag), nur die letzten 30 Tage; ältere findet die Suche. Zählt nie in die Zahl am Menü.
+   Lädt nachträglich, damit der Leitstand nicht wartet. */
+const FD_BEANTWORTET_TAGE = 30;
+function fdMehr() {
+  const sum = el("summary", {}), inhalt = el("div", { class: "fd-mehr-inhalt" });
+  const det = el("details", { class: "fd-mehr", hidden: true }, sum, inhalt);
+  (async () => {
+    let alle = [], erl = [];
+    try { [alle, erl] = await Promise.all([holen("/api/fragen?alle=1"), holen("/api/fragen?erledigt=1")]); } catch (x) { return; }
+    const grenze = Date.now() - FD_BEANTWORTET_TAGE * 864e5;
+    const geparkt = (alle || []).filter(f => f.geparkt_utc), beantwortet = (erl || []).filter(f => Date.parse(f.antwort_utc || 0) >= grenze);
+    det.dataset.geladen = "1";
+    if (!geparkt.length && !beantwortet.length) return;
+    sum.textContent = t("fd_mehr", { g: geparkt.length, b: beantwortet.length });
+    inhalt.replaceChildren(
+      geparkt.length ? el("h4", {}, t("fd_geparkt", { n: geparkt.length })) : null, ...geparkt.map(frageKarte),
+      beantwortet.length ? el("h4", {}, t("fd_beantwortet", { n: beantwortet.length })) : null, ...beantwortet.map(erledigtKarte),
+      el("p", { class: "sehrleise", style: "margin:8px 0 0" }, t("fd_aelter", { n: FD_BEANTWORTET_TAGE })));
+    det.hidden = false;
+  })();
+  return det;
+}
+/* Sprung aus der Suche (F…): offene Frage in „Für dich“ aufklappen, geparkte/beantwortete im zugeklappten Teil – jeweils ins Bild */
+async function fdZeigen(ref, offen) {
+  await zeige("start");
+  if (offen) {
+    const z = document.querySelector(`#fuer-dich .fd-zeile[data-id="${ref}"]`);
+    if (z) {
+      if (!z.classList.contains("an")) await fdFrage({ art: "frage", id: ref, ziel: { nr: +ref.slice(1) } }, z);
+      const k = z.nextElementSibling?.classList.contains("fd-frage") ? z.nextElementSibling.querySelector(".karte") : null;
+      if (!k) return refInsBild(ref);
+      k.scrollIntoView({ block: "center" }); k.classList.remove("blink"); void k.offsetWidth; k.classList.add("blink");   /* die Fragekarte, nicht „Für dich“ */
+      return true;
+    }
+  }
+  for (let i = 0; i < 40 && !document.querySelector("#fuer-dich .fd-mehr[data-geladen]"); i++) await new Promise(r => setTimeout(r, 100));
+  const det = document.querySelector("#fuer-dich .fd-mehr");
+  if (!det) return refInsBild(ref);
+  det.open = true;
+  const k = [...det.querySelectorAll(".karte .ref")].find(x => x.textContent === ref)?.closest(".karte");
+  if (!k) return refInsBild(ref);
+  k.scrollIntoView({ block: "center" }); k.classList.remove("blink"); void k.offsetWidth; k.classList.add("blink");
+  return true;
+}
 function uebersichtKarten(d) {
-  const u = d.uebersicht || {}, pw = d.planung_wartet || { spezifikationen: [], plaene: [], eigene: [] };
-  const kurz = (x, n) => x && x.length > n ? x.slice(0, n) + " …" : (x || "");
-  /* Für dich */
-  const fragenN = Math.max(d.fragen_anzahl ?? 0, (d.fragen || []).length);   /* A1993: alle offenen (geladen sind höchstens 20) */
-  const fragen = [...(d.fragen || [])].sort((a, b) => (b.blockiert ? 1 : 0) - (a.blockiert ? 1 : 0) || String(a.zeit_utc).localeCompare(String(b.zeit_utc)));
-  const seit = z => { const m = Math.max(0, Math.floor((Date.now() - Date.parse(z)) / 60000));    /* A1990: neu · min · h · Tage */
-    return m < 1 ? t("uk_seit_neu") : m < 60 ? t("uk_seit_min", { n: m }) : m < 1440 ? t("uk_seit_h", { n: Math.floor(m / 60) }) : t("uk_seit_t", { n: Math.floor(m / 1440) }); };
-  const frageZeile = f => el("div", { class: "ue-zeile", "data-frage": f.id, onclick: () => zeige("fragen") },
-    el("span", { class: "ref" }, `F${f.id}`), el("span", { class: "ue-text" }, kurz(f.kurz, 150)),
-    f.blockiert ? el("span", { class: "etikett bernstein" }, t("blockiert")) : el("span", { class: "ue-frage-zeit" }, seit(f.zeit_utc)));
-  const fragenGruppe = fragen.length ? el("div", { class: "ue-gruppe", id: "ue-fragen" },     /* A1990: eine Gruppe, je Frage eine Zeile */
-    el("h4", {}, t("uk_fragen_gruppe"), el("b", {}, String(fragenN))), fragen.slice(0, 6).map(frageZeile)) : null;
-  const dran = [
-    ...pw.spezifikationen.map(x => ueZeile(bogenRef(x.bogen_id), t("pl_spec_frei", { b: bogenNr(x.bogen_id), x: x.titel, teil: t("teil_" + x.teil), v: x.version }),
-      t("uk_ansehen"), () => { zustand.planReiter = "zeitleiste"; zeige("planung"); })),
-    ...pw.plaene.map(p => ueZeile(`A${p.id}`, t("pl_plan_frei", { a: p.id, x: p.titel, ag: p.agent || "–" }), t("uk_ansehen"), () => zeige("planung"))),
-    ...pw.eigene.map(a => ueZeile(`A${a.id}`, a.titel, t("uk_oeffnen"), () => aufgabeDialog(a.id))),
-    ...(d.startvorschlaege || []).map(startvorschlagZeile),
-    ...(d.themen_fuer_dich || []).map(x => ueZeile(`TH${x.id}`, x.name, t("uk_oeffnen"), () => { zustand.themaOffen = x.id; zeige("themen"); },
-      el("span", { class: "th-status " + x.status, style: "margin-left:8px" }, t("th2_" + x.status)))),
-    ...(d.aufgaben_zur_abnahme || []).map(urteilZeile),                                                 /* A1939: bereit → Ja */
-    ...(d.zur_abnahme || []).map(abnahmeZeile)];                                                    /* A1928: fertig → abnehmen */
-  const anzahl = fragen.length + pw.spezifikationen.length + pw.plaene.length + pw.eigene.length + (d.startvorschlaege || []).length
-    + (d.themen_fuer_dich || []).length + (d.aufgaben_zur_abnahme || []).length + (d.zur_abnahme || []).length;
+  const fd = d.fuer_dich || { eintraege: [], zahl: 0, fehler: [] };
+  const gruppen = {};
+  for (const e of fd.eintraege) (gruppen[e.art] ||= []).push(e);
+  const reihe = Object.keys(gruppen).sort((a, b) => (FD_ARTEN.indexOf(a) + 1 || 99) - (FD_ARTEN.indexOf(b) + 1 || 99));
   const frisch = (d.an_dich || []).filter(n => n.zaehlt), aelterIds = (d.an_dich || []).filter(n => n.abgelegt).map(n => n.id);
   const zuNachrichten = () => { try { localStorage.setItem(ablage("amw-nr"), "eingang"); } catch (e) {} zeige("nachrichten"); };
-  const fuer = ueKarte("uk_fuer_dich", anzahl,
-    fragenGruppe,
-    dran.length ? el("div", { class: "ue-liste" }, dran) : fragenGruppe ? null : el("p", { class: "ue-leer" }, t("nichts_offen")),
-    fragenN > 6 ? el("a", { class: "verweis ue-mehr", onclick: () => zeige("fragen") }, t("uk_mehr_fragen", { n: fragenN - 6 })) : null,
+  const fuer = ueKarte("uk_fuer_dich", fd.zahl || 0,
+    reihe.length ? reihe.map(a => fdGruppe(a, gruppen[a], d))
+      : el("p", { class: "ue-leer" }, t("fd_nichts")),
+    (fd.fehler || []).length ? el("p", { class: "sehrleise fd-fehler" }, t("fd_fehler", { x: fd.fehler.map(f => f.quelle).join(", ") })) : null,
+    fdMehr(),
     frisch.length || aelterIds.length ? el("div", { class: "ue-fuss" },
       frisch.length ? el("a", { class: "verweis nr-start", onclick: zuNachrichten }, t(frisch.length === 1 ? "uk_nachricht1" : "uk_nachrichten", { n: frisch.length })) : null,
       aelterIds.length ? el("span", { class: "sehrleise", title: t("an_dich_alt_h") }, t("an_dich_alt", { n: aelterIds.length })) : null,
       aelterIds.length ? el("button", { class: "klein-knopf", type: "button", onclick: async () => {
         try { await schicken("/api/gelesen", { ids: aelterIds }); kopfAktualisieren(); zeige("start", true); } catch (x) { toast(t("fehler", { x: x.message }), true); } } },
         t("an_dich_alt_weg")) : null) : null);
-  return el("div", { class: "ue-raster ls-fuer" }, fuer);                /* A2006: im Leitstand nur noch „Für dich“ */
+  return el("div", { class: "ue-raster ls-fuer", id: "fuer-dich" }, fuer);                /* A2006: im Leitstand nur noch „Für dich“ */
 }
 async function sichtStart() {
   await kopfAktualisieren(); const d = zustand.start;
+  if (zustand.fdOffen?.size) { try { zustand.fdFragen = await holen("/api/fragen"); } catch (x) { zustand.fdOffen.clear(); } }   /* A2113 */
   if (!d) { if (zustand.startFehler) rahmen(t("n_start")).append(el("div", { class: "leer" }, zustand.startFehler)); return; }   /* A1998 */
   const m = rahmen(t("n_start"), el("span", { class: "leise" }, t("stand", { t: zeit(d.zeit) })),
     lsKopfLeiste(d));                                       /* A2006: Zustand · Projektdetails · Steuerung (A2018: Eingriffe über „Steuerung“) */
@@ -3294,7 +3508,7 @@ async function sichtStart() {
     el("button", { class: "knopf", style: "margin-left:auto", onclick: () => weiterGeben() }, t("weiter"))));
   if ((d.dienst_rot || []).length) m.append(el("div", { class: "band-halt" },      /* Dienst-Teil steht (A1655) */
     el("b", {}, t("gs_band", { x: d.dienst_rot.map(x => t("gs_k_" + x)).join(", ") })),
-    el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", onclick: () => zeige("betrieb") }, t("gs_zum_betrieb"))));
+    el("button", { class: "klein-knopf", type: "button", style: "margin-left:auto", onclick: () => zumBetrieb("gesundheit") }, t("gs_zum_betrieb"))));
   const sz = d.schirm, sl = sz?.laeufe || [];
   if (sz && (sz.frei || sl.length)) {                       /* frei: immer sichtbar; zu: nur, wenn Läufe darauf warten */
     const laeuft = sl.filter(l => l.status === "laeuft"), wartet = sl.filter(l => l.status === "angemeldet");
@@ -3413,7 +3627,7 @@ function agentMenue(a, knopf) {
     a.startbar && !API ? { text: t("m_neu"), aus: lebt || ruht, tun: () => tun("/api/agent/start", { kennung: k, neu: true }, t("st_neu_frage", { x: k })) } : null,
     a.startbar && API ? { text: t("m_nur_pc"), tun: () => {}, aus: true } : null,
     a.startbar && darfStartbefehl() ? { text: t("m_startbefehl"), tun: () => startbefehlDialog(k) } : null,
-    "-", { text: t("m_profil"), tun: () => zeige("einstellungen") }]);
+    "-", { text: t("m_profil"), tun: () => { zustand.einstGruppe = "projekt"; zustand.einstOffen = true; zeige("einstellungen"); } }]);   /* A2166: Agenten stehen in „Projekt“ */
 }
 /* Steuerung (bis A2018 „Leitstand“): alles Steuerbare an einer Stelle – Arbeit anhalten, Bildschirm, Sitzungen (nur am PC), Wächter (nur am PC) */
 function steuerung(d) {
@@ -3503,7 +3717,7 @@ function steuerKnoepfe(d, schliessen) {
     try { const r = await schicken(weg, { kennung: d.kennung, ...daten }); toast(r.text || t("gespeichert")); schliessen(); setTimeout(() => zeige(zustand.sicht, true), 4000); }
     catch (e) { toast(t("fehler", { x: e.message }), true); }
   };
-  if (!d.profil.ordner) return [el("button", { class: "klein-knopf", type: "button", title: t("st_profil_h"), onclick: () => { schliessen(); zeige("einstellungen"); } }, t("st_profil"))];
+  if (!d.profil.ordner) return [el("button", { class: "klein-knopf", type: "button", title: t("st_profil_h"), onclick: () => { schliessen(); zustand.einstGruppe = "projekt"; zustand.einstOffen = true; zeige("einstellungen"); } }, t("st_profil"))];
   if (d.prozess_laeuft) return [el("button", { class: "klein-knopf", type: "button",
     onclick: () => aktion("/api/agent/stop", {}, t("st_beenden_frage", { x: d.kennung })) }, t("st_beenden"))];
   const knoepfe = [el("button", { class: "knopf haupt", type: "button",
@@ -3727,7 +3941,8 @@ async function agentDialog(kennung, reiter) {
     d.gerade ? el("div", { class: "eintrag " + (d.gerade_veraltet ? "vermutet" : (d.gerade_quelle === "lauf" || d.gerade_quelle === "aufgabe") ? "laeuft" : "vermutet") },
       el("div", { class: "eintrag-text gross" }, d.gerade),
       d.gerade_ergaenzung ? el("div", { class: "leise" }, d.gerade_ergaenzung) : null,
-      el("div", { class: "sehrleise eintrag-zusatz" }, t("k_quelle_" + d.gerade_quelle), d.gerade_seit ? " · " + seit(d.gerade_seit) : "",
+      el("div", { class: "sehrleise eintrag-zusatz" }, t("k_quelle_" + d.gerade_quelle),
+        d.gerade_gebaut ? " · " + t("lst_gebaut_" + d.gerade_gebaut) : d.gerade_seit ? " · " + seit(d.gerade_seit) : "",   /* A2168 */
         d.gerade_veraltet ? el("span", { class: "bernstein-text", title: t("k_veraltet_h") }, " · " + t("k_veraltet")) : null))
       : el("div", { class: "sehrleise leer-klein" }, t("k_unbekannt")));
   const links = [
@@ -4154,7 +4369,11 @@ function frageKarte(f) {
   const notiz = el("textarea", { placeholder: echteOptionen.length ? t("anmerkung_ph") : t("antwort_ph") });
   const meldung = el("span", { class: "rueckmeldung leise" });
   const karte = el("div", { class: "karte frage" });
-  const sperren = text => { for (const b of karte.querySelectorAll("button")) { b.disabled = true; b.dataset.bleibtAus = "1"; } notiz.disabled = true; meldung.textContent = text; };
+  /* parkenFrei (Lead #34421): wartet die Frage nur noch auf den Fragesteller, darf sie beiseitegelegt werden – Parken ändert die Antwort nicht */
+  const zeigeGesperrt = (text, parkenFrei) => { for (const b of karte.querySelectorAll("button")) { if (parkenFrei && b.dataset.h === "parken") continue;
+    b.disabled = true; b.dataset.bleibtAus = "1"; } notiz.disabled = !parkenFrei; meldung.textContent = text; };
+  /* A2165: die Sperre hängt an der Frage, nicht am Knoten – sie gilt auch nach dem Neuzeichnen der Seite (FR_GESPERRT) */
+  const sperren = text => { FR_GESPERRT[f.id] = { text, n: (f.verlauf || []).length }; zeigeGesperrt(text); };
   /* A2146: je Frage geht eine Antwort zur Zeit hinaus – ein Doppelklick antwortet einmal; bei einem Fehler ein Satz ohne Technik */
   function antworten(art, wert, anmerkung) {
     return einmalTun("frage/" + f.id, async () => { const r = await schicken(`/api/frage/${f.id}/antwort`, { art, wert, anmerkung });
@@ -4216,15 +4435,22 @@ function frageKarte(f) {
     el("button", { class: "knopf" + (echteOptionen.length ? "" : " haupt"), type: "button", onclick: () => notiz.value.trim() ? antworten("text", notiz.value) : toast(t("text_fehlt"), true) }, t("eigene_antwort")),
     el("button", { class: "knopf", type: "button", onclick: () => notiz.value.trim() ? antworten("rueckfrage", notiz.value) : toast(t("rueckfrage_fehlt"), true) }, t("rueckfrage")),
     el("button", { class: "knopf", type: "button", onclick: () => dokHochladen({ bezug: `frage:${f.id}` }) }, t("dk_anhaengen")),
-    f.geparkt_utc ? el("button", { class: "knopf", type: "button", onclick: () => parken(false) }, t("f_aufnehmen"))
-      : el("button", { class: "knopf", type: "button", title: t("f_parken_tipp"), onclick: () => parken(true) }, t("f_parken")),
+    f.geparkt_utc ? el("button", { class: "knopf", type: "button", "data-h": "parken", onclick: () => parken(false) }, t("f_aufnehmen"))
+      : el("button", { class: "knopf", type: "button", "data-h": "parken", title: t("f_parken_tipp"), onclick: () => parken(true) }, t("f_parken")),
     meldung));
   if (f.vorgeschichte.length) karte.append(el("details", { class: "vor" }, el("summary", {}, t("vorgeschichte", { n: f.vorgeschichte.length })),
     f.vorgeschichte.map(v => el("div", { class: "vor-eintrag" }, el("div", {}, el("span", { class: "ref" }, v.ref), " ", el("span", { class: "sehrleise" }, v.art)),
       el("div", {}, el("div", {}, v.titel, v.zusatz ? el("span", { class: "sehrleise" }, `  · ${v.zusatz}`) : null, v.zeit ? el("span", { class: "sehrleise" }, `  · ${zeit(v.zeit)}`) : null),
         v.text ? el("div", { class: "text" }, v.text) : null)))));
+  /* A2165: gesperrt bleibt die Karte, solange die eigene Antwort noch nicht im Verlauf steht, im Briefkasten unterwegs ist (online)
+     oder die Rückfrage beim Fragesteller liegt; antwortet er, ist sie wieder frei */
+  const alt = FR_GESPERRT[f.id], verlauf = f.verlauf || [];
+  const unterwegs = verlauf.some(v => v.unterwegs) || (alt && verlauf.length <= alt.n);    /* eins zur Zeit: alles aus, bis es angekommen ist */
+  if (unterwegs || f.wartet_auf_fragesteller) zeigeGesperrt(alt?.text || t("rueckfrage_gesendet"), !unterwegs);
+  else delete FR_GESPERRT[f.id];
   return karte;
 }
+const FR_GESPERRT = {};                                                   /* Frage → {Text, Länge des Verlaufs beim Sperren} */
 
 /* --- Arbeit -------------------------------------------------------------------------------- */
 /* Arbeitsliste je Agent (von oben nach unten, eins nach dem anderen) und der Eingang – ordnen tut der Lead (amw liste) */
@@ -4460,8 +4686,11 @@ async function sichtThemen() {
   const dichFeld = el("div", { class: "th-dich" });
   m.append(...(neuKnopf ? [el("div", { class: "th-stand" }, neuKnopf)] : []), dichFeld);
   const zumThema = () => { const x = zaehlen.find(y => y.zustand.status === "dich"); if (x) { zustand.themaOffen = x.id; zeige("themen", true); } };
-  holen("/api/tore").then(d => {
-    const z = toreDich(d.fuer_dich, zumThema); dichFeld.replaceChildren(...(z ? [z] : [])); }).catch(() => {});
+  /* A2200: die Zahl der Themen kommt aus derselben Liste, die darunter steht – Zähler und Liste zeigen dieselbe Menge (auch online) */
+  const dichThemen = zaehlen.filter(y => y.zustand.status === "dich").length;
+  const dichZeile = f => { const z = toreDich({ ...(f || {}), themen: dichThemen }, zumThema); dichFeld.replaceChildren(...(z ? [z] : [])); };
+  dichZeile(null);
+  holen("/api/tore").then(d => dichZeile(d.fuer_dich)).catch(() => {});
   const neuKasten = el("div", { class: "th-kasten" }); m.append(neuKasten);
   function thNeu() {                                                            /* F5360 A: Titel und Text, danach in Arbeit */
     const name = el("input", { class: "th-feld th-titel", placeholder: t("th2_neu_titel") }), text = el("textarea", { class: "th-feld", placeholder: t("th2_neu_text") });
@@ -4483,7 +4712,12 @@ async function sichtThemen() {
   const zeichneListe = () => links.replaceChildren(...liste.map(x => el("div", {
     class: "th-zeile" + (x.id === offen ? " gewaehlt" : "") + (x.zustand.markiert ? " markiert" : ""), "data-th": x.id,
     onclick: () => { offen = x.id; zustand.themaOffen = x.id; raster.classList.add("offen"); zeichneListe(); zeichneThema(); } },
-    el("span", { class: "th-name" }, x.name,
+    el("span", { class: "th-name" }, el("span", { class: "th-nr" }, `TH${x.id}`), x.name,                          /* A2200: die Nummer, nach der Marcel sucht */
+      x.aenderung ? el("span", { class: "th-aenderung" }, t("th2_aenderung_" + x.aenderung.art, { x: x.aenderung.zeile })
+        + (x.aenderung.mehr ? " " + (x.aenderung.mehr === 1 ? t("th2_aenderung_mehr1") : t("th2_aenderung_mehr", { n: x.aenderung.mehr })) : "")) : null,
+      ...(x.plan_wartet || []).map(p => el("a", { href: "#", class: "verweis th-plan", "data-m": p.m,                      /* A2200: wartender Plan mit Weg */
+        onclick: e => { e.preventDefault(); e.stopPropagation(); zustand.planReiter = "meilensteine"; zeige("planung"); } },
+        t(p.was === "grob" ? "th2_plan_grob" : "th2_plan_fein", { m: p.m }))),
       x.zustand.grund ? el("span", { class: "th-grund-zeile" }, t("th2_grund", { x: x.zustand.grund })) : null,   /* P306 (2): Grund auch in der Liste */
       x.zustand.gegenlesen ? el("span", { class: "th-grund-zeile" }, thLiest(x.zustand.gegenlesen)) : null),          /* A1914: nur der Status als Fakt */
     etikett(x.zustand))));
@@ -5851,8 +6085,10 @@ function pmStatus(m, art) {                                       /* ein Status 
   return z.frei ? ["frei", t("th2_frei")] : z.notiz ? ["arbeit", t("pm_zurueck_an_lead")] : ["dich", t("th2_dich")];
 }
 async function pmPlanJa(e) {
-  await einmalTun("plan-ja/" + e.eid, async () => { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(e.ja ? pwDeltaOk(e.ja) : t("pm_ok_angelegt")); zeige("planung", true); });
+  await einmalTun("plan-ja/" + e.eid, async () => { await schicken("/api/meilenstein/plan-ja", { thema: e.thema, eid: e.eid }); toast(e.ja ? pwDeltaOk(e.ja) : t("pm_ok_angelegt")); pmNeu(); });
 }
+/* A2084: Grob- und Feinplan (pmAnsicht) stehen als Reiter im Projektweg – nach einer Handlung die gezeigte Seite neu (nicht die Planung) */
+const pmNeu = () => { pwStand = null; return zeige(zustand.sicht, true); };
 function pmAnsicht(pa, art) {
   const m = el("div", { class: "pm-ansicht", "data-pm": art });
   m.append(pmStand(pa));
@@ -5860,7 +6096,7 @@ function pmAnsicht(pa, art) {
     el("span", {}, t("pm_start_text", { n: pa.meilensteine.filter(x => x.status === "geplant" && x.pakete.length).length })),
     el("button", { class: "knopf pm-start-knopf", type: "button", onclick: async () => { if (!await rueckfrage(t("pm_start_frage"), { ja: t("pm_start") })) return;   /* A2146 */
      
-      await einmalTun("ms/starten", async () => { const r = await schicken("/api/meilenstein/starten", {}); toast(t("pm_ok_start", { x: r.gestartet.join(", ") })); zeige("planung", true); }); } }, t("pm_start"))));
+      await einmalTun("ms/starten", async () => { const r = await schicken("/api/meilenstein/starten", {}); toast(t("pm_ok_start", { x: r.gestartet.join(", ") })); pmNeu(); }); } }, t("pm_start"))));
   if (art === "grob" && (pa.aenderungen || []).length) m.append(el("div", { class: "pm-entwuerfe pm-aenderungen" },   /* A1957 */
     el("div", { class: "pm-entwuerfe-kopf" }, t("pm_aenderungen", { n: pa.aenderungen.length })),
     ...pa.aenderungen.map(x => el("div", { class: "pm-entwurf", "data-ae": x.aenderung, "data-stand": x.stand },
@@ -5870,9 +6106,9 @@ function pmAnsicht(pa, art) {
         ...x.folgen.map(f => el("li", { class: "sehrleise" }, f))),
       x.stand !== "prueft" && !API ? el("div", { class: "th-knoepfe" },
         el("button", { class: "klein-knopf haupt", type: "button", "data-h": "ae-ja", onclick: async () => {
-          await einmalTun("ae/" + x.aenderung, async () => { await schicken("/api/meilenstein/aenderung-ja", { aenderung: x.aenderung }); toast(t("pm_ae_ok_ja")); zeige("planung", true); }); } }, t("pm_ae_ja")),
+          await einmalTun("ae/" + x.aenderung, async () => { await schicken("/api/meilenstein/aenderung-ja", { aenderung: x.aenderung }); toast(t("pm_ae_ok_ja")); pmNeu(); }); } }, t("pm_ae_ja")),
         el("button", { class: "klein-knopf", type: "button", "data-h": "ae-weg", onclick: async () => {
-          await einmalTun("ae/" + x.aenderung, async () => { await schicken("/api/meilenstein/aenderung-verwerfen", { aenderung: x.aenderung }); toast(t("pm_ae_ok_weg")); zeige("planung", true); }); } }, t("pm_ae_verwerfen"))) : null))));
+          await einmalTun("ae/" + x.aenderung, async () => { await schicken("/api/meilenstein/aenderung-verwerfen", { aenderung: x.aenderung }); toast(t("pm_ae_ok_weg")); pmNeu(); }); } }, t("pm_ae_verwerfen"))) : null))));
   if (art === "grob" && ((pa.entwuerfe || []).length || (pa.planer_laeuft || []).length)) m.append(el("div", { class: "pm-entwuerfe" + (pa.entwuerfe.some(e => !e.wartet) ? "" : " ruhig") },   /* A1940: Entwürfe des Planers; A2118: Farbe nur, wenn einer auf das Ja wartet */
     el("div", { class: "pm-entwuerfe-kopf" }, t(pa.entwuerfe.some(e => e.ja) ? "pm_entwuerfe_n" : "pm_entwuerfe", { n: pa.entwuerfe.length })),   /* A2112: eine Änderung gibt man frei */
     ...pa.planer_laeuft.map(l => el("div", { class: "pm-entwurf sehrleise", "data-th": l.thema }, t("pm_planer_laeuft", { x: `TH${l.thema} ${l.name}`, z: pmZeit(l.seit_utc) }))),
@@ -5886,7 +6122,7 @@ function pmAnsicht(pa, art) {
       API ? (e.wartet ? null : el("span", { class: "sehrleise" }, t("pm_nur_pc"))) : el("div", { class: "th-knoepfe" },
         !e.fehler && !e.wartet ? el("button", { class: "klein-knopf haupt", type: "button", "data-h": "plan-ja", onclick: () => pmPlanJa(e) }, e.ja ? pwDeltaKnopfText(e.thema, e.ja) : e.nichts ? t("pm_ja_nichts") : t("pm_ja_anlegen")) : null,
         el("button", { class: "klein-knopf", type: "button", "data-h": "neu-planen", onclick: async () => {
-          try { await schicken("/api/meilenstein/neu-planen", { thema: e.thema }); toast(t("pm_ok_neu_planen")); zeige("planung", true); }
+          try { await schicken("/api/meilenstein/neu-planen", { thema: e.thema }); toast(t("pm_ok_neu_planen")); pmNeu(); }
           catch (x) { toast(t("fehler", { x: x.message }), true); } } }, t("pm_neu_planen")))))));
   const liste = pa.meilensteine.filter(x => art === "grob" || x.status !== "fertig");
   if (!liste.length) { m.append(el("div", { class: "leer" }, t("pm_leer"))); return m; }
@@ -5906,7 +6142,7 @@ function pmAnsicht(pa, art) {
   function zeichneDetail() {
     const x = liste.find(y => y.id === offen), z = x[art], [k, s] = pmStatus(x, art), kasten = el("div", { class: "th-kasten" });
     const tun = async (was, extra, ok) => { zustand[schluessel] = x.id;   /* vor dem Senden: schicken zeichnet selbst neu */
-      await einmalTun(`ms/${was}/${x.id}/${art}${JSON.stringify(extra)}`, async () => { await schicken(`/api/meilenstein/${was}`, { bogen: x.id, art, ...extra }); toast(ok); zeige("planung", true); }); };
+      await einmalTun(`ms/${was}/${x.id}/${art}${JSON.stringify(extra)}`, async () => { await schicken(`/api/meilenstein/${was}`, { bogen: x.id, art, ...extra }); toast(ok); pmNeu(); }); };
     const offenNr = pa.meilensteine.filter(y => ["geplant", "aktiv"].includes(y.status)), i = offenNr.findIndex(y => y.id === x.id);
     const knoepfe = API ? [el("span", { class: "sehrleise" }, t("pm_nur_pc"))] : [
       x.status === "geplant" && !z.frei && (art === "grob" || (x.grob.frei && x.pakete.length)) ? el("button", { class: "klein-knopf haupt", type: "button",
@@ -5948,13 +6184,13 @@ function pmAnsicht(pa, art) {
         t("pm_thema_geaendert", { x: `TH${g.id} ${g.name}`, n: g.fassung }),
         API ? null : el("span", { class: "pm-geaendert-knoepfe" },
           el("button", { class: "klein-knopf", type: "button", "data-h": "neu-planen-k8", onclick: async () => {
-            try { await schicken("/api/meilenstein/neu-planen", { thema: g.id }); toast(t("pm_ok_neu_planen")); zeige("planung", true); }
+            try { await schicken("/api/meilenstein/neu-planen", { thema: g.id }); toast(t("pm_ok_neu_planen")); pmNeu(); }
             catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_neu_planen")),
           g.offen?.length ? el("button", { class: "klein-knopf", type: "button", "data-h": "anhalten", onclick: async () => {
             if (!confirm(t("pm_anhalten_frage", { n: g.offen.length }))) return;
             zustand.msOffen = x.id;                                                     /* vor dem Senden: schicken zeichnet neu */
             try { const r = await schicken("/api/meilenstein/anhalten", { thema: g.id, bogen: x.id }); toast(t("pm_ok_angehalten", { n: r.angehalten.length }));
-              zeige("planung", true); } catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_anhalten")) : null))),
+              pmNeu(); } catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t("pm_anhalten")) : null))),
       el("div", { class: "th-knoepfe" }, ...knoepfe), kasten,
       art === "grob" && x.abschluss ? pmAbschluss(x, tun) : null,
       art === "grob" ? el("div", { class: "pm-themen" }, x.themen.length ? x.themen.map(th => el("span", { class: "pm-chip" }, el("b", {}, "TH" + th.id), " " + th.name))
@@ -5967,16 +6203,25 @@ function pmAnsicht(pa, art) {
 }
 async function sichtPlanung() {
   if (!zustand.start) { try { await kopfAktualisieren(); } catch (e) {} }        /* A2089: bogenNr liest die Startdaten */
+  if (planUmleiten(zustand.planReiter)) return;                              /* A2084: Meilensteine/Pakete des Plans → Projektweg */
   let d; try { d = await holen("/api/planung"); } catch (e) { rahmen(t("n_planung")).append(el("div", { class: "leer" }, String(e))); return; }
   let pa = null; try { pa = await holen("/api/pause"); } catch (e) { /* ohne Pause-Stand kein Knopf */ }           /* A2159 */
-  const r = zustand.planReiter || (d.planansicht?.hat_themen ? "meilensteine" : "zeitleiste");   /* A1950: mit Themen zuerst die Meilensteine */
-  const chip = (name, wert, grund) => el("span", { class: "signal", title: grund || "" }, el("span", { class: "punkt " + ampelKlasse(wert) }),
-    `${t("pl_" + name)}: ${wert ? t("ampel_" + wert) : "–"}`);
-  const m = rahmen(t("n_planung"), el("span", { style: "display:flex;gap:8px;flex-wrap:wrap" },
-    chip("termin", d.status.termin, d.status.begruendung.termin), chip("risiko", d.status.risiko, d.status.begruendung.risiko),
-    chip("qualitaet", d.status.qualitaet, d.status.begruendung.qualitaet)),
+  const r = zustand.planReiter || "zeitleiste";
+  const m = rahmen(t("n_planung"),
     pauseKnopf(pa),                                                                                                  /* A2159: Pause für alles */
     el("button", { class: "knopf haupt kopf-aktion", type: "button", onclick: () => bogenDialog(null) }, t("pl_bogen_neu")));   /* Hauptaktion oben, wie überall */
+  /* A2084 (Lead #34299): Termin, Risiko, Qualität nur, wenn eine nicht grün ist – eine ruhige Zeile mit Grund und Weg; alles grün: nichts */
+  const abweichung = ["termin", "risiko", "qualitaet"].filter(k => d.status[k] && d.status[k] !== "gruen").map(k => {
+    const weg = k === "termin" ? [t("pjw_t_gesamtplan"), () => pwAdresse("gesamtplan")] : k === "risiko" ? [t("pr_risiken"), () => { zustand.planReiter = "risiken"; zeige("planung"); }]
+      : [t("pr_check"), () => { zustand.planReiter = "check"; zeige("planung"); }];
+    return el("div", { class: "pl-abweichung", "data-k": k }, el("span", { class: "punkt " + ampelKlasse(d.status[k]) }),
+      el("span", {}, `${t("pl_" + k)} ${t("ampel_" + d.status[k])}` + (d.status.begruendung[k] ? `: ${d.status.begruendung[k]}` : "")),
+      el("a", { class: "verweis", onclick: weg[1] }, "› " + weg[0]));
+  });
+  if (abweichung.length) m.querySelector(".seitenkopf").append(el("div", { class: "pl-abweichungen" }, abweichung));
+  const reiter = ["zeitleiste", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
+  m.append(planReiter(reiter.includes(r) ? r : "zeitleiste", { check: offeneBefunde, risiken: d.risiken.filter(x => x.status !== "erledigt").length }));   /* direkt unter dem Titel */
+  if (r !== "zeitleiste" && reiter.includes(r)) return planReiterInhalt(m, d, r);
   /* was auf dich wartet, zuerst */
   const w = d.wartet, offen = w.spezifikationen.length + w.plaene.length;
   if (offen) m.append(el("div", { class: "band-warn" }, el("b", {}, t("pl_freigaben", { n: offen }).toUpperCase()),
@@ -5990,11 +6235,11 @@ async function sichtPlanung() {
     el("div", { class: "sehrleise" }, t("pl_luecken_h")),
     ...lu.thema_ohne_paket.map(x => el("div", { class: "pl-luecke" }, el("span", { class: "ref" }, "TH" + x.id), " ", x.name, " – ", t("pl_luecke_t"))),
     ...lu.paket_ohne_thema.map(x => el("div", { class: "pl-luecke" }, el("span", { class: "ref" }, "A" + x.id), " ", x.titel, " – ", t("pl_luecke_p")))));
-  const reiter = [...(d.planansicht?.hat_themen ? ["meilensteine", "pakete"] : []), "zeitleiste", "leitbild", "risiken", "check", "protokoll"], offeneBefunde = d.pruefung.filter(x => !x.akzeptiert).length;
-  m.append(planReiter(reiter.includes(r) ? r : "zeitleiste", { check: offeneBefunde, risiken: d.risiken.filter(x => x.status !== "erledigt").length,
-    meilensteine: !!d.planansicht?.hat_themen }));
-  if (r === "meilensteine" || r === "pakete") m.append(pmAnsicht(d.planansicht, r === "meilensteine" ? "grob" : "plan"));
-  if (r === "zeitleiste") m.append(standJetzt(d), uebersicht(d) || "", rechnerHeute(d) || "", zeitleiste(d));
+  /* A2084: die Meilensteine – offene oben, fertige eingeklappt; Stand (Leitstand), Gesamtplan und Zeitplan (Projektweg) nicht doppelt */
+  m.append(el("div", { class: "pl-wege sehrleise" }, el("a", { class: "verweis", onclick: () => pwAdresse("gesamtplan") }, t("pjw_t_gesamtplan") + " ›"),
+    " · ", el("a", { class: "verweis", onclick: () => pwAdresse("zeitplan") }, t("pjw_t_zeitplan") + " ›")), rechnerHeute(d) || "", zeitleiste(d));   /* Läufe von heute: nur hier */
+}
+function planReiterInhalt(m, d, r) {
   if (r === "leitbild") m.append(leitbildAnsicht(d.leitbild));
   if (r === "risiken") m.append(risikoAnsicht(d));
   if (r === "check") m.append(checkAnsicht(d));
@@ -6979,56 +7224,98 @@ function gesundheitTeil(m, g) {
       : el("div", { class: "leer" }, t("gs_aus")),
     el("p", { class: "sehrleise", style: "font-size:12px" }, t("gs_h"))].filter(Boolean));   /* m.append schriebe null als Text */
 }
+/* A2013 (TH156 F10, Kleinprobe A2009 D1902 v2): Betrieb in Reitern – Auslieferungen · Verbrauch · Rechner · Gesundheit, dazu
+   Termine (eigene Sicht in derselben Reihe). Läufe, Sitzungen und Sperren zeigt die Steuerung im Leitstand; hier nicht doppelt.
+   Farbe nur in drei Fällen: Platte knapp, Woche reicht nicht, Dienst steht – alles andere grau. */
+const BT_REITER = ["auslieferungen", "verbrauch", "rechner", "gesundheit"];
+const btReiter = () => BT_REITER.includes(zustand.betriebReiter) ? zustand.betriebReiter : "auslieferungen";
+function zumBetrieb(reiter) { zustand.betriebReiter = reiter; zeige("betrieb", zustand.sicht === "betrieb"); }
+function btKarte(titel, wert, unter, { farbe = "", balken = null, schluessel = "", nach = null } = {}) {
+  return el("div", { class: "karte bt-karte" + (farbe ? " bt-" + farbe : ""), "data-k": schluessel },
+    el("div", { class: "leise" }, titel), el("div", { class: "wert" }, wert),
+    unter ? el("div", { class: "sehrleise" }, unter) : null,
+    balken == null ? null : el("div", { class: "balken" }, el("i", { style: `width:${Math.max(0, Math.min(100, Math.round(balken)))}%` })), nach);
+}
+const btUhr = utc => utc ? new Date(utc).toLocaleTimeString(gebiet(), { hour: "2-digit", minute: "2-digit" }) : "–";
+const btTag = utc => utc ? new Date(utc).toLocaleDateString(gebiet(), { weekday: "long" }) : "–";
 async function sichtBetrieb() {
   let d; try { d = await holen("/api/betrieb"); } catch (e) { rahmen(t("betrieb")).append(el("div", { class: "leer" }, String(e))); return; }
   const m = rahmen(t("betrieb"));     /* erst laden, dann ersetzen – sonst steht kurz eine leere Seite da */
-  const anteil = d.speicher.frei && d.speicher.gesamt ? d.speicher.frei / d.speicher.gesamt : 0;
+  const s = d.seite || {};
+  ({ auslieferungen: btAuslieferungen, verbrauch: btVerbrauch, rechner: btRechner, gesundheit: btGesundheit }[btReiter()])(m, d, s);
+}
+function btAuslieferungen(m, d, s) {
+  const a = s.auslieferungen || {}, l = a.letzte, n = a.naechste;
+  const q = d.p_quote;                                 /* A2004: Anteil Headless, Ziel ≥ 50 % – hierher aus dem alten Betrieb */
   m.append(el("div", { class: "messer zeile-reveal" },
-    el("div", { class: "karte" }, el("div", { class: "leise" }, t("speicher_frei"), " ", pcMarke()), el("div", { class: "wert" }, d.speicher.frei == null ? "?" : `${d.speicher.frei} GB`),
-      el("div", { class: "sehrleise" }, t("von_gb", { n: d.speicher.gesamt, g: d.speicher.grenze })),
-      el("div", { class: "balken" }, el("i", { style: `width:${Math.round(anteil * 100)}%;background:var(${d.speicher.frei < 8 ? "--bernstein" : "--gruen"})` }))),
-    el("div", { class: "karte" }, el("div", { class: "leise" }, t("aktive_sitzungen")), el("div", { class: "wert" }, d.sitzungen.filter(s => s.zustand === "aktiv").length),
-      el("div", { class: "sehrleise" }, t("ueber_hook"))),
-    el("div", { class: "karte" }, el("div", { class: "leise" }, t("sperren")), el("div", { class: "wert" }, d.sperren.length), el("div", { class: "sehrleise" }, t("halt_anweisungen"))),
-    d.p_quote ? el("div", { class: "karte", "data-k": "p-quote" }, el("div", { class: "leise" }, t("bt_p")),   /* A2004: Anteil p, Ziel ≥ 50 % */
-      el("div", { class: "wert", style: d.p_quote.n && d.p_quote.anteil < d.p_quote.ziel ? "color:var(--bernstein)" : "" },
-        d.p_quote.n ? `${Math.round(d.p_quote.anteil * 100)} %` : "–"),
-      el("div", { class: "sehrleise" }, d.p_quote.n ? t("bt_p_h", { p: d.p_quote.p, n: d.p_quote.n, z: Math.round(d.p_quote.ziel * 100) })
-        : t("bt_p_leer", { z: Math.round(d.p_quote.ziel * 100) }))) : null,
-    el("div", { class: "karte" }, el("div", { class: "leise" }, t("datenbank")), el("div", { class: "mono", style: "margin-top:10px;overflow-wrap:anywhere" }, d.db))));
-  gesundheitTeil(m, d.gesundheit);                    /* Dienst: Herzschlag je Teil (A1655) */
+    btKarte(t("bt2_letzte"), l ? l.version : "–", l ? [seit(l.zeit_utc), l.pakete ? t("bt2_pakete", { n: l.pakete }) : null].filter(Boolean).join(" · ") : t("bt2_noch_keine"),
+      { schluessel: "letzte" }),
+    btKarte(t("bt2_naechste"), n && n.version ? n.version : "–", !n ? "" : n.automatisch
+      ? t("bt2_naechste_auto", { b: n.bereit, n: n.n, x: btUhr(n.spaetestens_utc) }) : t("bt2_naechste_hand", { b: n.bereit }), { schluessel: "naechste" }),
+    q ? btKarte(t("bt_p"), q.n ? `${Math.round(q.anteil * 100)} %` : "–", q.n ? t("bt_p_h", { p: q.p, n: q.n, z: Math.round(q.ziel * 100) })
+      : t("bt_p_leer", { z: Math.round(q.ziel * 100) }), { schluessel: "p-quote", farbe: q.n && q.anteil < q.ziel ? "bernstein" : "" }) : null));   /* A2004: unter dem Ziel */
+  const w = a.wartend || [];
+  m.append(el("h2", {}, t("bt2_wartend", { n: w.length })), w.length
+    ? tabelle(["k_paket", "bt2_k_gebaut", "bt2_k_bereit"], w.map(p => [`A${p.id} ${p.titel}`, p.art === "p" ? t("bt2_headless") : (p.agent || "–"), zeit(p.abgenommen)]))
+    : el("div", { class: "leer" }, t("bt2_keine_wartend")));
+}
+function btVerbrauch(m, d, s) {
+  const w = s.woche, ms = s.meilenstein;
+  const v = d.verbrauch || { tage: [], agenten: {} }, namen = Object.keys(v.agenten);
+  const jeTag = v.tage.map(x => namen.reduce((a, k) => a + (v.agenten[k][x] || 0), 0));
+  const heute = jeTag.length ? jeTag[jeTag.length - 1] : 0;
+  m.append(el("div", { class: "messer zeile-reveal" },
+    btKarte(t("bt2_woche"), w ? `${Math.round(w.wert)} %` : "–", !w ? t("bt2_woche_leer") : w.knapp ? t("bt2_woche_knapp", { x: tmZeit(w.leer_utc) })
+      : t("bt2_woche_reicht", { x: btTag(w.reset_utc) }), { farbe: w && w.knapp ? "bernstein" : "", balken: w ? w.wert : null, schluessel: "woche" }),
+    btKarte(t("bt2_heute"), `${heute.toFixed(0)} $`, t("bt2_listenpreis"), { schluessel: "heute" }),
+    ms ? btKarte(t("bt2_meilenstein", { n: ms.nr }), `${ms.bisher.toFixed(0)} $`, t("bt2_prognose", { x: ms.prognose.toFixed(0) }), { schluessel: "meilenstein" }) : null));
+  const hoch = Math.max(1, ...jeTag);
+  m.append(el("h2", {}, t("bt2_je_tag")), jeTag.length ? el("div", { class: "bt-tage", role: "img", "aria-label": t("bt2_je_tag") },
+    v.tage.map((x, i) => el("div", { class: "bt-tag" + (i === v.tage.length - 1 ? " heute" : ""), title: `${jeTag[i].toFixed(2)} $` },
+      el("i", { style: `height:${Math.max(2, Math.round(jeTag[i] / hoch * 100))}%` }),
+      el("span", {}, i === v.tage.length - 1 ? t("bt2_heute_kurz") : new Date(x + "T12:00:00").toLocaleDateString(gebiet(), { weekday: "short" })))))
+    : el("div", { class: "leer" }, t("verbrauch_leer")));
+  if (!API) anlassTeil(m);                           /* Wofür das Geld geht (A1642) – nur am PC */
+  else if (namen.length) m.append(el("h2", {}, t("verbrauch")), tabelle(["k_agent", "k_summe"],
+    namen.sort().map(k => [k, Object.values(v.agenten[k]).reduce((a, b) => a + b, 0).toFixed(2) + " $"])));
+}
+function btRechner(m, d, s) {
+  const r = s.rechner || {};
+  const lw = (r.laufwerke || []).length ? r.laufwerke : [{ laufwerk: "", frei_gb: d.speicher.frei, gesamt_gb: d.speicher.gesamt,
+    frei_prozent: d.speicher.frei && d.speicher.gesamt ? d.speicher.frei / d.speicher.gesamt * 100 : null, stufe: d.speicher.frei != null && d.speicher.frei < 8 ? "gelb" : null }];
+  m.append(el("div", { class: "messer zeile-reveal" }, lw.map(x => btKarte(x.laufwerk ? t("bt2_laufwerk", { x: x.laufwerk }) : t("speicher_frei"),
+    x.frei_gb == null ? "?" : t("bt2_frei", { n: x.frei_gb }), x.gesamt_gb ? t("bt2_von", { n: x.gesamt_gb }) : "",
+    { farbe: x.stufe === "rot" ? "rot" : x.stufe === "gelb" ? "bernstein" : "", balken: x.frei_prozent == null ? null : 100 - x.frei_prozent, schluessel: "laufwerk" }))));
+  if (!API) m.append(el("div", { style: "margin:4px 0 8px" }, el("button", { class: "knopf" + (lw.some(x => x.stufe) ? " haupt" : ""), type: "button", id: "bt-aufraeumen",
+    onclick: async () => { zustand.einstGruppe = "pc"; zustand.einstOffen = true; await zeige("einstellungen");   /* „Dieser PC“ (Gruppen ab A2166) */ const x = $("#e-aufraeumen"); if (x) { x.open = true; x.scrollIntoView({ block: "center" }); } } }, t("bt2_aufraeumen"))));
+  const si = r.sicherungen || [];
+  m.append(el("h2", {}, t("bt2_sicherungen")), si.length
+    ? tabelle(["bt2_k_sicherung", "bt2_k_groesse", "bt2_k_alter"], si.map(x => [new Date(x.zeit).toLocaleString(gebiet(), { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }),
+      `${zahlKurz(x.bytes / 2 ** 20)} MB`, seit(new Date(x.zeit).toISOString())]))
+    : el("div", { class: "leer" }, t("bt2_keine_sicherung")));
   const punkt = z => el("span", {}, el("span", { class: "punkt " + (z === "laeuft" ? "gruen" : z === "aus" ? "rot" : "") }), " ", t("sz_" + z));
   m.append(el("h2", {}, t("server"), hilfeKnopf("server")), (d.server || []).length
     ? tabelle(["k_name", "k_port", "k_zustand", "k_seit", "k_zustaendig", "k_neustart", "k_ausfaelle"],
-        d.server.map(s => [s.name, s.port, punkt(s.zustand), seit(s.seit_utc), s.zustaendig, s.neustart ? t("ja") : t("nein"), s.ausfaelle]))
+        d.server.map(x => [x.name, x.port, punkt(x.zustand), seit(x.seit_utc), x.zustaendig, x.neustart ? t("ja") : t("nein"), x.ausfaelle]))
     : el("div", { class: "leer" }, t("keine_server")));
-  kiTeil(m, d.ki || { kis: [] });
-  /* Verbrauch je Agent und Tag (Schätzung zum Listenpreis aus der Statusline) */
-  const v = d.verbrauch || { tage: [], agenten: {} }, namen = Object.keys(v.agenten).sort();
-  const tagKurz = x => x.slice(8, 10) + "." + x.slice(5, 7) + ".";
-  m.append(el("h2", {}, t("verbrauch")), namen.length
-    ? el("div", {}, tabelle(["k_agent", ...v.tage.map(tagKurz), "k_summe"].map(k => k.startsWith("k_") ? k : "#" + k),
-        [...namen.map(n => [n, ...v.tage.map(x => (v.agenten[n][x] ?? 0).toFixed(2)), Object.values(v.agenten[n]).reduce((a, b) => a + b, 0).toFixed(2)]),
-         [t("k_summe"), ...v.tage.map(x => namen.reduce((a, n) => a + (v.agenten[n][x] || 0), 0).toFixed(2)),
-          namen.reduce((a, n) => a + Object.values(v.agenten[n]).reduce((s, w) => s + w, 0), 0).toFixed(2)]]),
-      el("p", { class: "sehrleise", style: "font-size:12px" }, t("verbrauch_h")))
-    : el("div", { class: "leer" }, t("verbrauch_leer")));
-  if (!API) anlassTeil(m);                           /* Wofür das Geld geht (A1642) – nur am PC */
-  m.append(el("h2", {}, t("sperren")), d.sperren.length ? tabelle(["k_nr", "k_art", "k_fuer", "k_von", "k_text", "k_seit"], d.sperren.map(s => [s.id, s.art, s.gilt_fuer, s.von, s.text, zeit(s.seit_utc)]))
-    : el("div", { class: "leer" }, t("keine_sperren")));
-  const sitz = [...d.sitzungen.filter(s => s.zustand === "aktiv"), ...d.sitzungen.filter(s => s.zustand !== "aktiv").slice(0, 8)];
-  m.append(el("h2", {}, t("sitzungen")), sitz.length ? tabelle(["k_agent", "k_zustand", "k_gestartet", "k_puls", "k_beendet"], sitz.map(s => [s.kennung, s.zustand, zeit(s.gestartet_utc), seit(s.letzter_puls_utc), zeit(s.beendet_utc)]))
-    : el("div", { class: "leer" }, t("keine_sitzung")));
-  /* Grafikkarte und Schirm gibt es nur einmal: was ein anderes Projekt dieses PCs dort gerade belegt – ohne Inhalt */
-  const fremd = (d.fremd || []).map(f => el("tr", { class: "fremd" }, el("td", {}, "–"), el("td", {}, f.projekt ? t("fremd_projekt", { x: f.projekt }) : t("rh_fremd")),
-    el("td", { colspan: 5 }, t(f.gpu ? "fremd_gpu" : "fremd_schirm", { x: zeit(f.start_utc) }))));
-  const lt = d.laeufe.length || fremd.length ? tabelle(["k_nr", "k_agent", "k_lauf", "k_status", "k_start", "k_ende", "k_rc"], d.laeufe.map(l => [l.id, l.agent,
-      l.gpu ? el("span", {}, el("span", { class: "etikett", style: "margin-right:6px" }, "GPU"), l.beschreibung) : l.beschreibung, l.status, zeit(l.start_utc), zeit(l.ende_utc), l.rc ?? ""]))
-    : el("div", { class: "leer" }, t("keine_laeufe"));
-  lt.querySelector("tbody")?.prepend(...fremd);
-  m.append(el("h2", {}, t("laeufe")), lt);
-  m.append(el("h2", {}, t("protokoll")), el("pre", { class: "log" }, d.log.join("\n") || t("leer")));
-  sprungmarken(m);
+  kiTeil(m, d.ki || { kis: [] });                      /* Lokale KI – hierher aus dem alten Betrieb (TL #34210) */
+}
+function btGesundheit(m, d, s) {
+  const teile = (d.gesundheit?.teile || []);
+  const steht = !teile.length || teile.every(x => x.zustand === "aus" || x.zustand === "rot");
+  const haengt = teile.filter(x => x.zustand === "rot" || x.zustand === "gelb").length;
+  const db_ = s.datenbank, ah = s.ausser_haus;
+  m.append(el("div", { class: "messer zeile-reveal" },
+    btKarte(t("bt2_dienst"), steht ? t("bt2_steht") : haengt ? t(haengt === 1 ? "bt2_haengt1" : "bt2_haengt", { n: haengt }) : t("bt2_laeuft"),
+      steht ? t("bt2_steht_h") : haengt ? teile.filter(x => x.zustand === "rot" || x.zustand === "gelb").map(x => t("gs_" + x.teil)).join(", ") : t("bt2_laeuft_h"),
+      { farbe: steht ? "rot" : "", schluessel: "dienst", nach: steht ? el("div", { class: "mono sehrleise", style: "margin-top:6px" }, "amw dienst neustart") : null }),
+    btKarte(t("bt2_datenbank"), !db_ || db_.ok == null ? "–" : db_.ok ? t("bt2_db_ok") : t("bt2_db_fehler"),
+      db_ ? t("bt2_geprueft", { x: btUhr(db_.geprueft_utc) }) : "", { schluessel: "datenbank" }),
+    btKarte(t("bt2_ausser_haus"), ah && ah.eingerichtet ? (ah.zeit_utc ? zeit(ah.zeit_utc) : "–") : t("bt2_nicht_eingerichtet"),
+      ah && ah.eingerichtet ? "" : t("bt2_ausser_haus_h"), { schluessel: "ausser-haus" })));
+  gesundheitTeil(m, d.gesundheit);                    /* Teile des Dienstes: Herzschlag je Teil (A1655) */
+  m.append(el("details", { class: "bt-protokoll" }, el("summary", {}, t("protokoll")),   /* zugeklappt (TL #34210) */
+    el("pre", { class: "log" }, (d.log || []).join("\n") || t("leer"))));
 }
 /* Lokale KI: Kachel je KI, Modelle mit Freigabe, Vorlagen, Aufträge (eine Ansicht der gemeinsamen Lauf-Schlange) */
 function kiTeil(m, k) {
@@ -7140,8 +7427,7 @@ async function refOeffnen(ref, aufgabe) {
       const alle = await abrufen("/api/fragen?alle=1"), f = alle.find(x => x.id === nr);
       if (!f && !(await abrufen("/api/fragen?erledigt=1")).some(x => x.id === nr)) return refFehlt(ref);
       if (!dialogeZu()) return;
-      zustand.fragenSicht = f ? (f.geparkt_utc ? "geparkt" : "offen") : "erledigt"; await zeige("fragen");
-      return refInsBild(ref);
+      return fdZeigen(ref, !!f && !f.geparkt_utc);                       /* A2113: in „Für dich“ (offen aufgeklappt, sonst im zugeklappten Teil) */
     }
     if (art === "B" || art === "W") {
       const r = art === "B" ? "beschluesse" : "wortlaut";
@@ -7420,30 +7706,9 @@ async function sichtEinstellungen() {
             sichtEinstellungen(); } catch (e) { toast(t("fehler", { x: e.message }), true); } } }, t(m.da ? "e_mcp_erneuern" : "e_mcp_erzeugen")),
         el("span", { class: m.da ? "sehrleise" : "bernstein-text" }, m.da ? t("e_mcp_da", { x: zeit(m.erzeugt_utc) }) : t("e_mcp_fehlt"))));
   };
-  const projektKarte = block([t("e_projekt"), " ", wirkt("projekt")], null,
-    [[t("e_projekt_name"), pwahl, t("e_projekt_name_h")], [t("e_ordner"), pordner, t("e_ordner_h")],
-     mitMeta("projekt", "takt_min", t("e_takt"), pf.takt_min, t("e_takt_h")), mitMeta("projekt", "speicher_grenze_gb", t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")),
-     mitMeta("projekt", "stillstand_min", t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")), mitMeta("projekt", "lauf_ohne_angabe_min", t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")),
-     mitMeta("projekt", "ende_frist_min", t("e_ende_frist"), pf.ende_frist_min, t("e_ende_frist_h")),
-     [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_dateien"), pf.dateien_online, t("e_dateien_h")],
-     [t("e_farbe"), pf.farbe, t("e_farbe_h")],
-     [t("e_spec_vorlegen"), pf.spec_vorlegen, t("e_spec_vorlegen_h")], [t("e_spec_frei"), pf.spec_frei, t("e_spec_frei_h")],
-     mitMeta("projekt", "info_ablage_h", t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")),
-     [t("e_limit_halt"), pf.limit_halt, t("e_limit_halt_h")],
-     [t("e_abnahme_kette"), pf.abnahme_kette, t("e_abnahme_kette_h")], [t("e_merge_dienst"), pf.merge_dienst, t("e_merge_dienst_h")],
-     [t("e_pruefstufen"), el("div", {}, pf.pruefstufen, " ", hilfeKnopf("release-takt")), t("e_pruefstufen_h")],
-     [t("e_release_takt"), el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, pf.release_takt, pf.release_zeit), t("e_release_takt_h")],
-     [t("e_plan_automatik"), el("div", {}, pf.plan_automatik, " ", hilfeKnopf("planung")), t("e_plan_automatik_h")],
-     [t("e_neue_aufgaben"), el("div", {}, pf.neue_aufgaben, " ", hilfeKnopf("planung")), t("e_neue_aufgaben_h")],
-     [t("e_meilenstein_fertig"), el("div", {}, pf.meilenstein_fertig, " ", hilfeKnopf("planung")), t("e_meilenstein_fertig_h")],
-     [t("e_versionen"), el("div", {}, pf.versionen, " ", hilfeKnopf("versionen")), t("e_versionen_h")],
-     [t("e_merge_blick"), el("div", {}, pf.merge_blick, " ", hilfeKnopf("p-pakete")), t("e_merge_blick_h")],
-     [t("e_merge_aussen_pruefung"), el("div", {}, pf.merge_aussen_pruefung, " ", hilfeKnopf("p-pakete")), t("e_merge_aussen_pruefung_h")],
-     mitMeta("projekt", "version_frist_tage", t("e_version_frist"), pf.version_frist_tage, t("e_version_frist_h")),
-     [t("e_schwer"), el("div", {}, pf.schwere_befehle, hilfeKnopf("schwere-laeufe")), t("e_schwer_h")],
-     [t("e_empfehlung"), el("div", { style: "overflow-x:auto" }, empfTabelle, hilfeKnopf("agenten")), t("e_empfehlung_h")],
-     ...(API || !d.mcp ? [] : [[t("e_mcp"), mcpFeld(d.mcp), t("e_mcp_h")]])],
-    "projekt", () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
+  /* A2166 (Kleinprobe A2009, D1902 v2): die Felder des Projekts verteilt auf die Gruppen Projekt · Freigaben · Auslieferung · Modelle und
+     Kosten – dieselben Felder, derselbe Speicherweg „projekt“ (der Dienst übernimmt nur die genannten Werte) */
+  const projektWerte = () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
       entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value,
       spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
@@ -7452,7 +7717,40 @@ async function sichtEinstellungen() {
       versionen: pf.versionen.value, version_frist_tage: wert(pf.version_frist_tage),
       merge_blick: pf.merge_blick.value, merge_aussen_pruefung: pf.merge_aussen_pruefung.value, ende_frist_min: wert(pf.ende_frist_min),
       schwere_befehle: schwereBefehle(),
-      empfehlung: Object.fromEntries(Object.entries(empfWahl).map(([gr, z]) => [gr, Object.fromEntries(Object.entries(z).map(([g, w]) => [g, w.value]))])) }));
+      empfehlung: Object.fromEntries(Object.entries(empfWahl).map(([gr, z]) => [gr, Object.fromEntries(Object.entries(z).map(([g, w]) => [g, w.value]))])) });
+  const nur = keys => () => { const w = projektWerte(); return Object.fromEntries(keys.filter(k => k in w).map(k => [k, w[k]])); };
+  const projektKarte = block([t("e_projekt"), " ", wirkt("projekt")], null,
+    [[t("e_projekt_name"), pwahl, t("e_projekt_name_h")], [t("e_ordner"), pordner, t("e_ordner_h")],
+     [t("e_entwickler"), pf.entwickler_name, t("e_entwickler_h")], [t("e_farbe"), pf.farbe, t("e_farbe_h")],
+     [t("e_dateien"), pf.dateien_online, t("e_dateien_h")],
+     mitMeta("projekt", "takt_min", t("e_takt"), pf.takt_min, t("e_takt_h")), mitMeta("projekt", "speicher_grenze_gb", t("e_speicher"), pf.speicher_grenze_gb, t("e_speicher_h")),
+     mitMeta("projekt", "stillstand_min", t("e_stillstand"), pf.stillstand_min, t("e_stillstand_h")), mitMeta("projekt", "lauf_ohne_angabe_min", t("e_lauf_ohne"), pf.lauf_ohne_angabe_min, t("e_lauf_ohne_h")),
+     mitMeta("projekt", "ende_frist_min", t("e_ende_frist"), pf.ende_frist_min, t("e_ende_frist_h")),
+     mitMeta("projekt", "info_ablage_h", t("e_info_ablage"), pf.info_ablage_h, t("e_info_ablage_h")),
+     [t("e_plan_automatik"), el("div", {}, pf.plan_automatik, " ", hilfeKnopf("planung")), t("e_plan_automatik_h")],
+     [t("e_neue_aufgaben"), el("div", {}, pf.neue_aufgaben, " ", hilfeKnopf("planung")), t("e_neue_aufgaben_h")],
+     [t("e_schwer"), el("div", {}, pf.schwere_befehle, hilfeKnopf("schwere-laeufe")), t("e_schwer_h")],
+     ...(API || !d.mcp ? [] : [[t("e_mcp"), mcpFeld(d.mcp), t("e_mcp_h")]])],
+    "projekt", nur(["entwickler_name", "farbe", "dateien_online", "takt_min", "speicher_grenze_gb", "stillstand_min", "lauf_ohne_angabe_min",
+                    "ende_frist_min", "info_ablage_h", "plan_automatik", "neue_aufgaben", "schwere_befehle"]));
+  const freigabenKarte = block([t("eg_freigaben"), " ", wirkt("projekt")], null,
+    [[t("e_spec_vorlegen"), pf.spec_vorlegen, t("e_spec_vorlegen_h")], [t("e_spec_frei"), pf.spec_frei, t("e_spec_frei_h")],
+     [t("e_abnahme_kette"), pf.abnahme_kette, t("e_abnahme_kette_h")],
+     [t("e_meilenstein_fertig"), el("div", {}, pf.meilenstein_fertig, " ", hilfeKnopf("planung")), t("e_meilenstein_fertig_h")],
+     [t("e_pruefstufen"), el("div", {}, pf.pruefstufen, " ", hilfeKnopf("release-takt")), t("e_pruefstufen_h")],
+     [t("e_merge_dienst"), pf.merge_dienst, t("e_merge_dienst_h")],
+     [t("e_merge_blick"), el("div", {}, pf.merge_blick, " ", hilfeKnopf("p-pakete")), t("e_merge_blick_h")],
+     [t("e_merge_aussen_pruefung"), el("div", {}, pf.merge_aussen_pruefung, " ", hilfeKnopf("p-pakete")), t("e_merge_aussen_pruefung_h")]],
+    "projekt", nur(["spec_vorlegen", "spec_frei", "abnahme_kette", "meilenstein_fertig", "pruefstufen", "merge_dienst", "merge_blick", "merge_aussen_pruefung"]));
+  const auslieferungKarte = block([t("eg_auslieferung"), " ", wirkt("projekt")], null,
+    [[t("e_release_takt"), el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, pf.release_takt, pf.release_zeit), t("e_release_takt_h")],
+     [t("e_versionen"), el("div", {}, pf.versionen, " ", hilfeKnopf("versionen")), t("e_versionen_h")],
+     mitMeta("projekt", "version_frist_tage", t("e_version_frist"), pf.version_frist_tage, t("e_version_frist_h"))],
+    "projekt", nur(["release_takt", "release_zeit", "versionen", "version_frist_tage"]));
+  const modelleKarte = block([t("eg_modelle"), " ", wirkt("projekt")], null,
+    [[t("e_empfehlung"), el("div", { style: "overflow-x:auto" }, empfTabelle, hilfeKnopf("agenten")), t("e_empfehlung_h")],
+     [t("e_limit_halt"), pf.limit_halt, t("e_limit_halt_h")]],
+    "projekt", nur(["empfehlung", "limit_halt"]));
 
   const p = d.pc;
 
@@ -7574,13 +7872,23 @@ async function sichtEinstellungen() {
     el("h3", {}, t("bn_titel"), " ", wirkt("seite")), el("p", { class: "leise", style: "margin:0 0 12px" }, t("bn_h")),
     el("div", { class: "bn-inhalt" }, el("div", { class: "sehrleise" }, "…"))));
   if (benutzerKarte) benutzerZeichnen(benutzerKarte.querySelector(".bn-inhalt"));
-  box.append(...[baKarte, speicherKarte, seiteKarte, benutzerKarte, pushKarte, pcKarte, projektKarte,
-    agentenEinstellungen(d, { text, zahl, schalter, wert, feld })].filter(Boolean));
-  /* Sprungmarken: die Seite ist lang – jeder Abschnitt mit einem Klick erreichbar */
-  m.append(el("div", { class: "sprung" }, [...box.children].map(k => { const h = k.querySelector("h3");
-    const text = h && [...h.childNodes].filter(n => n.nodeType === Node.TEXT_NODE).map(n => n.textContent).join("").trim();
-    return h ? el("a", { onclick: () => k.scrollIntoView({ behavior: "smooth", block: "start" }) }, text || h.textContent) : null; }).filter(Boolean)));
-  m.append(box);
+  /* A2166 (Kleinprobe A2009, D1902 v2): links die Gruppen, rechts der Inhalt; am Handy erst die Liste, dann der Inhalt mit Zurück.
+     Die Blöcke sind dieselben wie bisher (block/speichern), nur einsortiert. */
+  const gruppen = [["projekt", [projektKarte, agentenEinstellungen(d, { text, zahl, schalter, wert, feld })]],
+    ["freigaben", [freigabenKarte]], ["auslieferung", [auslieferungKarte]], ["benachrichtigung", [pushKarte]], ["modelle", [modelleKarte]],
+    ["pc", [baKarte, pcKarte, speicherKarte]], ["benutzer", [benutzerKarte, seiteKarte]]]
+    .map(([k, karten]) => [k, karten.filter(Boolean)]).filter(([, karten]) => karten.length);
+  const egWahl = gruppen.some(([k]) => k === zustand.einstGruppe) ? zustand.einstGruppe : gruppen[0][0];
+  const raster = el("div", { class: "eg-raster" + (zustand.einstOffen ? " offen" : "") });
+  const liste = el("div", { class: "eg-liste", role: "tablist" }, gruppen.map(([k]) => el("button", { type: "button", role: "tab", class: "eg-zeile" + (k === egWahl ? " an" : ""),
+    "data-g": k, "aria-selected": k === egWahl ? "true" : "false",
+    onclick: () => { zustand.einstGruppe = k; zustand.einstOffen = true; sichtEinstellungen(); } }, t("eg_" + k))));
+  box.append(...gruppen.find(([k]) => k === egWahl)[1]);
+  const inhalt = el("div", { class: "eg-inhalt", "data-g": egWahl },
+    el("button", { class: "klein-knopf eg-zurueck", type: "button", onclick: () => { zustand.einstOffen = false; raster.classList.remove("offen"); } }, "‹ " + t("n_einst")),
+    box);
+  raster.append(liste, inhalt);
+  m.append(el("div", { class: "eg-huelle" }, raster));          /* schmal nach eigener Breite (iPad, online) */
 }
 /* Einstellungen › Agenten. Links die Agenten, rechts der gewählte in vier Blöcken. „Lead“ ist ein Schalter (führt das
    Projekt), das Fachgebiet frei mit Vorschlägen, die Arbeitsweise bestimmt, was die AMW tut: nur „Terminal“ startet und
@@ -7814,7 +8122,8 @@ function lsAgenten(d) {
       return el("button", { type: "button", class: "ls-agent", "data-k": x.kennung, onclick: () => agentDialog(x.kennung) },
         el("b", {}, el("span", { class: "punkt " + (lebt ? "gruen" : "") }), x.kennung),
         el("span", { class: "leise" }, [x.co ? t("co_entwickler") : x.rolle === "lead" ? t("lead") : x.fachgebiet, x.modell].filter(Boolean).join(" · ") || " "),
-        el("span", {}, x.gerade_aufgabe ? `A${x.gerade_aufgabe}` + (x.gerade_seit ? " · " + lsDauer(lsMin(x.gerade_seit)) : "")
+        el("span", {}, x.gerade_aufgabe && x.gerade_gebaut ? t("lst_gebaut_" + x.gerade_gebaut)   /* A2168: keine Arbeitszeit; die Nummer steht darunter */
+          : x.gerade_aufgabe ? `A${x.gerade_aufgabe}` + (x.gerade_seit ? " · " + lsDauer(lsMin(x.gerade_seit)) : "")
           : wartet ? t("lst_wartet_auf", { x: x.wartet_auf.map(w => w === "Entwickler" ? t("lst_dich") : w).join(", ") }) : t(lebt ? "lst_frei" : x.soll === "an" ? "beendet_soll" : "lst_aus")),
         el("span", { class: "ls-auf sehrleise", title: x.gerade || x.zustaendig || "" }, (x.gerade || x.zustaendig || t("tm_keine")) + (x.gerade && x.gerade_veraltet ? " · " + t("k_veraltet") : "")));   /* wie die frühere Kachel */
     })));
@@ -7834,7 +8143,7 @@ function lsRessourcen(d, l) {
 function lsKarteOeffnen(x) {
   const nr = x.nummer || "";
   if (/^A\d+$/.test(nr)) return aufgabeDialog(+nr.slice(1));
-  if (/^L\d+$/.test(nr)) return API ? zeige("betrieb") : laufAusgabeDialog(+nr.slice(1));
+  if (/^L\d+$/.test(nr)) return API ? zurSteuerung() : laufAusgabeDialog(+nr.slice(1));
   if (x.wer && (zustand.start?.agenten || []).some(a => a.kennung === x.wer)) return agentDialog(x.wer);
 }
 function lsJetztKarte(j) {
@@ -7899,6 +8208,26 @@ function lsZeitplan(l) {
       el("span", { class: "leise" }, m.bereit ? t("lst_bereit") : [datumKurz(m.p50), m.verzug_tage == null ? null : m.verzug_tage > 0
         ? t("lst_spaeter", { n: m.verzug_tage }) : m.verzug_tage < 0 ? t("lst_frueher", { n: -m.verzug_tage }) : t("lst_wie_geplant")].filter(Boolean).join(" · "))))));
 }
+/* A2170 (TH157 F7): die Lead-Aufgaben – was der Lead nacheinander abarbeitet; die zugeteilte vorn, gelesene warten auf den Lauf */
+/* vorne nur die Nummer, die ein Mensch kennt: P… bzw. M…; der Planungs-Weckruf heißt „Planung“ (sein Schlüssel ist intern) */
+function lsLeadRef(x) {
+  return x.art === "planung" ? t("lst_la_planung") : x.art === "meilenstein" ? x.schluessel.split("-")[0] : x.schluessel;
+}
+const LS_LEAD_ERST = 6;                              /* wie „Für dich“ (A2113): höchstens 6, die übrigen hinter „n weitere ›“ (Lead #34945) */
+function lsLeadAufgaben(l) {
+  const a = l.lead_aufgaben || [];
+  if (!a.length) return null;
+  const reihe = [...a.filter(x => x.zugeteilt), ...a.filter(x => !x.zugeteilt)];          /* die zugeteilte und die gebündelten vorn */
+  const zeile = x => el("button", { type: "button", class: "ls-zeile" + (x.zugeteilt ? " an" : ""), "data-ref": x.schluessel, title: x.stand || "",
+      onclick: () => x.aufgabe_id ? aufgabeDialog(x.aufgabe_id) : null },
+    el("span", { class: "ref" }, lsLeadRef(x)), el("span", { class: "ls-titel" }, x.kurz || x.titel),
+    el("span", { class: "sehrleise" }, x.zugeteilt ? t("lst_la_zugeteilt") : x.gelesen ? t("lst_la_gelesen") : t("lst_la_wartet")));
+  const rest = reihe.slice(LS_LEAD_ERST);
+  return el("section", { class: "ls-block ls-lead" }, el("h2", { class: "ls-lbl" }, t("lst_lead_aufgaben", { n: a.length })),
+    el("div", { class: "ls-liste" }, reihe.slice(0, LS_LEAD_ERST).map(zeile)),
+    rest.length ? el("details", { class: "ls-lead-mehr" }, el("summary", { class: "verweis" }, t("pjw_n_weitere", { n: rest.length }) + " ›"),
+      el("div", { class: "ls-liste" }, rest.map(zeile))) : null);
+}
 function lsEntscheidungen(l) {
   const e = l?.entscheidungen || [];
   if (!e.length) return null;
@@ -7928,11 +8257,38 @@ async function lsProjektdetails(d) {
     el("div", { class: "pjw-felder" }, termine.flatMap(([k, v]) => [el("span", {}, k), el("span", {}, v)]))) : null,
     el("a", { class: "verweis", href: "#projektweg", onclick: e => { e.preventDefault(); document.getElementById("ls-fenster")?.remove(); zeige("projektweg"); } }, t("lst_zum_projektweg")));
 }
+/* A2190 (TH164 „Rückmeldung je Agent, bis alle stehen“, Marcel W2499): bei einer Pause je Agent, Headless-Paket und Lauf, wo er steht –
+   oben im Pause-Kopf und auf der Agenten-Kachel; bis alle stehen, dann ein Satz. Daten nur aus /api/pause (pause.zustand). */
+function lsPauseText(a) {
+  return a.noch?.length ? t("lst_beendet_noch", { x: a.noch.map(n => n.ref).join(", ") }) : a.zustand === "pausiert" ? t("lst_steht") : t("lst_haelt_an");
+}
+function lsPause(p) {
+  if (!p?.an) return null;
+  if (p.alle_stehen) return el("section", { class: "ls-block ls-pause", "data-alle": "1" }, el("b", {}, el("span", { class: "punkt" }), t("lst_alle_stehen")));
+  const genannt = new Set(p.agenten.flatMap(a => (a.noch || []).map(n => n.ref)));
+  const zeilen = [...p.agenten.filter(a => a.zustand !== "pausiert").map(a => [a.kennung, lsPauseText(a), (a.noch || []).map(n => n.titel).filter(Boolean).join(" · ")]),
+    ...p.pakete.filter(x => !genannt.has(`A${x.aid}`)).map(x => [`A${x.aid}`, t("lst_beendet_noch", { x: t("lst_headless_paket") }), x.titel]),
+    ...p.laeufe.filter(x => x.zustand === "läuft zu Ende" && !genannt.has(`L${x.lauf}`)).map(x => [`L${x.lauf}`, t("lst_beendet_noch", { x: t("lst_lauf") }), x.beschreibung || ""])];
+  return el("section", { class: "ls-block ls-pause" }, el("h2", { class: "ls-lbl" }, t("lst_pause_noch")),
+    el("div", { class: "ls-pause-liste" }, zeilen.map(([wer, was, titel]) => el("div", { class: "ls-pause-zeile", "data-k": wer },
+      el("b", {}, el("span", { class: "punkt bernstein" }), wer), el("span", {}, was), el("span", { class: "sehrleise" }, titel)))));
+}
+function lsPauseKacheln(p) {
+  if (!p?.an) return;
+  for (const a of p.agenten) {
+    const k = document.querySelector(`.ls-agent[data-k="${CSS.escape(a.kennung)}"]`);
+    if (!k) continue;
+    k.querySelector(".ls-pz")?.remove();
+    k.append(el("span", { class: "ls-pz" + (a.zustand === "pausiert" ? " leise" : " bernstein-text") }, lsPauseText(a)));
+  }
+}
 /* Bänder (Halt, Dienst, Bildschirm, nächster Test, nicht angemeldet, Achtung): nur bei Anlass – wie bisher, aus startBaender */
 async function sichtLeitstand(d, m) {
   const fort = el("div", { class: "ls-fort-platz" }, lsFortschritt(null)), leer = el("div"), ress = el("div", {}, lsRessourcen(d, null));
-  const ablauf = el("div", {}, lsAblauf(null)), rest = el("div");
-  m.append(fort, leer, uebersichtKarten(d), lsAgenten(d) || "", ress, ablauf, rest);
+  const ablauf = el("div", {}, lsAblauf(null)), rest = el("div"), pz = el("div");
+  m.append(pz, fort, leer, uebersichtKarten(d), lsAgenten(d) || "", ress, ablauf, rest);
+  if ((d.halt || []).length) holen("/api/pause").then(p => { if (zustand.sicht !== "start") return; pz.replaceChildren(...[lsPause(p)].filter(Boolean)); lsPauseKacheln(p); })
+    .catch(() => {});                                /* A2190: nur bei Halt fragen – ohne Pause ändert sich nichts */
   let l = null;
   try { l = await lsDaten(d); } catch (e) { ablauf.replaceChildren(el("p", { class: "leise" }, t("fehler", { x: e.message || e }))); return; }
   if (zustand.sicht !== "start") return;
@@ -7943,7 +8299,7 @@ async function sichtLeitstand(d, m) {
   leer.replaceChildren(...[lsLeer(l, pw)].filter(Boolean));
   ress.replaceChildren(lsRessourcen(d, l));
   ablauf.replaceChildren(lsAblauf(l));
-  rest.replaceChildren(...[lsZeitplan(l), lsEntscheidungen(l)].filter(Boolean));
+  rest.replaceChildren(...[lsLeadAufgaben(l), lsZeitplan(l), lsEntscheidungen(l)].filter(Boolean));
 }
 /* A2159 (Abschlussprüfung M16, D1994; Probe D1481 v4): die vorhandenen Eingriffe als Knöpfe – ohne neue Logik, die Grenzen rechnet
    die AMW (paket_schieben, herausnehmen, zwischenpruefung, pause). Paket: Früher/Später mit der gesperrten Stelle und ihrem Grund,
@@ -8048,10 +8404,14 @@ function pauseDialog() {
    Schritt 4 · Umsetzung „Pakete · Reihenfolge · Zeitplan“. „Feinplan“ und „Pakete“ sind die bisherigen Ansichten (pwFein,
    pwUmsetzung). Reihenfolge und Zeitplan rechnet /api/zeitplan (A2045), der Gesamtplan nimmt die Meilensteine des Projektwegs und
    die Prognose je Meilenstein aus /api/leitstand. Beides wird erst beim Öffnen des Reiters geholt. */
-const PW_REITER = { 2: ["feinplan", "gesamtplan"], 3: ["pakete", "reihenfolge", "zeitplan"] };
+/* A2084 (Lead #34302): Grob- und Feinplan der früheren Planungsseite (pmAnsicht, mit allen ihren Handlungen) als Reiter in Schritt 2
+   und 3 – „Meilensteine“ und „Pakete“; nur ein anderer Ort, keine neue Logik */
+const PW_REITER = { 1: ["grob", "meilensteine"], 2: ["feinplan", "pmpakete", "gesamtplan"], 3: ["pakete", "reihenfolge", "zeitplan"] };
 const PW_REIHE_ERST = 14;
+const PW_UNTER_ZULETZT = {};                                              /* Reiter → zuletzt gezeigter Inhalt (Knoten, beim Neuzeichnen umgehängt) */
 /* A2011 (Lead #34150): eigene Adressen der drei Ansichten – Schritt (Index wie PW_SCHRITTE) und Reiter */
-const PW_ADRESSEN = { reihenfolge: [3, "reihenfolge"], zeitplan: [3, "zeitplan"], gesamtplan: [2, "gesamtplan"] };
+const PW_ADRESSEN = { reihenfolge: [3, "reihenfolge"], zeitplan: [3, "zeitplan"], gesamtplan: [2, "gesamtplan"],
+  meilensteine: [1, "meilensteine"], pakete: [2, "pmpakete"] };   /* A2084: Grob- und Feinplan der früheren Planung */
 function pwAdresse(sicht) {
   const [schritt, wahl] = PW_ADRESSEN[sicht];
   zustand.pwSicht = schritt; zustand.pwOffen = true; zustand.pwReiter = { ...(zustand.pwReiter || {}), [schritt]: wahl };
@@ -8073,9 +8433,12 @@ function pwMitReitern(v, d) {
     class: k === wahl ? "an" : "", "aria-selected": k === wahl ? "true" : "false",
     onclick: () => { zustand.pwReiter = { ...(zustand.pwReiter || {}), [v]: k }; pwStand = null; zeige("projektweg", true); } }, t("pjw_t_" + k))));
   if (wahl === r[0]) return [reiter, ...alt(d)];
-  const platz = el("div", { class: "pjw-unter", "data-ansicht": wahl }, el("div", { class: "sehrleise" }, t("pjw_laedt")));
-  (wahl === "gesamtplan" ? pwGesamtplan(d) : pwZeitplanDaten().then(z => wahl === "reihenfolge" ? pwReihenfolge(d, z) : pwZeitplan(d, z)))
-    .then(x => platz.replaceChildren(...[].concat(x)))
+  /* A2084: beim Neuzeichnen (Takt) bleibt der letzte Inhalt des Reiters stehen, bis der neue da ist – kein Aufblitzen von „lädt“ */
+  const platz = el("div", { class: "pjw-unter", "data-ansicht": wahl }, ...(PW_UNTER_ZULETZT[wahl] || [el("div", { class: "sehrleise" }, t("pjw_laedt"))]));
+  /* abrufen statt holen: holen kehrt nach einem Seitenwechsel nie zurück – zeichnet die Seite neu, bliebe der Reiter bei „lädt“ */
+  (wahl === "meilensteine" || wahl === "pmpakete" ? abrufen("/api/planung").then(p => pmAnsicht(p.planansicht, wahl === "meilensteine" ? "grob" : "plan"))
+    : wahl === "gesamtplan" ? pwGesamtplan(d) : pwZeitplanDaten().then(z => wahl === "reihenfolge" ? pwReihenfolge(d, z) : pwZeitplan(d, z)))
+    .then(x => { const neu = [].concat(x); PW_UNTER_ZULETZT[wahl] = neu; platz.replaceChildren(...neu); })
     .catch(e => platz.replaceChildren(el("div", { class: "leer" }, t("fehler", { x: e.message || e }))));
   return [reiter, platz];
 }
