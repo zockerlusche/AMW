@@ -1649,6 +1649,8 @@ button.pjw-karte:hover { background: var(--flaeche2); }
   .eg-raster.offen .eg-liste { display: none; }
   .eg-zurueck { display: inline-block; }
 }
+/* A2184: „alt“ an Feldern, die mit dem Bündel ohne Agent nicht mehr gelten */
+.e-alt { font: 600 10.5px var(--mono); text-transform: uppercase; letter-spacing: .06em; color: var(--sehrleise); border: 1px solid var(--linie); border-radius: 4px; padding: 0 5px; vertical-align: 1px; }
 </style>
 </head>
 <body>
@@ -2164,7 +2166,18 @@ const TEXTE = {
     bt2_k_alter: "Alter", bt2_keine_sicherung: "Noch keine Sicherung.", bt2_dienst: "Dienst", bt2_steht: "steht", bt2_steht_h: "nichts wird verteilt oder benachrichtigt – neu starten am PC:", bt2_haengt1: "1 Teil hängt",
     bt2_haengt: "{n} Teile hängen", bt2_laeuft: "läuft", bt2_laeuft_h: "alle Teile in Ordnung", bt2_datenbank: "Datenbank", bt2_db_ok: "in Ordnung", bt2_db_fehler: "Prüfung meldet Fehler",
     bt2_geprueft: "letzte Prüfung {x}", bt2_ausser_haus: "Sicherung außer Haus", bt2_nicht_eingerichtet: "nicht eingerichtet", bt2_ausser_haus_h: "eine Kopie an einem anderen Ort – das entscheidest du", k_paket: "Paket", th2_aenderung_neu: "Geändert: {x}",
-    th2_aenderung_weg: "Gestrichen: {x}", th2_aenderung_mehr: "(und {n} weitere Stellen)", th2_plan_grob: "Grobplan M{m} wartet auf dich ›", th2_plan_fein: "Plan M{m} wartet auf dich ›", th2_aenderung_mehr1: "(und 1 weitere Stelle)",
+    th2_aenderung_weg: "Gestrichen: {x}", th2_aenderung_mehr: "(und {n} weitere Stellen)", th2_plan_grob: "Grobplan M{m} wartet auf dich ›", th2_plan_fein: "Plan M{m} wartet auf dich ›", th2_aenderung_mehr1: "(und 1 weitere Stelle)", e_alt: "alt",
+    e_alt_h: "Gilt nur noch ohne Bündel ohne Agent", e_alt_gesperrt: "Gilt nicht, solange „Bündel ohne Agent ausliefern“ an ist.", e_verteilen: "Pakete verteilen", e_verteilen_h: "Ob die AMW einem freien Agenten das nächste startklare Paket selbst zuteilt, es dem Lead vorschlägt oder nie.", e_verteilen_vorschlag: "dem Lead vorschlagen", e_verteilen_an: "selbst zuteilen",
+    e_verteilen_aus: "aus", e_veroeffentlichen: "Veröffentlichen", e_veroeffentlichen_h: "Wann eine ausgelieferte Version auch online und auf GitHub erscheint.", e_veroeffentlichen_meilenstein: "nach der Abnahme des Meilensteins", e_veroeffentlichen_sofort: "sofort mit der Auslieferung", e_buendel_ausliefern: "Bündel ohne Agent ausliefern",
+    e_buendel_ausliefern_h: "Ob die AMW ein fertiges Bündel selbst bis live bringt oder bei „bereit“ anhält; stellst nur du.", e_buendel_ausliefern_aus: "bis „bereit“", e_buendel_ausliefern_an: "bis live", e_buendel_n: "Bündel ab Paketen", e_buendel_n_h: "Ein Bündel entsteht, sobald so viele Pakete bereit sind.", e_buendel_x_h: "Bündel spätestens nach (h)",
+    e_buendel_x_h_h: "Spätestens so viele Stunden nach der letzten Auslieferung entsteht ein Bündel, auch mit weniger Paketen.", e_planer_grenze: "Tagesgrenze der Planer ($)", e_planer_grenze_h: "So viel dürfen die Planer dieses Projekts je Tag kosten; 0 = keine Grenze.", e_limit_halt_pc_h: "Ab diesem Anteil des Wochenlimits hält die AMW alle Coder und Headless-Läufe an, in allen Projekten; 0 = aus.", e_plaetze_pc: "Plätze für Headless-Pakete", e_plaetze_pc_h: "So viele Headless-Pakete laufen auf diesem PC über alle Projekte gleichzeitig; 0 = keine gemeinsame Grenze.",
+    e_projekt_rang: "Rangfolge der Projekte", e_projekt_rang_h: "Projektnamen mit Komma, in der Reihenfolge, in der freie Plätze vergeben werden.", e_thema_freigabe: "Themen gibt frei", e_thema_freigabe_h: "Wer eine neue Fassung eines Themas freigibt.", e_grobplan_freigabe: "Grobplan gibt frei", e_grobplan_freigabe_h: "Wer den Grobplan eines Meilensteins freigibt.",
+    e_feinplan_freigabe: "Feinplan gibt frei", e_feinplan_freigabe_h: "Wer die Pakete eines Meilensteins freigibt, bevor sie starten.", e_abschluss_freigabe: "Abschluss gibt frei", e_abschluss_freigabe_h: "Wer den Abschluss eines Meilensteins bestätigt.", e_thema_freigabe_mensch: "du", e_grobplan_freigabe_mensch: "du",
+    e_feinplan_freigabe_mensch: "du", e_abschluss_freigabe_mensch: "du", e_thema_freigabe_colead: "Co-Entwickler und Lead gemeinsam", e_grobplan_freigabe_colead: "Co-Entwickler und Lead gemeinsam", e_feinplan_freigabe_colead: "Co-Entwickler und Lead gemeinsam", e_abschluss_freigabe_colead: "Co-Entwickler und Lead gemeinsam",
+    e_ausfall: "Ausfall nach (min)", e_ausfall_h: "So lange darf die Sitzung eines Agenten beendet sein, dann gilt er als ausgefallen.", e_ruhe: "Nachfragen nach Ruhe (min)", e_ruhe_h: "So lange ohne Aktivität am laufenden Paket, dann fragt die AMW den Agenten.", e_eskalation: "Ungelesen an den Lead (min)", e_eskalation_h: "So lange darf eine Frage oder Prüfbitte ungelesen liegen, dann weckt die AMW den Lead; 0 = nie.",
+    e_fragen_takt: "Fragen an dich gesammelt alle (h)", e_fragen_takt_h: "Fragen an dich kommen gesammelt in diesem Abstand; 0 = sofort.", e_fragen_frist: "Frist für Fragen an dich (h)", e_fragen_frist_h: "Bis dahin sollte eine Frage an dich beantwortet sein, sonst erinnert die AMW.", e_abnahme_frist: "Zeit je Abnahme (min)", e_abnahme_frist_h: "So lange darf eine Abnahme in der Prüfung laufen, dann bricht sie ab.",
+    e_sprachpruefung: "Sprachprüfung", e_sprachpruefung_h: "Ob die Prüfung vor dem Merge den Code mit Pyright prüft.", e_sprachpruefung_auto: "automatisch, wenn eingerichtet", e_sprachpruefung_pyright: "immer", e_sprachpruefung_aus: "aus", e_limit_halt_pc: "Halt beim Wochenlimit, alle Projekte (%)",
+    rh_rechner: "Rechner: {x}",
   },
   en: {
     marke: "Agent Management Workbench", suche: "Search everything", g_fuerdich: "For you", g_arbeit: "Work", g_wissen: "Knowledge", g_betrieb: "Operations",
@@ -2634,7 +2647,18 @@ const TEXTE = {
     bt2_k_alter: "Age", bt2_keine_sicherung: "No backup yet.", bt2_dienst: "Service", bt2_steht: "stopped", bt2_steht_h: "nothing is assigned or notified – restart on the PC:", bt2_haengt1: "1 part is stuck",
     bt2_haengt: "{n} parts are stuck", bt2_laeuft: "running", bt2_laeuft_h: "all parts fine", bt2_datenbank: "Database", bt2_db_ok: "fine", bt2_db_fehler: "check reports errors",
     bt2_geprueft: "last check {x}", bt2_ausser_haus: "Off-site backup", bt2_nicht_eingerichtet: "not set up", bt2_ausser_haus_h: "a copy in another place – your decision", k_paket: "Package", th2_aenderung_neu: "Changed: {x}",
-    th2_aenderung_weg: "Removed: {x}", th2_aenderung_mehr: "(and {n} more places)", th2_plan_grob: "Rough plan M{m} is waiting for you ›", th2_plan_fein: "Plan M{m} is waiting for you ›", th2_aenderung_mehr1: "(and 1 more place)",
+    th2_aenderung_weg: "Removed: {x}", th2_aenderung_mehr: "(and {n} more places)", th2_plan_grob: "Rough plan M{m} is waiting for you ›", th2_plan_fein: "Plan M{m} is waiting for you ›", th2_aenderung_mehr1: "(and 1 more place)", e_alt: "old",
+    e_alt_h: "Only applies without agent-free bundles", e_alt_gesperrt: "Does not apply while “Deliver bundles without an agent” is on.", e_verteilen: "Assign packages", e_verteilen_h: "Whether the AMW assigns the next ready package to a free agent itself, suggests it to the lead, or never.", e_verteilen_vorschlag: "suggest to the lead", e_verteilen_an: "assign automatically",
+    e_verteilen_aus: "off", e_veroeffentlichen: "Publish", e_veroeffentlichen_h: "When a delivered version also appears online and on GitHub.", e_veroeffentlichen_meilenstein: "after the milestone is accepted", e_veroeffentlichen_sofort: "right with the delivery", e_buendel_ausliefern: "Deliver bundles without an agent",
+    e_buendel_ausliefern_h: "Whether the AMW takes a finished bundle all the way to live or stops at “ready”; only you can change this.", e_buendel_ausliefern_aus: "up to “ready”", e_buendel_ausliefern_an: "up to live", e_buendel_n: "Bundle from packages", e_buendel_n_h: "A bundle is formed as soon as this many packages are ready.", e_buendel_x_h: "Bundle at the latest after (h)",
+    e_buendel_x_h_h: "At the latest this many hours after the last delivery a bundle is formed, even with fewer packages.", e_planer_grenze: "Daily limit for planners ($)", e_planer_grenze_h: "How much this project's planners may cost per day; 0 = no limit.", e_limit_halt_pc_h: "From this share of the weekly limit the AMW stops all coders and headless runs, in every project; 0 = off.", e_plaetze_pc: "Slots for headless packages", e_plaetze_pc_h: "This many headless packages run on this PC at once across all projects; 0 = no shared limit.",
+    e_projekt_rang: "Project ranking", e_projekt_rang_h: "Project names separated by commas, in the order in which free slots are given out.", e_thema_freigabe: "Topics are approved by", e_thema_freigabe_h: "Who approves a new version of a topic.", e_grobplan_freigabe: "Rough plan is approved by", e_grobplan_freigabe_h: "Who approves a milestone's rough plan.",
+    e_feinplan_freigabe: "Detailed plan is approved by", e_feinplan_freigabe_h: "Who approves a milestone's packages before they start.", e_abschluss_freigabe: "Completion is approved by", e_abschluss_freigabe_h: "Who confirms that a milestone is complete.", e_thema_freigabe_mensch: "you", e_grobplan_freigabe_mensch: "you",
+    e_feinplan_freigabe_mensch: "you", e_abschluss_freigabe_mensch: "you", e_thema_freigabe_colead: "co-developer and lead together", e_grobplan_freigabe_colead: "co-developer and lead together", e_feinplan_freigabe_colead: "co-developer and lead together", e_abschluss_freigabe_colead: "co-developer and lead together",
+    e_ausfall: "Outage after (min)", e_ausfall_h: "How long an agent's session may be ended before the agent counts as out.", e_ruhe: "Ask after quiet time (min)", e_ruhe_h: "This long without activity on the running package, then the AMW asks the agent.", e_eskalation: "Unread to the lead (min)", e_eskalation_h: "How long a question or review request may stay unread before the AMW wakes the lead; 0 = never.",
+    e_fragen_takt: "Questions for you collected every (h)", e_fragen_takt_h: "Questions for you arrive collected at this interval; 0 = right away.", e_fragen_frist: "Deadline for questions to you (h)", e_fragen_frist_h: "A question to you should be answered by then, otherwise the AMW reminds you.", e_abnahme_frist: "Time per acceptance check (min)", e_abnahme_frist_h: "How long an acceptance check may run in the review before it stops.",
+    e_sprachpruefung: "Type check", e_sprachpruefung_h: "Whether the review before the merge checks the code with Pyright.", e_sprachpruefung_auto: "automatically, if set up", e_sprachpruefung_pyright: "always", e_sprachpruefung_aus: "off", e_limit_halt_pc: "Stop at weekly limit, all projects (%)",
+    rh_rechner: "Computer: {x}",
   },
 };
 let sprache = "de", spracheGewaehlt = false;      /* gewählt = im Browser gemerkt oder per Adresse – dann gilt die Vorgabe der Installation nicht */
@@ -6549,7 +6573,7 @@ function rechnerHeute(d) {
   const heute = r.tage.find(x => ms(x.tag + "T12:00:00") >= tagVon && ms(x.tag + "T12:00:00") < tagBis), n = lief.length;
   const leer = !n && !wartet.length && !dauer.length;
   return el("details", { class: "rh", id: "rechner-heute", open: zustand.rhAuf ? "" : null, ontoggle: e => { zustand.rhAuf = e.target.open; } },   /* eingeklappt, bis du es öffnest (A1639) */
-    el("summary", {}, el("b", {}, t("rh_titel")), el("span", {}, r.rechner || ""),
+    el("summary", {}, el("b", {}, t("rh_titel")), el("span", { class: "rh-rechner" }, r.mehrere_rechner && r.rechner ? t("rh_rechner", { x: r.rechner }) : ""),   /* A2196 */
       el("span", {}, leer ? t("rh_leer") : [n ? t(n === 1 ? "rh_summe1" : "rh_summe", { n, h: zahlKurz(heute?.stunden || 0) }) : null,
         wartet.length ? t(wartet.length === 1 ? "rh_warten1" : "rh_warten", { n: wartet.length }) : null].filter(Boolean).join(" · "))),
     leer ? null : el("div", { class: "rh-achse" }, ticks.map(m => el("span", { style: `left:${pos(m)}` }, uhr(m)))),
@@ -7654,15 +7678,23 @@ async function sichtEinstellungen() {
     entwickler_name: text(d.projekt.entwickler_name || ""),
     dateien_online: el("select", {}, ["wunsch", "bilder", "alle"].map(w => el("option", { value: w }, t("e_dateien_" + w)))) };
   pf.dateien_online.value = d.projekt.dateien_online || "wunsch";
-  for (const [k, werte] of [["spec_vorlegen", ["lead", "alle"]], ["spec_frei", ["entwickler", "lead"]], ["abnahme_kette", ["aus", "an"]], ["versionen", ["empfohlen", "pflicht", "aus"]], ["pruefstufen", ["aus", "an"]],
-                            ["release_takt", ["aus", "sofort", "taeglich", "meilenstein"]], ["plan_automatik", ["an", "aus"]], ["neue_aufgaben", ["meilenstein", "eingang"]], ["meilenstein_fertig", ["vorschlag", "automatisch"]],
-                            ["merge_blick", ["server", "alle", "aus"]], ["merge_aussen_pruefung", ["an", "aus"]]]) {
-    pf[k] = el("select", {}, werte.map(w => el("option", { value: w }, t(`e_${k}_${w}`)))); pf[k].value = d.projekt[k] || werte[0]; }
+  /* A2184 (D2099, W2498): spec_*, pruefstufen und release_takt/-zeit stehen nicht mehr hier (gespeicherte Werte bleiben); dazu, was das
+     Konzept vorsieht – Verteilen, Veröffentlichen, Bündel ohne Agent, die vier Freigaben, Sprachprüfung */
+  for (const [k, werte] of [["abnahme_kette", ["aus", "an"]], ["versionen", ["empfohlen", "pflicht", "aus"]],
+                            ["plan_automatik", ["an", "aus"]], ["neue_aufgaben", ["meilenstein", "eingang"]], ["meilenstein_fertig", ["vorschlag", "automatisch"]],
+                            ["merge_blick", ["server", "alle", "aus"]], ["merge_aussen_pruefung", ["an", "aus"]],
+                            ["verteilen", ["vorschlag", "an", "aus"]], ["veroeffentlichen", ["meilenstein", "sofort"]], ["buendel_ausliefern", ["aus", "an"]],
+                            ["thema_freigabe", ["mensch", "co+lead"]], ["grobplan_freigabe", ["mensch", "co+lead"]], ["feinplan_freigabe", ["mensch", "co+lead"]],
+                            ["abschluss_freigabe", ["mensch", "co+lead"]], ["sprachpruefung", ["auto", "pyright", "aus"]]]) {
+    pf[k] = el("select", {}, werte.map(w => el("option", { value: w }, t(`e_${k}_${w.replace("+", "")}`)))); pf[k].value = d.projekt[k] || werte[0]; }   /* Textschlüssel ohne „+“ */
   pf.info_ablage_h = zahl(d.projekt.info_ablage_h, 1, 168);
   pf.limit_halt = zahl(d.projekt.limit_halt, 1, 100);                 /* A1888: Halt beim Wochenlimit; A1925: leer = Wert des PCs */
-  pf.release_zeit = el("input", { type: "time", value: d.projekt.release_zeit || "18:00" });     /* Release-Takt täglich (A1656) */
-  const zeitZeigen = () => { pf.release_zeit.style.display = pf.release_takt.value === "taeglich" ? "" : "none"; };
-  pf.release_takt.addEventListener("change", zeitZeigen); zeitZeigen();
+  for (const [k, lo, hi, s] of [["buendel_n", 1, 50], ["buendel_x_h", 0.25, 168, 0.25], ["planer_tagesgrenze_usd", 0, 1000, 0.5], ["ausfall_min", 5, 1440],
+                                ["ruhe_min", 15, 1440], ["eskalation_min", 0, 1440], ["fragen_takt_h", 0, 24], ["fragen_frist_h", 1, 168], ["abnahme_frist_min", 1, 720]])
+    pf[k] = zahl(d.projekt[k], lo, hi, s);                                                        /* A2184 */
+  /* A2184: Abnahme-Kette und Merge-Dienst sind alt – solange Bündel ohne Agent ausliefern an ist, gelten sie nicht und sind gesperrt */
+  const altGesperrt = d.projekt.buendel_ausliefern === "an";
+  const alt = k => [t("e_" + k), " ", el("span", { class: "e-alt", title: t("e_alt_h") }, t("e_alt"))];
   const EMPF_WERTE = ["haiku", "sonnet", "opus", "fable"].flatMap(m => ["low", "medium", "high", "xhigh", "max"].map(s => `${m}/${s}`));
   const empfWahl = {};
   const empfTabelle = el("table", { class: "empf-tabelle" }, el("tr", {}, el("th", {}, t("e_empf_art")), ["S", "M", "L", "XL"].map(g => el("th", {}, g))),
@@ -7711,9 +7743,12 @@ async function sichtEinstellungen() {
   const projektWerte = () => ({ takt_min: wert(pf.takt_min), speicher_grenze_gb: wert(pf.speicher_grenze_gb),
       stillstand_min: wert(pf.stillstand_min), lauf_ohne_angabe_min: wert(pf.lauf_ohne_angabe_min),
       entwickler_name: pf.entwickler_name.value.trim(), dateien_online: pf.dateien_online.value, farbe: pf.farbe.value,
-      spec_vorlegen: pf.spec_vorlegen.value, spec_frei: pf.spec_frei.value,
       info_ablage_h: wert(pf.info_ablage_h), limit_halt: wert(pf.limit_halt), abnahme_kette: pf.abnahme_kette.value, merge_dienst: pf.merge_dienst.value,
-      pruefstufen: pf.pruefstufen.value, release_takt: pf.release_takt.value, release_zeit: pf.release_zeit.value, plan_automatik: pf.plan_automatik.value, neue_aufgaben: pf.neue_aufgaben.value, meilenstein_fertig: pf.meilenstein_fertig.value,
+      plan_automatik: pf.plan_automatik.value, neue_aufgaben: pf.neue_aufgaben.value, meilenstein_fertig: pf.meilenstein_fertig.value,
+      ...Object.fromEntries(["verteilen", "veroeffentlichen", "buendel_ausliefern", "thema_freigabe", "grobplan_freigabe", "feinplan_freigabe", "abschluss_freigabe",
+        "sprachpruefung"].map(k => [k, pf[k].value])),
+      ...Object.fromEntries(["buendel_n", "buendel_x_h", "planer_tagesgrenze_usd", "ausfall_min", "ruhe_min", "eskalation_min", "fragen_takt_h", "fragen_frist_h",
+        "abnahme_frist_min"].map(k => [k, wert(pf[k])])),
       versionen: pf.versionen.value, version_frist_tage: wert(pf.version_frist_tage),
       merge_blick: pf.merge_blick.value, merge_aussen_pruefung: pf.merge_aussen_pruefung.value, ende_frist_min: wert(pf.ende_frist_min),
       schwere_befehle: schwereBefehle(),
@@ -7730,27 +7765,38 @@ async function sichtEinstellungen() {
      [t("e_plan_automatik"), el("div", {}, pf.plan_automatik, " ", hilfeKnopf("planung")), t("e_plan_automatik_h")],
      [t("e_neue_aufgaben"), el("div", {}, pf.neue_aufgaben, " ", hilfeKnopf("planung")), t("e_neue_aufgaben_h")],
      [t("e_schwer"), el("div", {}, pf.schwere_befehle, hilfeKnopf("schwere-laeufe")), t("e_schwer_h")],
+     [t("e_verteilen"), pf.verteilen, t("e_verteilen_h")],
+     [t("e_ausfall"), pf.ausfall_min, t("e_ausfall_h")], [t("e_ruhe"), pf.ruhe_min, t("e_ruhe_h")],
+     [t("e_eskalation"), pf.eskalation_min, t("e_eskalation_h")],
+     [t("e_fragen_takt"), pf.fragen_takt_h, t("e_fragen_takt_h")], [t("e_fragen_frist"), pf.fragen_frist_h, t("e_fragen_frist_h")],
      ...(API || !d.mcp ? [] : [[t("e_mcp"), mcpFeld(d.mcp), t("e_mcp_h")]])],
     "projekt", nur(["entwickler_name", "farbe", "dateien_online", "takt_min", "speicher_grenze_gb", "stillstand_min", "lauf_ohne_angabe_min",
-                    "ende_frist_min", "info_ablage_h", "plan_automatik", "neue_aufgaben", "schwere_befehle"]));
+                    "ende_frist_min", "info_ablage_h", "plan_automatik", "neue_aufgaben", "schwere_befehle", "verteilen", "ausfall_min", "ruhe_min",
+                    "eskalation_min", "fragen_takt_h", "fragen_frist_h"]));
   const freigabenKarte = block([t("eg_freigaben"), " ", wirkt("projekt")], null,
-    [[t("e_spec_vorlegen"), pf.spec_vorlegen, t("e_spec_vorlegen_h")], [t("e_spec_frei"), pf.spec_frei, t("e_spec_frei_h")],
-     [t("e_abnahme_kette"), pf.abnahme_kette, t("e_abnahme_kette_h")],
+    [[t("e_thema_freigabe"), pf.thema_freigabe, t("e_thema_freigabe_h")], [t("e_grobplan_freigabe"), pf.grobplan_freigabe, t("e_grobplan_freigabe_h")],
+     [t("e_feinplan_freigabe"), pf.feinplan_freigabe, t("e_feinplan_freigabe_h")], [t("e_abschluss_freigabe"), pf.abschluss_freigabe, t("e_abschluss_freigabe_h")],
      [t("e_meilenstein_fertig"), el("div", {}, pf.meilenstein_fertig, " ", hilfeKnopf("planung")), t("e_meilenstein_fertig_h")],
-     [t("e_pruefstufen"), el("div", {}, pf.pruefstufen, " ", hilfeKnopf("release-takt")), t("e_pruefstufen_h")],
-     [t("e_merge_dienst"), pf.merge_dienst, t("e_merge_dienst_h")],
+     [alt("abnahme_kette"), pf.abnahme_kette, altGesperrt ? t("e_alt_gesperrt") : t("e_abnahme_kette_h")],
+     [alt("merge_dienst"), pf.merge_dienst, altGesperrt ? t("e_alt_gesperrt") : t("e_merge_dienst_h")],
      [t("e_merge_blick"), el("div", {}, pf.merge_blick, " ", hilfeKnopf("p-pakete")), t("e_merge_blick_h")],
      [t("e_merge_aussen_pruefung"), el("div", {}, pf.merge_aussen_pruefung, " ", hilfeKnopf("p-pakete")), t("e_merge_aussen_pruefung_h")]],
-    "projekt", nur(["spec_vorlegen", "spec_frei", "abnahme_kette", "meilenstein_fertig", "pruefstufen", "merge_dienst", "merge_blick", "merge_aussen_pruefung"]));
+    "projekt", nur(["thema_freigabe", "grobplan_freigabe", "feinplan_freigabe", "abschluss_freigabe", "meilenstein_fertig", "merge_blick", "merge_aussen_pruefung",
+                    ...(altGesperrt ? [] : ["abnahme_kette", "merge_dienst"])]));
+  if (altGesperrt) { pf.abnahme_kette.disabled = true; pf.merge_dienst.disabled = true; }
   const auslieferungKarte = block([t("eg_auslieferung"), " ", wirkt("projekt")], null,
-    [[t("e_release_takt"), el("div", { style: "display:flex;gap:8px;align-items:center;flex-wrap:wrap" }, pf.release_takt, pf.release_zeit), t("e_release_takt_h")],
+    [[t("e_buendel_ausliefern"), pf.buendel_ausliefern, t("e_buendel_ausliefern_h")],
+     [t("e_buendel_n"), pf.buendel_n, t("e_buendel_n_h")], [t("e_buendel_x_h"), pf.buendel_x_h, t("e_buendel_x_h_h")],
+     [t("e_veroeffentlichen"), pf.veroeffentlichen, t("e_veroeffentlichen_h")],
      [t("e_versionen"), el("div", {}, pf.versionen, " ", hilfeKnopf("versionen")), t("e_versionen_h")],
-     mitMeta("projekt", "version_frist_tage", t("e_version_frist"), pf.version_frist_tage, t("e_version_frist_h"))],
-    "projekt", nur(["release_takt", "release_zeit", "versionen", "version_frist_tage"]));
+     mitMeta("projekt", "version_frist_tage", t("e_version_frist"), pf.version_frist_tage, t("e_version_frist_h")),
+     [t("e_abnahme_frist"), pf.abnahme_frist_min, t("e_abnahme_frist_h")], [t("e_sprachpruefung"), pf.sprachpruefung, t("e_sprachpruefung_h")]],
+    "projekt", nur(["buendel_ausliefern", "buendel_n", "buendel_x_h", "veroeffentlichen", "versionen", "version_frist_tage", "abnahme_frist_min", "sprachpruefung"]));
   const modelleKarte = block([t("eg_modelle"), " ", wirkt("projekt")], null,
     [[t("e_empfehlung"), el("div", { style: "overflow-x:auto" }, empfTabelle, hilfeKnopf("agenten")), t("e_empfehlung_h")],
+     [t("e_planer_grenze"), pf.planer_tagesgrenze_usd, t("e_planer_grenze_h")],
      [t("e_limit_halt"), pf.limit_halt, t("e_limit_halt_h")]],
-    "projekt", nur(["empfehlung", "limit_halt"]));
+    "projekt", nur(["empfehlung", "planer_tagesgrenze_usd", "limit_halt"]));
 
   const p = d.pc;
 
@@ -7810,7 +7856,8 @@ async function sichtEinstellungen() {
     fernsitzung_prozess: text(p.fernsitzung_prozess || ""),
     schirm_zu_eingabe: schalter(p.schirm_zu_eingabe ?? true), schirm_zu_fernsitzung: schalter(p.schirm_zu_fernsitzung ?? true),
     schirm_zu_workbench: schalter(p.schirm_zu_workbench ?? true),
-    sprache: wahl([["auto", t("e_sprache_auto")], ["de", "Deutsch"], ["en", "English"]], p.sprache || "auto"), claude_link: schalter(p.claude_link ?? true) };
+    sprache: wahl([["auto", t("e_sprache_auto")], ["de", "Deutsch"], ["en", "English"]], p.sprache || "auto"), claude_link: schalter(p.claude_link ?? true),
+    limit_halt: zahl(p.limit_halt ?? 95, 0, 100), plaetze_pc: zahl(p.plaetze_pc ?? 0, 0, 64), projekt_rang: text((p.projekt_rang || []).join(", ")) };   /* A2184 */
   pc.fernsitzung_prozess.placeholder = t("e_fern_ph");
   pc.heimnetz.placeholder = t("e_heimnetz_ph");
   /* Vorrang der Projekte (A1623): je Projekt dieses PCs eine Auswahl; gespeichert wird nur, was nicht „normal“ ist */
@@ -7823,6 +7870,8 @@ async function sichtEinstellungen() {
   const pcStart = pcWerte();
   const pcKarte = block([t("e_pc"), " ", wirkt("pc")], API ? t("nur_pc") : t("e_pc_h"), [
     pcFeld("rechner", t("e_rechner"), t("e_rechner_h")), pcFeld("sprache", t("e_sprache"), t("e_sprache_h")), pcFeld("claude_link", t("e_claude_link"), t("e_claude_link_h")),
+    pcFeld("limit_halt", t("e_limit_halt_pc"), t("e_limit_halt_pc_h")), pcFeld("plaetze_pc", t("e_plaetze_pc"), t("e_plaetze_pc_h")),
+    pcFeld("projekt_rang", t("e_projekt_rang"), t("e_projekt_rang_h")),
     pcFeld("db_pfad", t("e_db")), pcFeld("port", t("e_port")), pcFeld("heimnetz", t("e_heimnetz"), t("e_heimnetz_h")), pcFeld("cpu_laeufe", t("e_cpu"), t("e_cpu_h")), pcFeld("leichte_laeufe", t("e_leicht"), t("e_leicht_h")), [t("e_vorrang"), pc.vorrang, t("e_vorrang_h")], pcFeld("vorrang_aufruecken_min", t("e_vr_auf"), t("e_vr_auf_h")), pcFeld("vorrang_platz_freihalten", t("e_vr_platz"), t("e_vr_platz_h")), pcFeld("speicher_reserve_gb", t("e_reserve"), t("e_reserve_h")), pcFeld("dauer_ab_gb", t("e_dauer"), t("e_dauer_h")), pcFeld("platte_gelb_prozent", t("e_platte_gelb"), t("e_platte_h")), pcFeld("platte_rot_prozent", t("e_platte_rot")), pcFeld("sicherungen_behalten", t("e_sich"), t("e_sich_h")), pcFeld("archiv_ordner", t("e_archiv"), t("e_archiv_h")), pcFeld("lauf_hook", t("e_laufhook"), t("e_laufhook_h")), pcFeld("produkt_entwickler", t("e_kanal"), t("e_kanal_h")),
     pcFeld("ki_fenster", t("e_kifenster"), t("e_kifenster_h")), pcFeld("ki_leerlauf_min", t("e_ki_leerlauf"), t("e_ki_leerlauf_h")), pcFeld("ki_immer_an", t("e_ki_immer"), t("e_ki_immer_h")), pcFeld("aufsicht_s", t("e_aufsicht")), pcFeld("bruecke_an", t("e_bruecke")),
     pcFeld("bruecke_absender", t("e_absender")), pcFeld("bruecke_lesekopie", t("e_lesekopie"), t("e_lesekopie_h")), pcFeld("bruecke_kopie_s", t("e_kopie")), pcFeld("fernsitzung_prozess", t("e_fern"), t("e_fern_h")),
